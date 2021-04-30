@@ -1,0 +1,310 @@
+body {
+  font-family: Roboto;
+  margin: 0;
+  background-color: #FED;
+}
+
+h1 {
+  color: #09F;
+  margin: 16px 0;
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+form div {
+  margin: 8px 0;
+}
+
+input[type="submit"] {
+  background-color: #09F;
+  display: inline-block;
+  padding: 0.3em 1.2em;
+  margin: 0 0.1em 0.1em 0;
+  border: 0.16em solid #FFF0;
+  border-radius: 2em;
+  box-sizing: border-box;
+  text-decoration: none;
+  font-weight: bold;
+  color: #FFF;
+  text-shadow: 0 0.04em 0.04em #0006;
+  text-align: center;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+input[type="submit"]:hover {
+  border-color: #FFF;
+}
+
+input[type="submit"]:active {
+  background-color: #0CF;
+}
+
+select {
+	border: 1px solid #aaa;
+	box-shadow: 0 1px 0 1px #0001;
+	border-radius: 0;
+	-moz-appearance: none;
+	-webkit-appearance: none;
+  font-weight: bold;
+  color: #FFF;
+  text-shadow: 0 0.04em 0.04em #0006;
+  padding: 4px 24px 4px 4px;
+	background-color: #09F;
+	background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+	background-repeat: no-repeat, repeat;
+	background-position: right .7em top 50%, 0 0;
+	background-size: .65em auto, 100%;
+  outline: none;
+}
+
+select:hover {
+	border-color: #888;
+}
+
+select:focus {
+	border-color: #aaa;
+	box-shadow: 0 0 1px 3px #0006;
+	box-shadow: 0 0 0 3px -moz-mac-focusring;
+	color: #222;
+}
+
+select option {
+}
+
+#outer {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.victory {
+  position: absolute;
+  padding-top: 15%;
+  width: 100%;
+}
+
+.victory svg text {
+  stroke: #000;
+  stroke-width: 0.7;
+}
+
+.p1Victory svg text {
+  fill: #F00;
+}
+
+.p2Victory svg text {
+  fill: #00F;
+}
+
+#inner {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  height: 60vw;
+  position: relative;
+}
+
+@media all and (min-aspect-ratio: 5/3) {
+  #inner {
+     width: 166.666vh;
+     height: 100vh;
+  }
+
+  #outer {
+    flex-direction: row;
+  }
+}
+
+#game {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+#p1Hand {
+	background-color: #F001;
+  width: 20%;
+}
+
+#p2Hand {
+	background-color: #00F1;
+  width: 20%;
+}
+
+#board {
+  display: flex;
+  flex-direction: column;
+  width: 60%;
+}
+
+.row {
+  display: flex;
+  height: 20%;
+}
+
+.cell {
+  width: 20%;
+  position: relative;
+}
+
+.odd {
+	background-color: #0002;
+}
+
+.even {
+	background-color: #0001;
+}
+
+.p1Home {
+	background-color: #F003;
+}
+
+.p2Home {
+	background-color: #00F3;
+}
+
+.p1Pawn {
+  width: 50%;
+  height: 50%;
+  margin: 25%;
+  border-radius: 50%;
+  background-color: #F33;
+}
+
+.p1Master {
+  width: 80%;
+  height: 80%;
+  margin: 10%;
+  border-radius: 30%;
+  background-color: #F33;
+}
+
+.p2Pawn {
+  width: 50%;
+  height: 50%;
+  margin: 25%;
+  border-radius: 50%;
+  background-color: #33F;
+}
+
+.p2Master {
+  width: 80%;
+  height: 80%;
+  margin: 10%;
+  border-radius: 30%;
+  background-color: #33F;
+}
+
+.card {
+  width: 100%;
+  height: 33.333%;
+  text-align: center;
+  font-size: 2em;
+  line-height: 2em;
+}
+
+.cardWrap {
+}
+
+.cardWrap svg {
+  height: 20%;
+}
+
+.cardMoves {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 70%;
+  width: 87.5%;
+  padding: 5%;
+}
+
+.cardMovesRow {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 20%;
+}
+
+.cardMove {
+  width: 16%;
+  height: 100%;
+}
+
+.cardMoveEmpty {
+}
+
+.cardMoveDest {
+  background-color: #999;
+}
+
+.cardMoveSrc {
+  background-color: #000;
+}
+
+.cardColorNone svg text {
+  fill: #000;
+}
+
+.cardColorRed svg text {
+  fill: #B00;
+}
+
+.cardColorBlue svg text {
+  fill: #00B;
+}
+
+.cardColorRed .cardMoveDest {
+  background-color: #B77;
+}
+
+.cardColorBlue .cardMoveDest {
+  background-color: #77B;
+}
+
+.card.hoverable:hover .cardWrap {
+  background-color: #FFF8;
+}
+
+.card.selected, .cell.selected {
+  background-color: #6E6;
+}
+
+.piece {
+  position: absolute;
+}
+
+.cell.hoverable:hover .piece {
+  background-color: #FFF;
+}
+
+#p1Card3, #p2Card3 {
+  opacity: 20%;
+}
+
+.moveDest {
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  margin: 35%;
+  border-radius: 50%;
+  background-color: #CFC;
+}
+
+.cell:hover .moveDest {
+  width: 50%;
+  height: 50%;
+  margin: 25%;
+  background-color: #FFF;
+}
