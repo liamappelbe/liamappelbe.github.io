@@ -5,6 +5,7 @@ let domImage = null;
 let domSize = null;
 let domWide = null;
 let domClamp = null;
+let domInvis = null;
 let domDither = null;
 let domInputView = null;
 let domOutputView = null;
@@ -20,6 +21,7 @@ function onLoad() {
   domSize = document.getElementById("size");
   domWide = document.getElementById("wide");
   domClamp = document.getElementById("clamp");
+  domInvis = document.getElementById("invis");
   domDither = document.getElementById("dither");
   domInputView = document.getElementById("input_view");
   domOutputView = document.getElementById("output_view");
@@ -62,9 +64,12 @@ function copyNotes() {
   if (outputNotes != null) navigator.clipboard.writeText(outputNotes);
 }
 
+const kNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
 function onChange() {
   if (inputFile == null) return;
   const wide = domWide.checked;
+  const noteLen = domInvis.checked ? " 0.000001 " : wide ? " 1 " : " 2 ";
   const small = domSize.value == "small";
   const base = small ? 3 * 12 + 5 /*F3*/ : 2 * 12 + 8 /*G#2*/;
   const height = small ? 32 : 50;
@@ -82,7 +87,11 @@ function onChange() {
     ctxBuffer.drawImage(image, 0, 0, width, height);
     const notes = [];
     const out = run(ctxBuffer.getImageData(0, 0, width, height), clamp, dither,
-                    wide, base, notes);
+                    function(i, j, k) {
+      const n = height - 1 - j + base;
+      const s = kNote[n % 12] + Math.floor(n / 12);
+      notes.push((wide ? i : 2 * i) + " " + s + noteLen + k + " 0");
+    });
     ctxBuffer.putImageData(out, 0, 0);
     ctxOutput.drawImage(
         domBufferView, 0, 0, domOutputView.width, domOutputView.height);
@@ -121,6 +130,15 @@ class Color {
 
 function hexColor(red, green, blue) {
   return new Color(red / 0xFF, green / 0xFF, blue / 0xFF);
+}
+
+function pixIndex(w, h, i, j) { return j * w + i; }
+function ditherPixel(a, w, h, i, j, e, x, clamp) {
+  if (i >= 0 && i < w && j >= 0 && j < h) {
+    const k = pixIndex(w, h, i, j);
+    const c = a[k].mulAdd(e, x);
+    a[k] = clamp ? c.clamp() : c;
+  }
 }
 
 const kColors = [
@@ -168,21 +186,7 @@ const kColors = [
   hexColor(0x03, 0xA9, 0xF4),
 ];
 
-function pixIndex(w, h, i, j) { return j * w + i; }
-function ditherPixel(a, w, h, i, j, e, x, clamp) {
-  if (i >= 0 && i < w && j >= 0 && j < h) {
-    const k = pixIndex(w, h, i, j);
-    const c = a[k].mulAdd(e, x);
-    a[k] = clamp ? c.clamp() : c;
-  }
-}
-
-const kNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-function note(i, j, k) {
-  return i + " " + kNote[j % 12] + Math.floor(j / 12) + " 1 " + k + " 0";
-}
-
-function run(img, clamp, dither, wide, base, notes) {
+function run(img, clamp, dither, addNote) {
   const w = img.width;
   const h = img.height;
   let a = [];
@@ -209,7 +213,7 @@ function run(img, clamp, dither, wide, base, notes) {
       ditherPixel(a, w, h, i - 1, j + 1, e, dither * 3 / 16.0, clamp)
       ditherPixel(a, w, h, i, j + 1, e, dither * 5 / 16.0, clamp)
       ditherPixel(a, w, h, i + 1, j + 1, e, dither * 1 / 16.0, clamp)
-      notes.push(note(wide ? i : 2 * i, h - 1 - j + base, mk))
+      addNote(i, j, mk);
     }
   }
   outData = new Uint8ClampedArray(4 * b.length);
@@ -290,6 +294,9 @@ canvas {
   <br/><br/>
   <input type="checkbox" id="clamp" checked onchange="onChange()"/>
   <label for="clamp">Clamp dithered colors</label>
+  <br/><br/>
+  <input type="checkbox" id="invis" onchange="onChange()"/>
+  <label for="invis">Use invisible notes</label>
   <br/><br/>
   <label for="dither">Dither factor</label>
   <input type="range" id="dither" min="0" max="2" value="1" step="0.1"
