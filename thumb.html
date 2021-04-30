@@ -1,6 +1,13 @@
 <html>
 <head>
 <script>
+// TODO:
+//  - Playlist thumbnails (2x2, so need 4 copy buttons).
+//  - Hide clamping and the following options in an advanced section.
+//  - Configurable dither direction.
+//  - Configurable clamping limits.
+//  - Tweakable colors (by default, just fix the white issue).
+
 let domImage = null;
 let domSize = null;
 let domWide = null;
@@ -49,13 +56,20 @@ function onFile() { setInputFile(domImage.files); }
 function onDragOver(e) { e.preventDefault(); }
 function onDrop(e) {
   e.preventDefault();
+  setInputFileFromDataTransfer(e.dataTransfer);
+}
+function onPaste(e) {
+  e.preventDefault();
+  setInputFileFromDataTransfer(e.clipboardData);
+}
+function setInputFileFromDataTransfer(dt) {
   let files = [];
-  if (e.dataTransfer.items) {
-    for (const item of e.dataTransfer.items) {
+  if (dt.items) {
+    for (const item of dt.items) {
       if (item.kind == "file") files.push(item.getAsFile());
     }
   } else {
-    files = e.dataTransfer.files;
+    files = dt.files;
   }
   setInputFile(files);
 }
@@ -274,7 +288,8 @@ canvas {
 }
 </style>
 </head>
-<body ondrop="onDrop(event)" ondragover="onDragOver(event)">
+<body ondrop="onDrop(event)" ondragover="onDragOver(event)"
+    onpaste="onPaste(event)">
 <h1>OS Thumbnail Generator</h1>
 <div id="wrap">
   <label id="image_label">
