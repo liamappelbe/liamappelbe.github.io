@@ -1,0 +1,125 @@
+<html>
+<head>
+<script>
+const kPre = [
+  ["\n", "\n"],
+  [/\s/, " "],
+];
+
+const kWord = [
+  ["ai", "I"],
+  ["en", "and"],
+  ["agen", "again"],
+  ["nau", "now"],
+];
+
+const kLetter = [
+  ["M", "u"],
+  ["dZ", "j"],
+  ["dZ", "th"],
+  ["4", "r"],
+  ["4", "l"],
+  ["C", "h"],
+  ["p\\", "f"],
+  ["S", "sh"],
+  ["S", "ss"],
+  ["b", "b"],
+  ["b", "v"],
+];
+
+function walk(a, f, q) {
+  if (!Array.isArray(a)) return f(a);
+  console.assert(a.length > 0);
+  let n = a.length - 1;
+  let s = a[n];
+  if (n == 0) ++n;
+  for (let i = 0; i < n; ++i) {
+    if (q && i) f(s);
+    a[i] = walk(a[i], f, q);
+  }
+  return a;
+}
+
+function flatten(a) {
+  let b = [];
+  walk(a, function(x) { b.push(x); return x; }, true);
+  return b;
+}
+
+function apply(k, v, a) {
+  walk(a, function(x) {
+    let b = x.split(k);
+    if (b.length == 1) return x;
+    b.push(v);
+    return b;
+  });
+}
+
+function code(msg, map) {
+  let a = [msg];
+  for (let i = 0; i < map.length; ++i) apply(map[i][0], map[i][1], a);
+  return flatten(a);
+}
+
+function build(f) {
+  let m = [];
+  for (let x of kPre) m.push(x);
+  for (let x of kWord) {
+    let y = f(x);
+    m.push([new RegExp("^" + y[0] + "$"), y[1]]);
+  }
+  for (let x of kLetter) m.push(f(x));
+  return m;
+}
+
+function fill(out, values, f) {
+  if (out.firstChild) out.removeChild(out.firstChild);
+  let wrap = document.createElement("div");
+  for (let i = 0; i < values.length; ++i) {
+    let chunk = document.createElement("span");
+    chunk.classList.add(i % 2 ? "known" : "unknown");
+    chunk.innerText = values[i];
+    wrap.appendChild(chunk);
+  }
+  out.appendChild(wrap);
+}
+
+function setup() {
+  for (let k of [["d", build(x => x)], ["e", build(x => [x[1], x[0]])]]) {
+    let i = document.getElementById("in" + k[0]);
+    let o = document.getElementById("out" + k[0]);
+    let f = function() { fill(o, code(i.value, k[1])); };
+    i.addEventListener("change", f);
+    i.addEventListener("keyup", f);
+    i.addEventListener("paste", f);
+    f();
+  }
+}
+window.addEventListener("load", setup);
+</script>
+<style>
+body {display: flex}
+body div {flex-grow: 1}
+body .pad {flex-grow: 0.1}
+h1 {text-align: center;}
+textarea {width: 100%}
+.known {background-color: #09F8}
+.unknown {background-color: #F308}
+</style>
+</head>
+<body>
+<div>
+  <h1>Encode</h1>
+  <textarea id="ine" rows="10"></textarea>
+  <p></p>
+  <div id="oute"></div>
+</div>
+<div class="pad"></div>
+<div>
+  <h1>Decode</h1>
+  <textarea id="ind" rows="10"></textarea>
+  <p></p>
+  <div id="outd"></div>
+</div>
+</body>
+</html>
