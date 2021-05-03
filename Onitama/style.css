@@ -10,6 +10,11 @@ h1 {
   text-align: center;
 }
 
+.info {
+  width: 380px;
+  margin: auto;
+}
+
 form {
   display: flex;
   flex-direction: column;
