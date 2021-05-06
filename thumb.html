@@ -40,7 +40,6 @@ function onLoad() {
   domBufferView = document.createElement("canvas");
   ctxBuffer = domBufferView.getContext("2d");
 }
-window.addEventListener("load", onLoad);
 
 function setInputFile(files) {
   for (const file of files) {
@@ -240,6 +239,63 @@ function run(img, clamp, dither, addNote) {
   return new ImageData(outData, w, h);
 }
 
+kBody = (
+'<label id="image_label">\n' +
+'  <input type="file" id="image" accept="image/*" onchange="onFile()">\n' +
+'  <a>Choose a file</a>\n' +
+'</label>\n' +
+'or drag and drop it\n' +
+'<br/><br/>\n' +
+'<label for="size">Size:</label>\n' +
+'<select id="size" onchange="onChange()">\n' +
+'  <option value="small">Small</option>\n' +
+'  <option value="normal" selected>Normal</option>\n' +
+'</select>\n' +
+'<br/><br/>\n' +
+'<input type="checkbox" id="wide" checked onchange="onChange()"/>\n' +
+'<label for="wide">Double horizontal resolution</label>\n' +
+'<br/><br/>\n' +
+'<input type="checkbox" id="clamp" checked onchange="onChange()"/>\n' +
+'<label for="clamp">Clamp dithered colors</label>\n' +
+'<br/><br/>\n' +
+'<input type="checkbox" id="invis" onchange="onChange()"/>\n' +
+'<label for="invis">Use invisible notes</label>\n' +
+'<br/><br/>\n' +
+'<label for="dither">Dither factor</label>\n' +
+'<input type="range" id="dither" min="0" max="2" value="1" step="0.1"\n' +
+'    onchange="onChange()"/>\n' +
+'<br/><br/>\n' +
+'<div id="views">\n' +
+'  <span>\n' +
+'    <div class="view_label">Input</div>\n' +
+'    <canvas id="input_view"></canvas>\n' +
+'  </span>\n' +
+'  <span>\n' +
+'    <div class="view_label">Output</div>\n' +
+'    <canvas id="output_view"></canvas>\n' +
+'  </span>\n' +
+'</div>\n' +
+'<br/><br/>\n' +
+'<a onclick="copyNotes()">Copy to clipboard</a>\n' +
+'')
+
+function hash(str) {
+  var h = 0x811c9dc5;
+  for (var i = 0; i < str.length; ++i) {
+    h ^= str.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+  return h >>> 0;
+}
+
+function checkPassword(e) {
+  let domPassword = document.getElementById("password");
+  if (e.keyCode == 13 && hash(domPassword.value) == 0x6935ffe5) {
+    document.getElementById("wrap").innerHTML = kBody;
+    onLoad();
+  }
+}
+
 </script>
 <style>
 body {
@@ -286,49 +342,19 @@ canvas {
   width: 100%;
   text-align: center;
 }
+#password, #inner {
+  width: 400px;
+  margin: auto;
+}
 </style>
 </head>
 <body ondrop="onDrop(event)" ondragover="onDragOver(event)"
     onpaste="onPaste(event)">
 <h1>OS Thumbnail Generator</h1>
 <div id="wrap">
-  <label id="image_label">
-    <input type="file" id="image" accept="image/*" onchange="onFile()">
-    <a>Choose a file</a>
-  </label>
-  or drag and drop it
-  <br/><br/>
-  <label for="size">Size:</label>
-  <select id="size" onchange="onChange()">
-    <option value="small">Small</option>
-    <option value="normal" selected>Normal</option>
-  </select>
-  <br/><br/>
-  <input type="checkbox" id="wide" checked onchange="onChange()"/>
-  <label for="wide">Double horizontal resolution</label>
-  <br/><br/>
-  <input type="checkbox" id="clamp" checked onchange="onChange()"/>
-  <label for="clamp">Clamp dithered colors</label>
-  <br/><br/>
-  <input type="checkbox" id="invis" onchange="onChange()"/>
-  <label for="invis">Use invisible notes</label>
-  <br/><br/>
-  <label for="dither">Dither factor</label>
-  <input type="range" id="dither" min="0" max="2" value="1" step="0.1"
-      onchange="onChange()"/>
-  <br/><br/>
-  <div id="views">
-    <span>
-      <div class="view_label">Input</div>
-      <canvas id="input_view"></canvas>
-    </span>
-    <span>
-      <div class="view_label">Output</div>
-      <canvas id="output_view"></canvas>
-    </span>
+  <div id="inner">
+    <input type="text" id="password" onkeypress="checkPassword(event)"/>
   </div>
-  <br/><br/>
-  <a onclick="copyNotes()">Copy to clipboard</a>
 </div>
 </body>
 </html>
