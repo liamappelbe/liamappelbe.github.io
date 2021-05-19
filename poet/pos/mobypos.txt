@@ -178242,7 +178242,6 @@ scythe\Nt
 Scythian\AN
 Scythia\N
 scything\V
-sc\h
 Sc\N
 SDA\N
 sd\N
@@ -222462,8 +222461,6 @@ unzip\V
 unzoned\t
 unzone\t
 unzoning\t
-Un\N
-un\r
 up-anchor\i
 up-and-coming\A
 up-and-down dial\h
