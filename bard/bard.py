@@ -19,7 +19,7 @@ kIgnoreSecondaryPoS = True
 
 kFreqDict = set()          # {most common kFreqDictSize words}
 kPos = OrderedDict()       # {word: [parts of speech]}
-kPro = []                  # [(word, num syls, [phonemes])}
+kPro = []                  # [(word, [phoneme strs], [phoneme ids])}
 kPhoIds = OrderedDict()    # {phoneme: id}
 kCadDict = OrderedDict()   # {part of speech: CadDictEntry(cad tree -> [words])}
 
@@ -174,13 +174,13 @@ with open(sys.argv[3], "r") as f:
         i = len(kPhoIds)
         kPhoIds[p] = i
       a2.append(kPhoIds[p])
-    kPro.append((word, syl, a, [p for p in reversed(a2)]))
+    kPro.append((word, a, [p for p in reversed(a2)]))
 
 
 ##################
 ### MERGE DATA ###
 ##################
-for word, syl, pro, rr in kPro:
+for word, pro, rr in kPro:
   if word not in kPos:
     continue
   for p in kPos[word]:
@@ -308,7 +308,16 @@ def genS(cadence, rhyme):
 ########################
 ### GENERATE RESULTS ###
 ########################
-for i in range(8):
-  s = genS(kTargetCadence, kTargetPhonemes)
-  print(' '.join(s) + '\n')
-print("Retry rate: %.1fx" % (fails / sucesses))
+# for i in range(8):
+#   s = genS(kTargetCadence, kTargetPhonemes)
+#   print(' '.join(s) + '\n')
+# print("Retry rate: %.1fx" % (fails / sucesses))
+
+
+########################
+### GENERATE JS DATA ###
+########################
+print("[%s]" % (",".join("[%r,%r,[%s]]" % (
+    word, kPos[word][0], ",".join(repr(p) for p in pro)
+  ) for word, pro, rr in kPro if word in kPos)))
+
