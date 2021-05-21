@@ -237,7 +237,7 @@ function genPos(n = 0) {
 function genS(pos, c, rr, ws) {
   for (let retry = 0; retry < 10; ++retry) {
     const nt = c.length - pos.length;
-    if (nt < 0) continue;
+    console.assert(nt >= 0);
     const syl = [];
     const a = [];
     for (let i = 0; i < pos.length; ++i) {
@@ -281,30 +281,43 @@ function gen(rhyme, cad) {
 
     for (let j = 0; j < rhyme.length; j += cad.length) {
       const je = Math.min(j + cad.length, rhyme.length) - j;
-      const pos = genPos();
-
-      if (pos.length < je || pos.length > tc) {
-        fail = true;
-        break;
-      }
-      const cadpos = [];
-      for (let i = 0; i < je; ++i) cadpos.push(1);
-      for (let i = 0; i < pos.length - je; ++i) {
-        const ii = randi(cadpos.length);
-        for (let ij = 0; ij < cadpos.length; ++ij) {
-          const iii = (ii + ij) % cadpos.length;
-          if (cadpos[iii] < cad[iii].length) {
-            cadpos[iii] += 1;
+      const splitcad = randb();
+      const poss = [];
+      console.log(splitcad);
+      if (splitcad) {
+        for (let i = 0; i < je; ++i) {
+          const pos = genPos();
+          if (pos.length > cad[i].length) {
+            fail = true;
             break;
           }
+          poss.push(pos);
         }
-      }
-      const poss = [];
-      let qi = 0;
-      for (const i of cadpos) {
-        const qj = qi + i;
-        poss.push(pos.slice(qi, qj));
-        qi = i;
+        if (fail) break;
+      } else {
+        const pos = genPos();
+        if (pos.length < je || pos.length > tc) {
+          fail = true;
+          break;
+        }
+        const cadpos = [];
+        for (let i = 0; i < je; ++i) cadpos.push(1);
+        for (let i = 0; i < pos.length - je; ++i) {
+          const ii = randi(cadpos.length);
+          for (let ij = 0; ij < cadpos.length; ++ij) {
+            const iii = (ii + ij) % cadpos.length;
+            if (cadpos[iii] < cad[iii].length) {
+              cadpos[iii] += 1;
+              break;
+            }
+          }
+        }
+        let qi = 0;
+        for (const i of cadpos) {
+          const qj = qi + i;
+          poss.push(pos.slice(qi, qj));
+          qi = i;
+        }
       }
 
       for (let dj = 0; dj < je; ++dj) {
@@ -321,13 +334,13 @@ function gen(rhyme, cad) {
         for (let i = 0; i < a.length; ++i) {
           let w = a[i].w;
           if (i === 0) {
-            if (dj == 0) w = w[0].toUpperCase() + w.slice(1);
+            if (splitcad || dj == 0) w = w[0].toUpperCase() + w.slice(1);
           } else {
             z += " ";
           }
           z += w;
         }
-        if (dj == je - 1) z += ".";
+        if (splitcad || dj == je - 1) z += ".";
         z += "\n";
         const rr2 = a[a.length - 1].ls;
         if (re.rr.length < rr2.length) re.rr = rr2;
