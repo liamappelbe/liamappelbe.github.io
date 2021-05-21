@@ -180,7 +180,7 @@ function randw(p, c, rr, ban) { return kDict.get(p).rand(c, rr, ban); }
 
 function genA(a) {
   let n = a.length;
-  while (randb(0.5 / (1 + 0.8 * (a.length - n)))) a.push('A');
+  while (randb(0.7 / (1 + 0.8 * (a.length - n)))) a.push('A');
 }
 
 function genNP(a, n = 0) {
@@ -198,7 +198,7 @@ function genNP(a, n = 0) {
   } else {
     a.push('r');
   }
-  if (randb(0.3 / (n + 1))) {
+  if (randb(0.5 / (n + 1))) {
     a.push('P');
     genNP(a, n + 1);
   }
@@ -227,16 +227,15 @@ function genPos(n = 0) {
   const a = []
   genNP(a);
   genVP(a);
-  if (randb(0.3 / (n + 1))) {
+  if (randb(0.5 / (n + 1))) {
     a.push('C');
     genPos(a, n + 1);
   }
   return a;
 }
 
-function genS(c, rr, ws) {
-  for (let retry = 0; retry < 1000; ++retry) {
-    const pos = genPos();
+function genS(pos, c, rr, ws) {
+  for (let retry = 0; retry < 10; ++retry) {
     const nt = c.length - pos.length;
     if (nt < 0) continue;
     const syl = [];
@@ -273,29 +272,69 @@ function gen(rhyme, cad) {
       this.ws = new Set();
     }
   };
-  for (let retry = 0; retry < 10; ++retry) {
+  let tc = 0;
+  for (c of cad) tc += c.length;
+  for (let retry = 0; retry < 1000; ++retry) {
     const rm = new Map();
     let z = "";
-    for (let i = 0; i < rhyme.length; ++i) {
-      const r = rhyme.charCodeAt(i);
-      if (!rm.has(r)) rm.set(r, new RhymeEntry());
-      const re = rm.get(r);
-      const a = genS(cad[i % cad.length], re.rr, re.ws);
-      if (a === null) continue;
-      re.ws.add(a[a.length - 1].w);
-      for (let i = 0; i < a.length; ++i) {
-        let w = a[i].w;
-        if (i === 0) {
-          w = w[0].toUpperCase() + w.slice(1);
-        } else {
-          z += " ";
-        }
-        z += w;
+    let fail = false;
+
+    for (let j = 0; j < rhyme.length; j += cad.length) {
+      const je = Math.min(j + cad.length, rhyme.length) - j;
+      const pos = genPos();
+
+      if (pos.length < je || pos.length > tc) {
+        fail = true;
+        break;
       }
-      z += ".\n";
-      const rr2 = a[a.length - 1].ls;
-      if (re.rr.length < rr2.length) re.rr = rr2;
+      const cadpos = [];
+      for (let i = 0; i < je; ++i) cadpos.push(1);
+      for (let i = 0; i < pos.length - je; ++i) {
+        const ii = randi(cadpos.length);
+        for (let ij = 0; ij < cadpos.length; ++ij) {
+          const iii = (ii + ij) % cadpos.length;
+          if (cadpos[iii] < cad[iii].length) {
+            cadpos[iii] += 1;
+            break;
+          }
+        }
+      }
+      const poss = [];
+      let qi = 0;
+      for (const i of cadpos) {
+        const qj = qi + i;
+        poss.push(pos.slice(qi, qj));
+        qi = i;
+      }
+
+      for (let dj = 0; dj < je; ++dj) {
+        const r = rhyme.charCodeAt(j + dj);
+        if (!rm.has(r)) rm.set(r, new RhymeEntry());
+        const re = rm.get(r);
+        const a = genS(poss[dj], cad[dj], re.rr, re.ws);
+        if (a === null) {
+          fail = true;
+          break;
+        }
+
+        re.ws.add(a[a.length - 1].w);
+        for (let i = 0; i < a.length; ++i) {
+          let w = a[i].w;
+          if (i === 0) {
+            if (dj == 0) w = w[0].toUpperCase() + w.slice(1);
+          } else {
+            z += " ";
+          }
+          z += w;
+        }
+        if (dj == je - 1) z += ".";
+        z += "\n";
+        const rr2 = a[a.length - 1].ls;
+        if (re.rr.length < rr2.length) re.rr = rr2;
+      }
+      if (fail) break;
     }
+    if (fail) continue;
     return z + "\n";
   }
   return "ERROR: Try relaxing the constraints.\n\n";
