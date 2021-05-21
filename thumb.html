@@ -355,13 +355,26 @@ body {
   background-color: #212121;
   margin: 0;
 }
-h1 {
+#head {
   background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
   color: #ffc107;
   text-align: center;
   font-family: monospace;
   font-size: 42px;
+  flex-grow: 1;
   padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
 }
 a {
   color: #ff5722;
@@ -403,9 +416,13 @@ canvas {
 </head>
 <body ondrop="onDrop(event)" ondragover="onDragOver(event)"
     onpaste="onPaste(event)">
-<h1>OS Thumbnail Generator</h1>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>OS Thumbnail Generator</h1>
+</div>
 <div id="wrap">
   <div id="inner">
+    Password
     <input type="text" id="password" onkeypress="checkPassword(event)"/>
   </div>
 </div>
