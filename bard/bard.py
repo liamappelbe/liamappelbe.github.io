@@ -8,8 +8,8 @@ import sys
 #################
 
 kFreqDictSize = 30000
-kTargetCadence = [1, -1, -1, 1, -1, 1, -1]
-kTargetPhonemes = ["AO", "L", "Z"]
+kTargetCadence = [1, 0, -1, -1, 1, 0, 1]
+kTargetPhonemes = []  # ["AO", "L", "Z"]
 kIgnoreSecondaryPoS = True
 
 
@@ -21,7 +21,11 @@ kFreqDict = set()          # {most common kFreqDictSize words}
 kPos = OrderedDict()       # {word: [parts of speech]}
 kPro = []                  # [(word, [phoneme strs], [phoneme ids])}
 kPhoIds = OrderedDict()    # {phoneme: id}
+kPosDict = OrderedDict()   # {part of speech: [words]}
 kCadDict = OrderedDict()   # {part of speech: CadDictEntry(cad tree -> [words])}
+
+def randFromList(a):
+  return a[random.randrange(len(a))]
 
 def randFromListofLists(a):
   n = sum(len(b) for b in a)
@@ -187,6 +191,9 @@ for word, pro, rr in kPro:
     if p not in kCadDict:
       kCadDict[p] = CadDictEntry()
     kCadDict[p].add(word, pro, rr)
+    if p not in kPosDict:
+      kPosDict[p] = []
+    kPosDict[p].append(word)
     if kIgnoreSecondaryPoS:
       break
 for e in kCadDict.values():
@@ -206,19 +213,22 @@ for e in kCadDict.values():
 # v   Adverb                   arrogantly
 # C   Conjunction              and
 # P   Preposition              among
-# !   Interjection             alas
+# I   Interjection             alas
 # r   Pronoun                  anyone
 # D   Definite Article         another
 
-# S = !? NP VP (C S)?
+# S = I? NP VP (C S)?
 # NP = (D A* (N | h) | A* p | r) (P NP)?
-# VP = (i | V) v? | t v? NP
+# VP = v? (i | V) | v? t NP
 
 def randb(pr = 0.5):
   return random.random() < pr
 
 def randw(p, c, rr):
   return kCadDict[p].rand(c, rr)
+
+def randwraw(p):
+  return randFromList(kPosDict[p])
 
 def genA():
   a = []
@@ -249,15 +259,15 @@ def genVP():
   a = []
   if randb():
     if randb():
+      a.append('v')
+    if randb():
       a.append('i')
     else:
       a.append('V')
-    if randb():
-      a.append('v')
   else:
-    a.append('t')
     if randb():
       a.append('v')
+    a.append('t')
     a += genNP()
   return a
 
@@ -304,20 +314,26 @@ def genS(cadence, rhyme):
     sucesses += 1
     return list(reversed(a))
 
+def genSraw():
+  pos = genPos()
+  print(pos)
+  return [randwraw(p) for p in pos]
+
 
 ########################
 ### GENERATE RESULTS ###
 ########################
-# for i in range(8):
-#   s = genS(kTargetCadence, kTargetPhonemes)
-#   print(' '.join(s) + '\n')
-# print("Retry rate: %.1fx" % (fails / sucesses))
+for i in range(8):
+  s = genS(kTargetCadence, kTargetPhonemes)
+  # s = genSraw()
+  print(' '.join(s) + '\n')
+print("Retry rate: %.1fx" % (fails / sucesses))
 
 
 ########################
 ### GENERATE JS DATA ###
 ########################
-print("[%s]" % (",".join("[%r,%r,[%s]]" % (
-    word, kPos[word][0], ",".join(repr(p) for p in pro)
-  ) for word, pro, rr in kPro if word in kPos)))
+# print("[%s]" % (",".join("[%r,%r,[%s]]" % (
+#     word, kPos[word][0], ",".join(repr(p) for p in pro)
+#   ) for word, pro, rr in kPro if word in kPos)))
 
