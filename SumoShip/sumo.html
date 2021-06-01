@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <link type="text/css" rel="stylesheet" charset="UTF-8" href="sumo.css">
+    <script type="text/javascript" src="../lib/load.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+  </head>
+  <body onload="onLoad()" onresize="onResize()">
+    <span id="infoPanel">
+      <div id="addAiForm">
+        <button onClick="onAddAi()">+</button>
+        <input id="addAiUrl" type="text" placeholder="URL">
+      </div>
+      <div id = "aiList"></div>
+    </span>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>
