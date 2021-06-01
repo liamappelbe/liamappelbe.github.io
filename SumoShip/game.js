@@ -145,11 +145,13 @@ Game.prototype.createAis = function() {
       this.ais.push(this.createAi(url, clrstr));
     }
   } else {
-    var root = 'http://' + window.location.host + '/SumoShip/';
+    var root = 'https://' + window.location.host + '/SumoShip/';
     this.aiListElement.innerHTML =
       '↑ Add an AI<br>Examples:<br>' +
       '<a href="' + root + 'keyAi.html?qw">Key mapped AI</a>' +
-      '<a href="' + root + 'hoverAi.html">Hovering AI</a>';
+      '<a href="' + root + 'hoverAi.html">Hovering AI</a>' +
+      '<a href="' + root + 'pushAi.html">Pushing AI</a>' +
+      '<a href="' + root + 'spinAi.html">Spinning AI</a>';
   }
 };
 
