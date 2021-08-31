@@ -491,7 +491,14 @@ function genLoFiInstSettings(ctx) {
   settings(ctx.bassInst.inst).setPan(0);
 
   // Drum detunes.
-
+  function randomDetune(inst) { settings(inst).setDetune(randf(-1200, 1200)); }
+  randomDetune(ctx.kick.inst);
+  randomDetune(ctx.snare1.inst);
+  randomDetune(ctx.snare2.inst);
+  randomDetune(ctx.hat1.inst);
+  randomDetune(ctx.hat2.inst);
+  randomDetune(ctx.cymbal.inst);
+  for (const a of ctx.atmo) randomDetune(a.inst);
 
   return instSettings;
 }
@@ -594,6 +601,7 @@ h1 {
   font-family: monospace;
   font-size: 42px;
   padding: 16px;
+  margin-top: 0;
 }
 #wrap {
   padding: 0 16px;
