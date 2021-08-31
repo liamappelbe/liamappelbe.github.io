@@ -158,6 +158,18 @@ function genTwinChords(n, key) {
   return merge(genChords(m, key), genChords(n - m, key));
 }
 
+function marker(time, setting, inst, value, blend = false) {
+  var m = new proto.Marker();
+  m.setTime(noteTimeToOsFormat(time));
+  m.setSetting(setting);
+  m.setInstrument(inst);
+  m.setValue(value);
+  m.setBlend(blend);
+  return m;
+}
+
+const kMSVol = 8;
+
 function drum(inst, type) { return { inst: inst, type: type }; }
 function drumNote(drumType, time, vol = 1) {
   return new Note(drumType.type, time, 0, drumType.inst, vol);
@@ -265,8 +277,7 @@ function merge(...args) {
   return out;
 }
 
-function joinBars(...args) { joinBarsArray(args); }
-function joinBarsArray(args) {
+function joinBars(args) {
   out = [];
   for (let i = 0; i < args.length; ++i) {
     for (const n of args[i]) out.push(n.shift(i * kBar));
@@ -274,7 +285,7 @@ function joinBarsArray(args) {
   return out;
 }
 
-function joinSections(...args) {
+function joinSections(args) {
   out = [];
   for (let i = 0; i < args.length; ++i) {
     for (const n of args[i]) out.push(n.shift(i * kBar * kSection));
@@ -335,7 +346,7 @@ function genLoFiDrums(ctx) {
     bars.push(genLoFiDrumsOneBar(ctx, i == 0));
   }
   bars.push(genLoFiDrumsOneBarBreak(ctx));
-  return joinBarsArray(bars);
+  return joinBars(bars);
 }
 
 function chordVoice(idx, octh = 0, octl = 0) {
@@ -503,9 +514,19 @@ function genLoFiInstSettings(ctx) {
   return instSettings;
 }
 
+function genLoFiMarkers(ctx, sections) {
+  const markers = [];
+
+  // Fade out at the end of the song.
+  const endOfSong = sections.length * kSection * kBar;
+  markers.push(marker(endOfSong - 4 * kBar, kMSVol, 0, 1));
+  markers.push(marker(endOfSong, kMSVol, 0, 0, true));
+
+  return markers;
+}
+
 function genLoFi() {
   // TODO:
-  //  - Drum detune
   //  - Eq settings
   //  - Fade markers
   //  - Break markers
@@ -543,14 +564,21 @@ function genLoFi() {
   const secBridge = merge(genLoFiDrums(ctx), bass, melody2, genLoFiAtmo(ctx));
   const secChorus3 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
   const secOutro = merge(genLoFiDrums(ctx), chords, bass, genLoFiAtmo(ctx));
-  const secOutro2 = merge(chords, bass, genLoFiAtmo(ctx));
+  const secOutro2 = merge(chords, bass);
 
-  const notes = joinSections(
+  const sections = [
       secIntro, secVerse1, secChorus1, secVerse2, secChorus2, secBridge,
-      secChorus3, secOutro, secOutro2);
+      secChorus3, secOutro, secOutro2];
+  const notes = joinSections(sections);
+
+  // Dummy note after the end of the song to prevent loops.
+  notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar, 0));
 
   // Instrument settings.
   const instSettings = genLoFiInstSettings(ctx);
+
+  // Markers.
+  const markers = genLoFiMarkers(ctx, sections);
 
   // Apply swing.
   const beatMidpoint = randb() ? 0.5 : 0.666666;
@@ -565,6 +593,7 @@ function genLoFi() {
     seqSettings.getInstrumentsMap().set(inst, settings);
   }
   for (const note of finalNotes) seq.addNotes(note.asProto);
+  for (const m of markers) seq.addMarkers(m);
 
   return seq;
 }
@@ -594,14 +623,26 @@ body {
   background-color: #212121;
   margin: 0;
 }
-h1 {
+#head {
   background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
   color: #ffc107;
   text-align: center;
   font-family: monospace;
   font-size: 42px;
+  flex-grow: 1;
   padding: 16px;
-  margin-top: 0;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
 }
 #wrap {
   padding: 0 16px;
@@ -610,7 +651,7 @@ h1 {
   font-size: 16px;
 }
 a {
-  color: #ffc107;
+  color: #ff5722;
   font-family: monospace;
   font-size: 16px;
   cursor: pointer;
@@ -618,7 +659,10 @@ a {
 }
 </style>
 <body>
-<h1>Dr. Jarvis</h1>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>Dr. Jarvis</h1>
+</div>
 <div id="wrap">
   Hi, I'm Dr. Jarvis, a bot that generates random
   <a href="https://onlinesequencer.net/">Online Sequencer</a> songs. Click below
