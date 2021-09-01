@@ -52,6 +52,13 @@ function lerp(a, b, t) { return (1 - t) * a + t * b; }
 function ilerp(a, b, y) { return (y - a) / (b - a); }
 function linmap(a1, b1, y1, a2, b2) { return lerp(a2, b2, ilerp(a1, b1, y1)); }
 
+function getWithOctaves(a, i) {
+  const o = Math.floor(i / a.length);
+  const j = i - o * a.length;
+  console.assert(j < a.length && j >= 0, j);
+  return o * 12 + a[j];
+}
+
 const kAdjectives = ["Abrupt", "Acidic", "Adorable", "Adventurous", "Aggressive", "Agitated", "Alert", "Aloof", "Amiable", "Amused", "Annoyed", "Antsy", "Anxious", "Appalling", "Appetizing", "Apprehensive", "Arrogant", "Ashamed", "Astonishing", "Attractive", "Average", "Batty", "Beefy", "Bewildered", "Biting", "Bitter", "Bland", "Blushing", "Bored", "Brave", "Bright", "Broad", "Bulky", "Burly", "Charming", "Cheeky", "Cheerful", "Chubby", "Clean", "Clear", "Cloudy", "Clueless", "Clumsy", "Colorful", "Colossal", "Combative", "Comfortable", "Condemned", "Condescending", "Confused", "Contemplative", "Convincing", "Convoluted", "Cooperative", "Corny", "Costly", "Courageous", "Crabby", "Creepy", "Crooked", "Cruel", "Cumbersome", "Curved", "Cynical", "Dangerous", "Dashing", "Decayed", "Deceitful", "Deep", "Defeated", "Defiant", "Delicious", "Delightful", "Depraved", "Depressed", "Despicable", "Determined", "Dilapidated", "Diminutive", "Disgusted", "Distinct", "Distraught", "Distressed", "Disturbed", "Dizzy", "Drab", "Drained", "Dull", "Eager", "Ecstatic", "Elated", "Elegant", "Emaciated", "Embarrassed", "Enchanting", "Encouraging", "Energetic", "Enormous", "Enthusiastic", "Envious", "Exasperated", "Excited", "Exhilarated", "Extensive", "Exuberant", "Fancy", "Fantastic", "Fierce", "Filthy", "Flat", "Floppy", "Fluttering", "Foolish", "Frantic", "Fresh", "Friendly", "Frightened", "Frothy", "Frustrating", "Funny", "Fuzzy", "Gaudy", "Gentle", "Ghastly", "Giddy", "Gigantic", "Glamorous", "Gleaming", "Glorious", "Gorgeous", "Graceful", "Greasy", "Grieving", "Gritty", "Grotesque", "Grubby", "Grumpy", "Handsome", "Happy", "Harebrained", "Healthy", "Helpful", "Helpless", "High", "Hollow", "Homely", "Horrific", "Huge", "Hungry", "Hurt", "Icy", "Ideal", "Immense", "Impressionable", "Intrigued", "Irate", "Irritable", "Itchy", "Jealous", "Jittery", "Jolly", "Joyous", "Filthy", "Flat", "Floppy", "Fluttering", "Foolish", "Frantic", "Fresh", "Friendly", "Frightened", "Frothy", "Frustrating", "Funny", "Fuzzy", "Gaudy", "Gentle", "Ghastly", "Giddy", "Gigantic", "Glamorous", "Gleaming", "Glorious", "Gorgeous", "Graceful", "Greasy", "Grieving", "Gritty", "Grotesque", "Grubby", "Grumpy", "Handsome", "Happy", "Harebrained", "Healthy", "Helpful", "Helpless", "High", "Hollow", "Homely", "Horrific", "Huge", "Hungry", "Hurt", "Icy", "Ideal", "Immense", "Impressionable", "Intrigued", "Irate", "Irritable", "Itchy", "Jealous", "Jittery", "Jolly", "Joyous", "Juicy", "Jumpy", "Kind", "Lackadaisical", "Large", "Lazy", "Lethal", "Little", "Lively", "Livid", "Lonely", "Loose", "Lovely", "Lucent", "Lucky", "Ludicrous", "Macho", "Magnificent", "Mammoth", "Maniacal", "Massive", "Melancholy", "Melted", "Miniature", "Minute", "Mistaken", "Misty", "Moody", "Mortified", "Motionless", "Muddy", "Mysterious", "Narrow", "Nasty", "Naughty", "Nervous", "Nonchalant", "Nonsensical", "Nutritious", "Nutty", "Obedient", "Oblivious", "Obnoxious", "Odd", "Old Fashioned", "Outrageous", "Panicky", "Perfect", "Perplexed", "Petite", "Petty", "Plain", "Pleasant", "Poised", "Pompous", "Precious", "Prickly", "Proud", "Pungent", "Puny", "Quaint", "Quizzical", "Ratty", "Reassured", "Relieved", "Repulsive", "Responsive", "Ripe", "Robust", "Rotten", "Rotund", "Rough", "Round", "Salty", "Sarcastic", "Scant", "Scary", "Scattered", "Scrawny", "Selfish", "Shaggy", "Shaky", "Shallow", "Sharp", "Shiny", "Short", "Silky", "Silly", "Skinny", "Slimy", "Slippery", "Small", "Smarmy", "Smiling", "Smoggy", "Smooth", "Smug", "Soggy", "Solid", "Sore", "Sour", "Sparkling", "Spicy", "Splendid", "Spotless", "Square", "Stale", "Steady", "Steep", "Responsive", "Sticky", "Stormy", "Stout", "Straight", "Strange", "Strong", "Stunning", "Substantial", "Successful", "Succulent", "Superficial", "Superior", "Swanky", "Sweet", "Tart", "Tasty", "Teeny", "Tender", "Tense", "Terrible", "Testy", "Thankful", "Thick", "Thoughtful", "Thoughtless", "Tight", "Timely", "Tricky", "Trite", "Troubled", "Twittering", "Uneven", "Unsightly", "Upset", "Uptight", "Vast", "Vexed", "Victorious", "Virtuous", "Vivacious", "Vivid", "Wacky", "Weary", "Whimsical", "Whopping", "Wicked", "Witty", "Wobbly", "Wonderful", "Worried", "Yummy", "Zany", "Zealous", "Zippy"];
 const kColors = ["Alizarin", "Amaranth", "Amber", "Amethyst", "Apricot", "Aqua", "Aquamarine", "Asparagus", "Auburn", "Azure", "Beige", "Bistre", "Black", "Blue", "Blue Green", "Blue Violet", "Bondi Blue", "Brass", "Bronze", "Brown", "Buff", "Burgundy", "Burnt Orange", "Burnt Sienna", "Burnt Umber", "Caput Mortuum", "Cardinal", "Carmine", "Carrot Orange", "Celadon", "Cerise", "Cerulean", "Champagne", "Charcoal", "Chartreuse", "Chestnut", "Chocolate", "Cinnabar", "Cinnamon", "Cobalt", "Copper", "Coral", "Corn", "Cornflower", "Cream", "Crimson", "Cyan", "Dandelion", "Denim", "Ecru", "Emerald", "Eggplant", "Falu Red", "Fern Green", "Firebrick", "Flax", "Forest Green", "French Rose", "Fuchsia", "Gamboge", "Gold", "Goldenrod", "Green", "Grey", "Han Purple", "Harlequin", "Heliotrope", "Indigo", "Ivory", "Jade", "Kelly Green", "Khaki", "Lavender", "Lawn Green", "Lemon", "Lemon Chiffon", "Lilac", "Lime", "Lime Green", "Linen", "Magenta", "Magnolia", "Malachite", "Maroon", "Mauve", "Midnight Blue", "Mint Green", "Misty Rose", "Moss Green", "Mustard", "Myrtle", "Navajo White", "Navy Blue", "Ochre", "Office Green", "Olive", "Olivine", "Orange", "Orchid", "Papaya Whip", "Peach", "Pear", "Periwinkle", "Persimmon", "Pine Green", "Pink", "Platinum", "Plum", "Powder Blue", "Puce", "Prussian Blue", "Pumpkin", "Purple", "Quartz Grey", "Raw Umber", "Razzmatazz", "Red", "Robin Egg Blue", "Rose", "Royal Blue", "Royal Purple", "Ruby", "Russet", "Rust", "Safety Orange", "Saffron", "Salmon", "Sandy Brown", "Sangria", "Sapphire", "Scarlet", "Sea Green", "Seashell", "Sepia", "Shocking Pink", "Silver", "Sky Blue", "Slate Grey", "Smalt", "Spring Bud", "Spring Green", "Steel Blue", "Tan", "Tangerine", "Taupe", "Teal", "Tawny", "Terra Cotta", "Thistle", "Tomato", "Turquoise", "Tyrian Purple", "Ultramarine", "Van Dyke Brown", "Vermilion", "Violet", "Viridian", "Wheat", "White", "Wisteria", "Xanthic", "Yellow", "Zucchini"];
 const kAnimals = ["Aardvark", "Albatross", "Alligator", "Alpaca", "Ant", "Anteater", "Antelope", "Ape", "Armadillo", "Baboon", "Badger", "Barracuda", "Bat", "Bear", "Beaver", "Bee", "Bird", "Bison", "Boar", "Buffalo", "Butterfly", "Camel", "Caribou", "Cassowary", "Cat", "Caterpillar", "Cattle", "Chamois", "Cheetah", "Chicken", "Chimpanzee", "Chinchilla", "Chough", "Coati", "Cobra", "Cockroach", "Cod", "Cormorant", "Coyote", "Crab", "Crane", "Crocodile", "Crow", "Curlew", "Deer", "Dinosaur", "Dog", "Dogfish", "Dolphin", "Donkey", "Dotterel", "Dove", "Dragonfly", "Duck", "Dugong", "Dunlin", "Eagle", "Echidna", "Eel", "Eland", "Elephant", "Elephant Seal", "Elk", "Emu", "Falcon", "Ferret", "Finch", "Fish", "Flamingo", "Fly", "Fox", "Frog", "Gaur", "Gazelle", "Gerbil", "Giant Panda", "Giraffe", "Gnat", "Gnu", "Goat", "Goldfinch", "Goosander", "Goose", "Gorilla", "Goshawk", "Grasshopper", "Grouse", "Guanaco", "Guinea Fowl", "Guinea Pig", "Gull", "Hamster", "Hare", "Hawk", "Hedgehog", "Heron", "Herring", "Hippo", "Hornet", "Horse", "Hummingbird", "Hyena", "Ibex", "Ibis", "Jackal", "Jaguar", "Jay", "Jellyfish", "Kangaroo", "Kinkajou", "Koala", "Komodo Dragon", "Kouprey", "Kudu", "Lapwing", "Lark", "Lemur", "Leopard", "Lion", "Llama", "Lobster", "Locust", "Loris", "Louse", "Lyrebird", "Magpie", "Mallard", "Mammoth", "Manatee", "Mandrill", "Mink", "Mole", "Mongoose", "Monkey", "Moose", "Mouse", "Mosquito", "Narwhal", "Newt", "Nightingale", "Octopus", "Okapi", "Opossum", "Ostrich", "Otter", "Owl", "Oyster", "Panther", "Parrot", "Panda", "Partridge", "Peafowl", "Pelican", "Penguin", "Pheasant", "Pig", "Pigeon", "Polar Bear", "Pony", "Porcupine", "Porpoise", "Prairie Dog", "Quail", "Quelea", "Quetzal", "Rabbit", "Raccoon", "Ram", "Rat", "Raven", "Reindeer", "Rhinoceros", "Rook", "Salamander", "Salmon", "Sand Dollar", "Sandpiper", "Sardine", "Sea Lion", "Seahorse", "Seal", "Shark", "Sheep", "Shrew", "Skunk", "Sloth", "Snail", "Snake", "Spider", "Squid", "Squirrel", "Starling", "Stegosaurus", "Swan", "Tapir", "Tarsier", "Termite", "Tiger", "Toad", "Turkey", "Turtle", "Vicuna", "Wallaby", "Walrus", "Wasp", "Water Buffalo", "Weasel", "Whale", "Wolf", "Wolverine", "Wombat", "Wren", "Yak", "Zebra"];
@@ -66,6 +73,15 @@ function generate(generator) {
 
 function noteTypeToProto(type) {
   return Object.keys(proto.NoteType).indexOf(type.replace('#', 'S'));
+}
+
+function validNoteType(type) {
+  try {
+    noteTypeToProto(type);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const kNoteTypeNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -102,6 +118,7 @@ class Note {
   }
 
   get asProto() {
+    if (!validNoteType(this.type)) return null;
     const np = new proto.Note();
     np.setType(noteTypeToProto(this.type));
     np.setTime(noteTimeToOsFormat(this.time));
@@ -112,8 +129,9 @@ class Note {
   }
 }
 
+// Note: Melody generator assumes these scales are the same length.
 const kMajorScale = [0, 2, 4, 5, 7, 9, 11];
-const kMinorScale = [0, 2, 3, 5, 7, 8, 10];
+const kMinorScale = [0, 2, 3, 5, 7, 8, 10];  // Natural minor.
 class Chord {
   constructor(base, minor, seventh = false, ninth = false, sus4 = false) {
     this.base = base;
@@ -168,7 +186,14 @@ function marker(time, setting, inst, value, blend = false) {
   return m;
 }
 
+const kMSEqH = 3;
+const kMSEqM = 4;
+const kMSEqL = 5;
 const kMSVol = 8;
+
+function eq(high, mid, low) { return { high: high, mid: mid, low: low }; }
+const kEqNormal = eq(0, 0, 0);
+const kFadedEqSettings = [ eq(10, 0, -48), eq(-48, 20, -48), eq(-48, 0, 20) ];
 
 function drum(inst, type) { return { inst: inst, type: type }; }
 function drumNote(drumType, time, vol = 1) {
@@ -223,19 +248,18 @@ function chordInst(inst, susLen) { return { inst: inst, susLen: susLen }; }
 const kChordsInst = [
   chordInst(0, 1), chordInst(1, 1), chordInst(3, 1), chordInst(4, 2),
   chordInst(6, 1), chordInst(7, 1), chordInst(8, 1), chordInst(11, 0.5),
-  chordInst(12, 0.5), chordInst(13, 4), chordInst(14, 4), chordInst(15, 4),
-  chordInst(16, 4), chordInst(18, 1), chordInst(20, 1), chordInst(23, 2),
-  chordInst(24, 1), chordInst(25, 1), chordInst(26, 1), chordInst(30, 1),
-  chordInst(32, 1), chordInst(34, 1), chordInst(35, 1), chordInst(38, 1),
-  chordInst(41, 2),
+  chordInst(12, 0.5), chordInst(13, 4), chordInst(16, 4), chordInst(18, 1),
+  chordInst(20, 1), chordInst(23, 2), chordInst(24, 1), chordInst(25, 1),
+  chordInst(26, 1), chordInst(30, 1), chordInst(32, 1), chordInst(34, 1),
+  chordInst(35, 1), chordInst(38, 1), chordInst(41, 2),
 ];
 
 function bassInst(inst) { return { inst: inst }; }
 const kBassInst = [
   bassInst(21), bassInst(1), bassInst(5), bassInst(29), bassInst(32),
-  bassInst(22), bassInst(33), bassInst(3), bassInst(6), bassInst(13),
+  bassInst(22), bassInst(3), bassInst(6), bassInst(13), bassInst(30),
   bassInst(14), bassInst(15), bassInst(16), bassInst(20), bassInst(24),
-  bassInst(27), bassInst(30),
+  bassInst(27),
 ];
 
 function melodyInst(inst) { return { inst: inst }; }
@@ -293,12 +317,15 @@ function joinSections(args) {
   return out;
 }
 
-function genEmphasisBar(p0, p1, fn) {
-  const dt = 0.25;
-  for (let t = 0; t < kBar; t += dt) {
-    const e = beatEmphasis(t);
+function genEmphasisEx(length, dt, p0, p1, emphCap, fn) {
+  for (let t = 0; t < length; t += dt) {
+    const e = Math.min(1, beatEmphasis(t) / emphCap);
     if (randb(lerp(p0, p1, e))) fn(t, e);
   }
+}
+
+function genEmphasisBar(p0, p1, fn) {
+  return genEmphasisEx(kBar, 0.25, p0, p1, 1, fn);
 }
 
 function genLoFiDrumsOneBar(ctx, first) {
@@ -419,42 +446,109 @@ function genLoFiBass(ctx) {
   return notes;
 }
 
-function genLoFiMelody(ctx, secondary) {
-  const notes = [];
-  const len = secondary ? 0.5 : 0.25;
-  const inst = secondary ? ctx.melody2Inst.inst : ctx.melody1Inst.inst;
+class MelodicRhythmNote {
+  constructor(t, triad, index) {
+    this.t = t;
+    this.triad = triad;
+    this.index = index;
+  }
+}
+class MelodicRhythm {
+  constructor(t0, a = null) {
+    this.t0 = t0;
+    this.a = a === null ? [] : a;
+  }
+  add(t, triad, index) {
+    this.a.push(new MelodicRhythmNote(t - this.t0, triad, index));
+  }
+  get last() { return this.a.length == 0 ? null : this.a[this.a.length - 1]; }
+  forEach(toff, fn) {
+    for (const n of this.a) fn(this.t0 + toff + n.t, n.triad, n.index);
+  }
+};
+
+function genLoFiMelodyChunk(length, dt) {
+  // The most important constraint for melody generation is to end every phrase
+  // on a note from the current chord's triad. Using the usual breatEmphasis
+  // based rhythm generation, a new phrase is defined as any time there's more
+  // than half a beat between notes. At this point we just generate the rhythms,
+  // because some of the notes depend on which chord the chunk is in.
+  console.assert(kMajorScale.length == kMinorScale.length);
+  const phraseLimit = 0.5;
+  const phrases = [];
+  let phrase = null;
+  let pt = -2 * phraseLimit;
+  let lastNonTriadIndex = null;
+  genEmphasisEx(2 * kBar, dt, 0.3, 0.9, 0.8, (t, e) => {
+    if (phrase === null || t - pt > phraseLimit) {
+      if (phrase !== null) {
+        const n = phrase.last;
+        n.triad = true;  // End the phrase on a triad note.
+        n.index = randi(2);
+        phrases.push(phrase);
+      }
+      phrase = new MelodicRhythm(t);
+    }
+    const triad = randb(lerp(0, 0.5, e));
+    let index;
+    if (triad) {
+      index = randi(2);
+    } else {
+      if (lastNonTriadIndex === null) {
+        index = randi(kMajorScale.length - 1);
+      } else {
+        index = lastNonTriadIndex + randi(2, -2);
+      }
+      lastNonTriadIndex = index;
+    }
+    phrase.add(t, triad, index);
+    pt = t;
+  });
+  phrases.push(phrase);
+  return phrases;
+}
+
+function genLoFiMelody(ctx, inst, secondary) {
+  const dt = secondary ? 0.5 : 0.25;
   const oct = secondary ? 6 : 5;
   const vol = secondary ? 0.6 : 1;
-  let de = 0;
-  let pj = null;
   const all = ctx.chords[0].scale();
+  const notes = [];
+  let pj = null;
   function wrap(j) {
-    const mj = mod(j, 12);
-    if (pj === null) return mj;
-    if (pj - mj > 7) return mj + 12;
-    if (mj - pj > 7) return mj - 12;
-    return mj;
+    if (pj === null) return j;
+    j = mod(j, 12);
+    while (pj - j > 7) j += 12;
+    while (j - pj > 7) j -= 12;
+    return j;
   }
-  for (let i = 0; i < ctx.chords.length; ++i) {
-    const tri = ctx.chords[i].triadIndexes();
-    for (let t = 0; t < kBar; t += len) {
-      const e = beatEmphasis(t) + de;
-      if (randb(lerp(0.2, 1, e))) {
-        const chooseTriadNote = secondary ? false : randb(lerp(0.2, 1.2, e));
-        let j = chooseTriadNote ? choose(tri) : choose(all);
-        if (!secondary) de = chooseTriadNote ? 0 : de + 0.2;
-        notes.push(new Note(
-            noteType(wrap(j), oct), i * kBar + t, len,
-            inst, lerp(0.6, 1, e) * vol));
-        if (chooseTriadNote && randb(0.3)) {
-          notes.push(new Note(
-              noteType(wrap(choose(tri)), oct), i * kBar + t, len,
-              inst, lerp(0.6, 1, e) * vol));
+  function addChunk(phrases, barOffset) {
+    const toff = barOffset * kBar;
+    for (const phrase of phrases) {
+      phrase.forEach(toff, (t, triad, index) => {
+        const ch = ctx.chords[mod(Math.floor(t / kBar), kSection)];
+        const tri = ch.triadIndexes();
+        const j = wrap(triad ? getWithOctaves(tri, index)
+                             : getWithOctaves(all, index));
+        const v = lerp(0.6, 1, beatEmphasis(t)) * vol;
+        notes.push(new Note(noteType(j, oct), t, dt, inst.inst, v));
+        // If this was a triad note, maybe add another note from the triad.
+        if (randb(0.3) && tri.map(x => mod(x, 12)).indexOf(j) != -1) {
+          let j2 = j;
+          while (j2 === j) j2 = wrap(choose(tri));
+          notes.push(new Note(noteType(j2, oct), t, dt, inst.inst, v));
         }
         pj = j;
-      }
+      });
     }
   }
+  const a = genLoFiMelodyChunk(2 * kBar, dt);
+  const b = genLoFiMelodyChunk(2 * kBar, dt);
+  const c = genLoFiMelodyChunk(2 * kBar, dt);
+  addChunk(a, 0);
+  addChunk(b, 2);
+  addChunk(a, 4);
+  addChunk(c, 6);
   return notes;
 }
 
@@ -474,15 +568,23 @@ function genLoFiAtmo(ctx) {
 }
 
 function genLoFiInstSettings(ctx) {
-  const instSettings = new Map();
-  function settings(inst) {
-    if (!instSettings.has(inst)) {
-      const settings = new proto.InstrumentSettings();
-      instSettings.set(inst, settings);
-      settings.setVolume(1);
-    }
-    return instSettings.get(inst);
+  function setEq(settings, eq) {
+    settings.setEnableEq(true);
+    settings.setEqHigh(eq.high);
+    settings.setEqMid(eq.mid);
+    settings.setEqLow(eq.low);
   }
+  ctx.instSettings = new Map();
+  function settings(inst) {
+    if (!ctx.instSettings.has(inst)) {
+      const settings = new proto.InstrumentSettings();
+      ctx.instSettings.set(inst, settings);
+      settings.setVolume(1);
+      setEq(settings, eq(randf(3, -3), randf(3, -3), randf(3, -3)));
+    }
+    return ctx.instSettings.get(inst);
+  }
+  for (const i of ctx.allInst) settings(i.inst);
 
   // Panning.
   settings(ctx.chordInst.inst).setPan(randf(-0.3, 0.3));
@@ -492,34 +594,64 @@ function genLoFiInstSettings(ctx) {
   for (const a of ctx.atmo) settings(a.inst).setPan(randf(-1, 1));
 
   // Overwrite panning on drums and bass, in case they're the same as one of the
-  // other instruments.
-  settings(ctx.kick.inst).setPan(0);
-  settings(ctx.snare1.inst).setPan(0);
-  settings(ctx.snare2.inst).setPan(0);
-  settings(ctx.hat1.inst).setPan(0);
-  settings(ctx.hat2.inst).setPan(0);
-  settings(ctx.cymbal.inst).setPan(0);
-  settings(ctx.bassInst.inst).setPan(0);
+  // other instruments. These instruments should always have little to no pan.
+  settings(ctx.kick.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.snare1.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.snare2.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.hat1.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.hat2.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.cymbal.inst).setPan(randf(-0.1, 0.1));
+  settings(ctx.bassInst.inst).setPan(randf(-0.1, 0.1));
 
   // Drum detunes.
   function randomDetune(inst) { settings(inst).setDetune(randf(-1200, 1200)); }
-  randomDetune(ctx.kick.inst);
-  randomDetune(ctx.snare1.inst);
-  randomDetune(ctx.snare2.inst);
-  randomDetune(ctx.hat1.inst);
-  randomDetune(ctx.hat2.inst);
-  randomDetune(ctx.cymbal.inst);
-  for (const a of ctx.atmo) randomDetune(a.inst);
+  for (const d of ctx.drums) randomDetune(d.inst);
 
-  return instSettings;
+  // Bass and chords eq.
+  setEq(settings(ctx.bassInst.inst), eq(-48, 0, 20));
+  setEq(settings(ctx.chordInst.inst), eq(0, 0, 10));
 }
 
 function genLoFiMarkers(ctx, sections) {
   const markers = [];
 
+  function eqMarker(time, inst, eq, fade = false) {
+    markers.push(marker(time, kMSEqH, inst, eq.high, fade));
+    markers.push(marker(time, kMSEqM, inst, eq.mid, fade));
+    markers.push(marker(time, kMSEqL, inst, eq.low, fade));
+  }
+
+  function getDefaultEq(inst) {
+    const s = ctx.instSettings.get(inst);
+    return eq(s.getEqHigh(), s.getEqMid(), s.getEqLow());
+  }
+
+  // Fade in at the start of the song.
+  const endOfIntro = kSection * kBar;
+  const isFaded = new Set();
+  function introFade(inst, eq) {
+    const i = inst.inst;
+    if (isFaded.has(i)) return;
+    isFaded.add(i);
+    eqMarker(0, i, eq);
+    eqMarker(endOfIntro - 2, i, eq);
+    eqMarker(endOfIntro, i, getDefaultEq(i), true);
+  }
+  const drumFadedEq = choose(kFadedEqSettings);
+  for (d of ctx.drums) introFade(d, drumFadedEq);
+  const chordFadedEq = choose(kFadedEqSettings);
+  introFade(ctx.chordInst, chordFadedEq);
+  markers.push(marker(0, kMSVol, 0, 0.5));
+  markers.push(marker(endOfIntro - 2, kMSVol, 0, 0.5));
+  markers.push(marker(endOfIntro, kMSVol, 0, 1, true));
+
   // Fade out at the end of the song.
+  const startOfFinalSection = (sections.length - 1) * kSection * kBar;
   const endOfSong = sections.length * kSection * kBar;
-  markers.push(marker(endOfSong - 4 * kBar, kMSVol, 0, 1));
+  eqMarker(startOfFinalSection, ctx.chordInst.inst, getDefaultEq(ctx.chordInst.inst));
+  eqMarker(endOfSong - 4 * kBar, ctx.chordInst.inst, chordFadedEq, true);
+  markers.push(marker(startOfFinalSection, kMSVol, 0, 1));
+  markers.push(marker(endOfSong - 4 * kBar, kMSVol, 0, 0.5, true));
   markers.push(marker(endOfSong, kMSVol, 0, 0, true));
 
   return markers;
@@ -527,10 +659,13 @@ function genLoFiMarkers(ctx, sections) {
 
 function genLoFi() {
   // TODO:
-  //  - Eq settings
-  //  - Fade markers
-  //  - Break markers
-  //  - Eq markers
+  //  - Melody improvements
+  //     - More repetition in melodies (within phrases)
+  //     - Specific probabilities for note steps (0 should be unlikely).
+  //  - Force drums to chill
+  //     - mute the default eq of the snare, atmo, and cymbals
+  //  - Volume adjustments to all the instrument tables (not lofi specific)
+  //  - Better breakdowns
 
   const key = randi(11);
   const ctx = {
@@ -547,21 +682,28 @@ function genLoFi() {
     melody1Inst: choose(kMelodyInst),
     melody2Inst: choose(kMelodyInst),
     atmo: [choose(kDrumAll), choose(kDrumAll), choose(kDrumAll)],
+    drums: null,
+    tunedInst: null,
+    allInst: null,
   };
+  ctx.drums = new Set([ctx.kick, ctx.snare1, ctx.snare2, ctx.hat1, ctx.hat2, ctx.cymbal, ...ctx.atmo]);
+  ctx.tunedInst = new Set([ctx.chordInst, ctx.bassInst, ctx.melody1Inst, ctx.melody2Inst]);
+  ctx.allInst = new Set([...ctx.drums, ...ctx.tunedInst]);
 
   const chords = genLoFiChords(ctx);
   const bass = genLoFiBass(ctx);
-  const melody1v1 = genLoFiMelody(ctx, false);
-  const melody1v2 = genLoFiMelody(ctx, false);
-  const melody1c = genLoFiMelody(ctx, false);
-  const melody2 = genLoFiMelody(ctx, true);
+  const melody1v1 = genLoFiMelody(ctx, ctx.melody1Inst, false);
+  const melody1v2 = genLoFiMelody(ctx, ctx.melody1Inst, false);
+  const melody1c = genLoFiMelody(ctx, ctx.melody1Inst, false);
+  const melody2 = genLoFiMelody(ctx, ctx.melody2Inst, true);
+  const melody2b = genLoFiMelody(ctx, ctx.melody2Inst, false);
 
   const secIntro = merge(genLoFiDrums(ctx), chords, bass, genLoFiAtmo(ctx));
   const secVerse1 = merge(genLoFiDrums(ctx), chords, bass, melody1v1, genLoFiAtmo(ctx));
   const secChorus1 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
   const secVerse2 = merge(genLoFiDrums(ctx), chords, bass, melody1v2, genLoFiAtmo(ctx));
   const secChorus2 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
-  const secBridge = merge(genLoFiDrums(ctx), bass, melody2, genLoFiAtmo(ctx));
+  const secBridge = merge(genLoFiDrums(ctx), bass, melody2b, genLoFiAtmo(ctx));
   const secChorus3 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
   const secOutro = merge(genLoFiDrums(ctx), chords, bass, genLoFiAtmo(ctx));
   const secOutro2 = merge(chords, bass);
@@ -575,7 +717,7 @@ function genLoFi() {
   notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar, 0));
 
   // Instrument settings.
-  const instSettings = genLoFiInstSettings(ctx);
+  genLoFiInstSettings(ctx);
 
   // Markers.
   const markers = genLoFiMarkers(ctx, sections);
@@ -589,11 +731,14 @@ function genLoFi() {
   const seqSettings = new proto.SequenceSettings();
   seqSettings.setBpm(randi(100, 70));
   seq.setSettings(seqSettings);
-  for (const [inst, settings] of instSettings) {
+  for (const [inst, settings] of ctx.instSettings) {
     seqSettings.getInstrumentsMap().set(inst, settings);
   }
-  for (const note of finalNotes) seq.addNotes(note.asProto);
   for (const m of markers) seq.addMarkers(m);
+  for (const note of finalNotes) {
+    const p = note.asProto;
+    if (p !== null) seq.addNotes(p);
+  }
 
   return seq;
 }
@@ -610,7 +755,10 @@ function genChordsImpl(genChordsFn, len) {
     }
   }
   const seq = new proto.Sequence();
-  for (const note of notes) seq.addNotes(note.asProto);
+  for (const note of notes) {
+    const p = note.asProto;
+    if (p !== null) seq.addNotes(p);
+  }
   return seq;
 }
 
