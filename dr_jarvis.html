@@ -44,7 +44,7 @@ function randb(p = 0.5) { return Math.random() < p; }
 function randf(h = 1, l = 0) { return l + Math.random() * (h - l); }
 function randi(h = 1, l = 0) { return Math.floor(randf(h + 1, l)); }
 function randfq(h = 1) { return h * (Math.random() ** 2); }
-function randBeat(h, l, q) { return randi(h * q - 1, l * q) / q; }
+function randBeat(h, l, q) { return randi(h / q - 1, l / q) * q; }
 function randVol(h, l = 0.2) { return 2 ** randf(Math.log2(h), Math.log2(l)); }
 function choose(array) { return array[randi(array.length - 1)]; }
 function chooseq(array) { return array[Math.floor(randfq(array.length))]; }
@@ -447,10 +447,12 @@ function genLoFiBass(ctx) {
 }
 
 class MelodicRhythmNote {
-  constructor(t, triad, index) {
+  constructor(t, triad, index, index2, rep) {
     this.t = t;
     this.triad = triad;
     this.index = index;
+    this.index2 = index2;
+    this.rep = rep;
   }
 }
 class MelodicRhythm {
@@ -458,12 +460,31 @@ class MelodicRhythm {
     this.t0 = t0;
     this.a = a === null ? [] : a;
   }
-  add(t, triad, index) {
-    this.a.push(new MelodicRhythmNote(t - this.t0, triad, index));
+  add(t, triad, index, index2, rep = false) {
+    this.a.push(new MelodicRhythmNote(t - this.t0, triad, index, index2, rep));
   }
-  get last() { return this.a.length == 0 ? null : this.a[this.a.length - 1]; }
+  get length() { return this.a.length; }
+  get last() { return this.length == 0 ? null : this.a[this.length - 1]; }
   forEach(toff, fn) {
-    for (const n of this.a) fn(this.t0 + toff + n.t, n.triad, n.index);
+    for (const n of this.a) {
+      fn(toff + this.t0 + n.t, n.triad, n.index, n.index2);
+    }
+  }
+  find(t) {
+    for (const n of this.a) {
+      if (this.t0 + n.t == t) return n;
+    }
+    return null;
+  }
+  repeat(rt, t) {
+    const n = this.find(rt);
+    if (n != null) this.add(t, n.triad, n.index, n.index2, true);
+  }
+  finish() {
+    const n = this.last;
+    n.triad = true;  // End the phrase on a triad note.
+    n.index = randi(2);
+    return this;
   }
 };
 
@@ -479,32 +500,47 @@ function genLoFiMelodyChunk(length, dt) {
   let phrase = null;
   let pt = -2 * phraseLimit;
   let lastNonTriadIndex = null;
-  genEmphasisEx(2 * kBar, dt, 0.3, 0.9, 0.8, (t, e) => {
+  let repTime = 0;
+  let repStop = 0;
+  for (let t = 0; t < length; t += dt) {
+    if (repTime >= repStop && phrase != null && t > (phrase.t0 + 2 * dt) &&
+        randb(0.1)) {
+      repStop = t;
+      repTime = randBeat(t - dt, phrase.t0, dt);
+    }
+    if (repTime < repStop) {
+      phrase.repeat(repTime, t);
+      repTime += dt;
+      continue;
+    }
+    const e = Math.min(1, beatEmphasis(t) / 0.8);
+    if (!randb(lerp(0.3, 0.9, e))) continue;
     if (phrase === null || t - pt > phraseLimit) {
-      if (phrase !== null) {
-        const n = phrase.last;
-        n.triad = true;  // End the phrase on a triad note.
-        n.index = randi(2);
-        phrases.push(phrase);
-      }
+      if (phrase !== null) phrases.push(phrase.finish());
       phrase = new MelodicRhythm(t);
     }
-    const triad = randb(lerp(0, 0.5, e));
+    const triad = randb(lerp(0, 0.3, e));
     let index;
+    let index2 = -1;
     if (triad) {
       index = randi(2);
+      if (randb(0.3)) {
+        index2 = index;
+        while (index2 == index) index2 = randi(2);
+      }
     } else {
       if (lastNonTriadIndex === null) {
         index = randi(kMajorScale.length - 1);
       } else {
-        index = lastNonTriadIndex + randi(2, -2);
+        index = lastNonTriadIndex + choose(
+            [-2, -2, -1, -1, -1, 0, 1, 1, 1, 2, 2]);
       }
       lastNonTriadIndex = index;
     }
-    phrase.add(t, triad, index);
+    phrase.add(t, triad, index, index2);
     pt = t;
-  });
-  phrases.push(phrase);
+  }
+  if (phrase !== null) phrases.push(phrase.finish());
   return phrases;
 }
 
@@ -525,17 +561,15 @@ function genLoFiMelody(ctx, inst, secondary) {
   function addChunk(phrases, barOffset) {
     const toff = barOffset * kBar;
     for (const phrase of phrases) {
-      phrase.forEach(toff, (t, triad, index) => {
+      phrase.forEach(toff, (t, triad, index, index2) => {
         const ch = ctx.chords[mod(Math.floor(t / kBar), kSection)];
         const tri = ch.triadIndexes();
-        const j = wrap(triad ? getWithOctaves(tri, index)
-                             : getWithOctaves(all, index));
+        const j = triad ? wrap(getWithOctaves(tri, index))
+                             : getWithOctaves(all, index);
         const v = lerp(0.6, 1, beatEmphasis(t)) * vol;
         notes.push(new Note(noteType(j, oct), t, dt, inst.inst, v));
-        // If this was a triad note, maybe add another note from the triad.
-        if (randb(0.3) && tri.map(x => mod(x, 12)).indexOf(j) != -1) {
-          let j2 = j;
-          while (j2 === j) j2 = wrap(choose(tri));
+        if (triad && index2 != -1) {
+          const j2 = wrap(getWithOctaves(tri, index2));
           notes.push(new Note(noteType(j2, oct), t, dt, inst.inst, v));
         }
         pj = j;
@@ -543,10 +577,11 @@ function genLoFiMelody(ctx, inst, secondary) {
     }
   }
   const a = genLoFiMelodyChunk(2 * kBar, dt);
-  const b = genLoFiMelodyChunk(2 * kBar, dt);
+  const b = genLoFiMelodyChunk(1 * kBar, dt);
   const c = genLoFiMelodyChunk(2 * kBar, dt);
   addChunk(a, 0);
   addChunk(b, 2);
+  addChunk(b, 3);
   addChunk(a, 4);
   addChunk(c, 6);
   return notes;
@@ -556,8 +591,8 @@ function genLoFiAtmo(ctx) {
   const notes = [];
   const dt = 0.25;
   for (let k = 0; k < kSection; ++k) {
-    const end = randBeat(kBar * kSection, 0, 2);
-    const start = Math.max(0, end - randBeat(1.5, 0.25, 4));
+    const end = randBeat(kBar * kSection, 0, 0.5);
+    const start = Math.max(0, end - randBeat(1.5, 0.25, 0.25));
     for (let t = start; t <= end; t += dt) {
       const vol = 0.8 * (t == end ? 1 : Math.min(1, beatEmphasis(t) + 0.4));
       const n = choose(ctx.atmo);
@@ -659,11 +694,9 @@ function genLoFiMarkers(ctx, sections) {
 
 function genLoFi() {
   // TODO:
-  //  - Melody improvements
-  //     - More repetition in melodies (within phrases)
-  //     - Specific probabilities for note steps (0 should be unlikely).
   //  - Force drums to chill
   //     - mute the default eq of the snare, atmo, and cymbals
+  //     - add trills
   //  - Volume adjustments to all the instrument tables (not lofi specific)
   //  - Better breakdowns
 
