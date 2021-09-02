@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+const exports={};
+function isNumber(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
+function numSan(x, valueIfNaN = 0) { return isNumber(x) ? x : valueIfNaN; }
+</script>
+<script src="https://onlinesequencer.net/resources/google-protobuf.js"></script>
+<script src="https://onlinesequencer.net/proto/js/instrumentsettings.js"></script>
+<script src="https://onlinesequencer.net/proto/js/marker.js"></script>
+<script src="https://onlinesequencer.net/proto/js/note.js"></script>
+<script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
+<script src="https://onlinesequencer.net/app/consoleCommands.js"></script>
+<script>
+
+let domErrorLog;
+let domEditor;
+let domFileInput;
+window.addEventListener("load", () => {
+  domErrorLog = document.getElementById("errorLog");
+  domEditor = document.getElementById("editor");
+  domFileInput = document.getElementById("fileInput");
+  clearEditor();
+});
+
+function clearLog() { domErrorLog.innerText = ""; }
+function log(...args) {
+  let str = "Error:\n";
+  for (const a of args) {
+    if (str != "") str += "\n";
+    str += a;
+  }
+  domErrorLog.innerText = str;
+}
+
+function onDragOver(e) { e.preventDefault(); }
+function onFile() { loadFile(domFileInput.files); }
+function clearEditor() { fillEditor(new proto.Sequence()); }
+function getEditorValue() { return domEditor.value; }
+
+function fillEditor(p) {
+  domEditor.value = seqObjToStr(applyTweaks(p.toObject()));
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  const files = [];
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind == "file") files.push(item.getAsFile());
+    }
+  } else {
+    files = dt.files;
+  }
+  loadFile(files);
+}
+
+function loadFile(files) {
+  clearLog();
+  clearEditor();
+  if (files == null || files.length == 0) {
+    log("No input file");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = loadProtoBlob;
+  reader.readAsArrayBuffer(files[0]);
+}
+
+function loadProtoBlob(e) {
+  let p = null;
+  try {
+    p = proto.Sequence.deserializeBinary(e.target.result);
+  } catch {
+    log("File is corrupted, or not a sequence");
+  }
+  if (p == null) return;
+  fillEditor(p);
+}
+
+function saveBlob(filename, data, type) {
+  var file = new Blob(data, {type: type});
+  if (window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(file, filename);
+  } else {
+    var a = document.createElement("a");
+    var url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 0);
+  }
+}
+
+function protoToBlob(seq) {
+  try {
+    return seq.serializeBinary();
+  } catch (e) {
+    log("Serializing sequence failed", seq.toObject());
+    return null;
+  }
+}
+
+function downloadFile() {
+  clearLog();
+  const o = strToSeqObj(getEditorValue());
+  if (o === null) return;
+  const data = protoToBlob(objectToSequenceProto(removeTweaks(o)));
+  if (data === null) return;
+  saveBlob("result.sequence", [data], "application/octet-stream");
+}
+
+class Note { constructor(index) { this.index = index; }}
+
+function noteProtoToType(index) {
+  return Object.keys(proto.NoteType)[index].replace('S', '#');
+}
+
+function noteTypeToProto(type) {
+  return proto.NoteType[type.replace('#', 'S')];
+}
+
+function validNoteType(type) {
+  try {
+    return isNumber(noteTypeToProto(type));
+  } catch {
+    return false;
+  }
+}
+
+function seqObjToStr(o) {
+  class State {
+    constructor(key) {
+      this.key = key;
+      this.isArray = false;
+      this.isMap = false;
+    }
+  }
+  class Serializer {
+    constructor() {
+      this.stk = [];
+      this.str = "";
+    }
+    addIndent(delta = 0) {
+      if (this.str.length > 0) this.str += "\n";
+      const stop = this.stk.length + delta;
+      for (let i = 0; i < stop; ++i) this.str += "  ";
+    }
+    addPrefix(key) {
+      this.addIndent();
+      if (key !== null) this.str += key + ": ";
+    }
+    add(o, key = null) {
+      if (o === null || o === undefined) return;
+      this.addPrefix(key);
+      this.stk.push(new State(key));
+      if (Array.isArray(o)) {
+        if (key.endsWith("Map")) {
+          this.addMap(o);
+        } else {
+          this.addArray(o);
+        }
+      } else if (o instanceof Note) {
+        this.str += noteProtoToType(o.index);
+      } else if (typeof o == "object") {
+        this.addObject(o);
+      } else if (typeof o == "string" || typeof o == "boolean" || isNumber(o)) {
+        this.str += JSON.stringify(o);
+      } else {
+        console.log("Tried to serialize unknown object", o);
+      }
+      this.stk.pop();
+    }
+    addObjectKV(o) {
+      for (const key in o) this.add(o[key], key);
+    }
+    addObject(o) {
+      this.str += "(";
+      this.addObjectKV(o);
+      this.addIndent(-1);
+      this.str += ")";
+    }
+    addArray(a) {
+      this.str += "[";
+      for (const v of a) this.add(v);
+      this.addIndent(-1);
+      this.str += "]";
+    }
+    addMap(m) {
+      this.str += "{";
+      for (const kv of m) {
+        if (kv.length == 2) {
+          this.add(kv[1], kv[0]);
+        } else {
+          console.log("Badly formatted map kv pair", kv, m);
+        }
+      }
+      this.addIndent(-1);
+      this.str += "}";
+    }
+  }
+  const s = new Serializer();
+  s.addObjectKV(o);
+  return s.str;
+}
+
+function strToSeqObj(s) {
+  class Entry {
+    constructor(isArray, isMap, out) {
+      this.isArray = isArray;
+      this.isMap = isMap;
+      this.out = out;
+    }
+    get stop() { return this.isArray ? ']' : this.isMap ? '}' : ')'; }
+  }
+  const root = {};
+  let stack = [new Entry(false, false, root)];
+  let error = null;
+  function parseV(i, l, raw) {
+    if (l == '(') {
+      const o = {};
+      stack.push(new Entry(false, false, o));
+      return o;
+    } else if (l == '[') {
+      const o = [];
+      stack.push(new Entry(true, false, o));
+      return o;
+    } else if (l == '{') {
+      const o = [];
+      stack.push(new Entry(false, true, o));
+      return o;
+    } else if (validNoteType(l)) {
+      return new Note(noteTypeToProto(l));
+    }
+    try {
+      return JSON.parse(l);
+    } catch {
+      console.log(l);
+      error = `Can't parse the value on line ${i}: ${raw}`;
+      return null;
+    }
+  }
+  function parseKv(i, l) {
+    const j = l.indexOf(':');
+    if (j == -1) {
+      error = `Expected key-value pair seperated by ':' on line ${i}: ${l}`;
+      return null;
+    }
+    const v = parseV(i, l.substr(j + 1).trim(), l);
+    if (v === null) return null;
+    const k = l.substr(0, j).trim();
+    return [k, v];
+  }
+  function loop(i, l) {
+    if (l.length == 0) return;
+    const e = stack[stack.length - 1];
+    if (l == e.stop) {
+      stack.pop();
+      if (stack.length == 0) {
+        error = `Root object was terminated on line ${i}: ${l}`;
+        return;
+      }
+    } else if (e.isArray) {
+      const v = parseV(i, l, l);
+      if (v === null) return;
+      e.out.push(v);
+    } else if (e.isMap) {
+      const kv = parseKv(i, l);
+      if (kv === null) return;
+      e.out.push(kv);
+    } else {
+      const kv = parseKv(i, l);
+      if (kv === null) return;
+      e.out[kv[0]] = kv[1];
+    }
+  }
+  const ss = s.split('\n');
+  for (let i = 0; i < ss.length; ++i) {
+    loop(i + 1, ss[i].trim());
+    if (error !== null) break;
+  }
+  if (error) {
+    log(error);
+    return null;
+  }
+  return root;
+}
+
+function applyTweaks(o) {
+  // Convert note indices to objects.
+  for (const n of o.notesList || []) n.type = new Note(n.type);
+  return o;
+}
+
+function removeTweaks(o) {
+  // Convert note pbjects to indices.
+  for (const n of o.notesList || []) n.type = n.type.index;
+  return o;
+}
+
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+a {
+  color: #ff5722;
+  font-family: monospace;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap { padding: 0 16px; }
+#wrap, #fileInputLabel {
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+input[type="file"] {
+  display: none;
+}
+#editor {
+  background-color: #424242;
+  color: #f5f5f5;
+  width: 100%;
+}
+#errorLog {
+  color: #f44336;
+  line-height: 16px;
+}
+</style>
+</head>
+<body ondrop="onDrop(event)" ondragover="onDragOver(event)">
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>OS Sequence File Editor</h1>
+</div>
+<div id="wrap">
+  <a href="https://onlinesequencer.net/">Online Sequencer</a>'s .sequence files
+  are encoded using <a href="https://developers.google.com/protocol-buffers">Protocol Buffers</a>.
+  Protos have a bunch of technical benefits, but they're not human readable or
+  editable like the old .txt format was. This tool helps you edit them.
+  <br/>
+  <br/>
+  Drag and drop a .sequence file here to convert it to text. Or click
+  <label id="fileInputLabel">
+    <input type="file" id="fileInput" onchange="onFile()">
+    <a>here</a>
+  </label>
+  to upload a file.
+  <br/>
+  <br/>
+  <textarea id="editor" rows="20"></textarea>
+  <br/>
+  <br/>
+  Once you've finished editing it, click <a onclick="downloadFile()">here</a> to
+  convert back to a .sequence file.
+  <br/>
+  <br/>
+  <br/>
+  <div id="errorLog"></div>
+</div>
+</body>
+</html>

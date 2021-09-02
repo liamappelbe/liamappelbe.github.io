@@ -71,14 +71,15 @@ function generate(generator) {
   saveBlob(name, [blob], 'application/octet-stream');
 }
 
+function isNumber(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
+
 function noteTypeToProto(type) {
-  return Object.keys(proto.NoteType).indexOf(type.replace('#', 'S'));
+  return proto.NoteType[type.replace('#', 'S')];
 }
 
 function validNoteType(type) {
   try {
-    noteTypeToProto(type);
-    return true;
+    return isNumber(noteTypeToProto(type));
   } catch {
     return false;
   }
@@ -841,7 +842,7 @@ a {
 </style>
 <body>
 <div id="head">
-  <a id="index" href="../index.html">&lt;</a>
+  <a id="index" href="index.html">&lt;</a>
   <h1>Dr. Jarvis</h1>
 </div>
 <div id="wrap">
