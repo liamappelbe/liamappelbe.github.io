@@ -672,6 +672,12 @@ function genLoFiMelody(ctx, inst, secondary, vigor) {
   addChunk(b, 3);
   addChunk(a, 4);
   addChunk(c, 6);
+
+  // Add an extra triad note at the start of the next section.
+  notes.push(new Note(
+      noteType(choose(ctx.chords[0].triadIndexes()), oct + 1),
+      kSection * kBar, dt, inst.inst, vol));
+
   return notes;
 }
 
@@ -738,6 +744,33 @@ function genLoFiInstSettings(ctx) {
   // Bass and chords eq.
   setEq(settings(ctx.bassInst.inst), eq(-48, 0, 20));
   setEq(settings(ctx.chordInst.inst), eq(0, 0, 10));
+
+  // Randomize reverb effects.
+  const kEffects = [
+    [1, 1], [2, 1], [3, 1], [4, 1], [5, 0.5], [6, 0.5], [7, 0.5],
+    [8, 0.5], [9, 0.1], [10, 0.5], [11, 0.3],
+  ];
+  function chooseEffect(inst) {
+    const s = settings(inst);
+    if (randb(0.5)) {
+      const [e, v] = choose(kEffects);
+      s.setReverb(e != 0);
+      s.setReverbType(e);
+      s.setOneMinusReverbVolume(1 - randf(v));
+    } else {
+      s.setReverb(false);
+    }
+  }
+  chooseEffect(ctx.kick.inst);
+  chooseEffect(ctx.snare1.inst);
+  chooseEffect(ctx.snare2.inst);
+  chooseEffect(ctx.hat1.inst);
+  chooseEffect(ctx.hat2.inst);
+  chooseEffect(ctx.cymbal.inst);
+  chooseEffect(ctx.bassInst.inst);
+  chooseEffect(ctx.chordInst.inst);
+  chooseEffect(ctx.melody1Inst.inst);
+  chooseEffect(ctx.melody2Inst.inst);
 }
 
 function genLoFiMarkers(ctx, sections) {
@@ -783,6 +816,17 @@ function genLoFiMarkers(ctx, sections) {
   markers.push(marker(endOfSong, kMSVol, 0, 0, true));
 
   return markers;
+}
+
+function genLoFiBreakDownEffect() {
+  //  - drop all but the first note of all the instruments
+  //  - 1, 2, 3, 4
+  //  - drop all but the drums
+  //  - drop out only the drums
+  //  - volume markers
+  //  - detune markers
+  //  - eq markers
+  //  - panning markers
 }
 
 function genLoFi() {
