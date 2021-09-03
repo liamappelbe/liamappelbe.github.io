@@ -329,20 +329,34 @@ function genEmphasisBar(p0, p1, fn) {
   return genEmphasisEx(kBar, 0.25, p0, p1, 1, fn);
 }
 
+function addNoteWithTrill(notes, inst, t, vol, trillLen, trillDt, trillVol) {
+  notes.push(drumNote(inst, t, vol));
+  for (let i = 1; i <= trillLen; ++i) {
+    notes.push(drumNote(inst, t - i * trillDt, vol * trillVol));
+  }
+}
+
+const kLoFiTrillDt = 0.125;
+const kLoFiTrillVol = 0.25;
 function genLoFiDrumsOneBar(ctx, first) {
   const notes = [
     drumNote(ctx.kick, 0),
-    drumNote(ctx.snare1, 1),
     drumNote(ctx.kick, randb() ? 2 : 2.5),
-    drumNote(ctx.snare1, randb(0.7) ? 3 : 3.5),
   ];
+
+  function addNoteMaybeTrill(inst, t, vol = 1) {
+    addNoteWithTrill(notes, inst, t, vol, randb(0.1) ? randi(2, 1) : 0,
+                     kLoFiTrillDt, kLoFiTrillVol);
+  }
+  addNoteMaybeTrill(ctx.snare1, 1);
+  addNoteMaybeTrill(ctx.snare1, randb(0.7) ? 3 : 3.5);
 
   if (first) notes.push(drumNote(ctx.cymbal, 0));
 
   genEmphasisBar(0.1, 0.8,
-      (t, e) => notes.push(drumNote(ctx.kick, t, e * randf(1.2, 0.8))));
+      (t, e) => addNoteMaybeTrill(ctx.kick, t, e * randf(1.2, 0.8)));
   genEmphasisBar(0.1, 0.8,
-      (t, e) => notes.push(drumNote(ctx.snare2, t, e * randf(0.8, 0.5))));
+      (t, e) => addNoteMaybeTrill(ctx.snare2, t, e * randf(0.8, 0.5)));
 
   for (let i = 0; i < kBar; ++i) {
     notes.push(drumNote(ctx.hat1, i + 0.5));
@@ -354,12 +368,16 @@ function genLoFiDrumsOneBar(ctx, first) {
 
 function genLoFiDrumsOneBarBreak(ctx) {
   const notes = [];
+  function addNoteMaybeTrill(inst, t, vol = 1) {
+    addNoteWithTrill(notes, inst, t, vol, randb(0.3) ? randi(4, 1) : 0,
+                     kLoFiTrillDt, kLoFiTrillVol);
+  }
   genEmphasisBar(0.1, 0.8,
-      (t, e) => notes.push(drumNote(ctx.kick, t, e * randf(1.2, 0.8))));
+      (t, e) => addNoteMaybeTrill(ctx.kick, t, e * randf(1.2, 0.8)));
   genEmphasisBar(0.1, 0.8,
-      (t, e) => notes.push(drumNote(ctx.snare1, t, e * randf(1.2, 0.8))));
+      (t, e) => addNoteMaybeTrill(ctx.snare1, t, e * randf(1.2, 0.8)));
   genEmphasisBar(0.1, 0.8,
-      (t, e) => notes.push(drumNote(ctx.snare2, t, e * randf(0.8, 0.5))));
+      (t, e) => addNoteMaybeTrill(ctx.snare2, t, e * randf(0.8, 0.5)));
   for (let i = 0; i < kBar; ++i) {
     notes.push(drumNote(ctx.hat1, i + 0.5));
     notes.push(drumNote(ctx.hat2, i + 0.25, randVol(0.5)));
@@ -643,6 +661,11 @@ function genLoFiInstSettings(ctx) {
   function randomDetune(inst) { settings(inst).setDetune(randf(-1200, 1200)); }
   for (const d of ctx.drums) randomDetune(d.inst);
 
+  // For lo-fi, the snares and cymbals should be faded.
+  setEq(settings(ctx.snare1.inst), choose(kFadedEqSettings));
+  setEq(settings(ctx.snare2.inst), choose(kFadedEqSettings));
+  setEq(settings(ctx.cymbal.inst), choose(kFadedEqSettings));
+
   // Bass and chords eq.
   setEq(settings(ctx.bassInst.inst), eq(-48, 0, 20));
   setEq(settings(ctx.chordInst.inst), eq(0, 0, 10));
@@ -695,9 +718,6 @@ function genLoFiMarkers(ctx, sections) {
 
 function genLoFi() {
   // TODO:
-  //  - Force drums to chill
-  //     - mute the default eq of the snare, atmo, and cymbals
-  //     - add trills
   //  - Volume adjustments to all the instrument tables (not lofi specific)
   //  - Better breakdowns
 
