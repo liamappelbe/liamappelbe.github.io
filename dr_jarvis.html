@@ -92,6 +92,66 @@ function noteType(key, octave) {
   return kNoteTypeNames[i] + o;
 }
 
+function buildDrumWeights(firstNote, volumes) {
+  const offset = noteTypeToProto(firstNote);
+  const m = new Map();
+  for (let i = 0; i < volumes.length; ++i) m.set(i + offset, volumes[i]);
+  return m;
+}
+
+const kDw0 = buildDrumWeights('D#2', [
+  0.5,    0.8333, 0.6667, 0.5882, 0.5882, 0.5,    0.5,    0.7692, 0.5,
+  0.5,    0.625,  0.625,  0.8333, 0.7143, 0.5556, 0.5556, 0.5,    0.5,
+  0.5882, 1,      0.625,  0.7143, 1,      0.5,    0.5882, 1,      0.7143,
+  0.6667, 0.7143, 0.6667, 0.8333, 0.6667, 0.625,  0.5,    0.5263, 0.5,
+  0.5,    0.5,    0.6667, 0.6667, 0.625,  0.625,  0.6667, 0.5882, 0.7692,
+  0.8333, 0.625,  0.625,  0.5882, 0.5,    0.5,    0.5,    0.5,    0.5714,
+  0.7692, 0.6667, 0.6667, 0.5,    0.5,    0.5882, 0.6667
+]);
+
+const kDw1 = buildDrumWeights('D#2', [
+  0.8,    0.625,  1,      1,      0.9091, 0.4,    0.5,    0.8,    0.9091,
+  0.9091, 0.6897, 1,      1.5385, 1,      0.7692, 0.4545, 0.7143, 0.9091,
+  1.1111, 1.3333, 1,      0.9524, 1,      0.7692, 0.6667, 1.0526, 0.6667,
+  0.6667, 0.8,    0.9524, 1.4286, 1.4286, 0.9524, 0.625,  0.5263, 0.625,
+  0.5,    0.5882, 0.7407, 0.8,    0.7407, 0.7692, 0.8696, 0.7692, 1.2,
+  1.25,   0.8333, 1.25,   1,      0.5,    0.5,    0.6897, 0.6667, 1,
+  1.25,   1.25,   1.3333, 1.3333, 0.7143, 0.6667, 0.625
+]);
+
+const kDw2 = buildDrumWeights('D#2', [
+  1, 1, 1.5385, 2.8571, 4, 2.5, 2, 1.6667, 2.8571, 4, 2.2222, 1.6667, 1.6667,
+  1.4286, 1.4286, 3.5714, 4, 2
+]);
+
+const kDw3 = buildDrumWeights('G2', [ 1.25, 1, 0.8333, 1.8182, 1.8182, 2.5 ]);
+
+const kDw4 = buildDrumWeights('G2', [
+  1.6667, 2.5,    2.5,    4,      3.6364, 2.2222, 1.5385,
+  1.1111, 1.6667, 1.3333, 2.5,    0.9091, 1.4286, 2.2222,
+  2.5,    1.5385, 1.25,   2.8571, 2,      2.5,    2.5,
+  2.5,    2.5,    0.25,   2.5,    2.5,    3.3333, 1.6667
+]);
+
+const kDw5 = buildDrumWeights('D#2', [
+  1.8182, 1.8182, 1.8182, 2,      2,      1.5385, 0.7692,
+  0.9091, 0.7407, 0.8333, 0.8696, 1.1111, 1.25,   1.6667,
+  0.8696, 1.25,   1.5385, 1.5385, 1.6667, 0.9524
+]);
+
+const kVolWeights = [
+  1,     0.7692, kDw0,   1.25,   1.25,   1,      0.9091, 1.25,   1,
+  1,     1.25,   1,      0.5882, 0.7143, 1.4286, 1.1111, 0.7692, 1.25,
+  0.625, 1,      0.8333, 0.9091, 1.1765, 0.6667, 1,      1,      0.8696,
+  1,     0.625,  1.1111, 1.1111, kDw1,   0.9091, 1.25,   1.1765, 1.3333,
+  kDw2,  1.25,   1.1111, kDw3,   kDw4,   0.9524, kDw5,
+];
+
+function getVolWeight(inst, index) {
+  const a = kVolWeights[inst];
+  return (a instanceof Map ? a.get(index) : a) || 0;
+}
+
 // I'm representing note times and lengths as a float number of beats, whereas
 // OS represents them as a number of quarter beats.
 function noteTimeToOsFormat(time) { return 4 * time; }
@@ -121,11 +181,12 @@ class Note {
   get asProto() {
     if (!validNoteType(this.type)) return null;
     const np = new proto.Note();
-    np.setType(noteTypeToProto(this.type));
+    const index = noteTypeToProto(this.type);
+    np.setType(index);
     np.setTime(noteTimeToOsFormat(this.time));
     np.setLength(this.len > 0 ? noteTimeToOsFormat(this.len) : 1);
     np.setInstrument(this.inst);
-    np.setVolume(this.vol);
+    np.setVolume(this.vol / getVolWeight(this.inst, index));
     return np;
   }
 }
@@ -338,14 +399,14 @@ function addNoteWithTrill(notes, inst, t, vol, trillLen, trillDt, trillVol) {
 
 const kLoFiTrillDt = 0.125;
 const kLoFiTrillVol = 0.25;
-function genLoFiDrumsOneBar(ctx, first) {
+function genLoFiDrumsOneBar(ctx, first, vigor) {
   const notes = [
     drumNote(ctx.kick, 0),
     drumNote(ctx.kick, randb() ? 2 : 2.5),
   ];
 
   function addNoteMaybeTrill(inst, t, vol = 1) {
-    addNoteWithTrill(notes, inst, t, vol, randb(0.1) ? randi(2, 1) : 0,
+    addNoteWithTrill(notes, inst, t, vol, randb(0.2 * vigor) ? randi(2, 1) : 0,
                      kLoFiTrillDt, kLoFiTrillVol);
   }
   addNoteMaybeTrill(ctx.snare1, 1);
@@ -353,45 +414,45 @@ function genLoFiDrumsOneBar(ctx, first) {
 
   if (first) notes.push(drumNote(ctx.cymbal, 0));
 
-  genEmphasisBar(0.1, 0.8,
+  genEmphasisBar(0.1, lerp(0.4, 1, vigor),
       (t, e) => addNoteMaybeTrill(ctx.kick, t, e * randf(1.2, 0.8)));
-  genEmphasisBar(0.1, 0.8,
+  genEmphasisBar(0.1, lerp(0.4, 1, vigor),
       (t, e) => addNoteMaybeTrill(ctx.snare2, t, e * randf(0.8, 0.5)));
 
   for (let i = 0; i < kBar; ++i) {
     notes.push(drumNote(ctx.hat1, i + 0.5));
-    notes.push(drumNote(ctx.hat2, i + 0.25, randVol(0.5)));
-    notes.push(drumNote(ctx.hat2, i + 0.75, randVol(0.5)));
+    if (randb(vigor)) notes.push(drumNote(ctx.hat2, i + 0.25, randVol(0.5)));
+    if (randb(vigor)) notes.push(drumNote(ctx.hat2, i + 0.75, randVol(0.5)));
   }
   return notes;
 }
 
-function genLoFiDrumsOneBarBreak(ctx) {
+function genLoFiDrumsOneBarBreak(ctx, vigor) {
   const notes = [];
   function addNoteMaybeTrill(inst, t, vol = 1) {
-    addNoteWithTrill(notes, inst, t, vol, randb(0.3) ? randi(4, 1) : 0,
+    addNoteWithTrill(notes, inst, t, vol, randb(0.5 * vigor) ? randi(4, 1) : 0,
                      kLoFiTrillDt, kLoFiTrillVol);
   }
-  genEmphasisBar(0.1, 0.8,
+  genEmphasisBar(0.1, lerp(0.4, 1, vigor),
       (t, e) => addNoteMaybeTrill(ctx.kick, t, e * randf(1.2, 0.8)));
-  genEmphasisBar(0.1, 0.8,
+  genEmphasisBar(0.1, lerp(0.4, 1, vigor),
       (t, e) => addNoteMaybeTrill(ctx.snare1, t, e * randf(1.2, 0.8)));
-  genEmphasisBar(0.1, 0.8,
+  genEmphasisBar(0.1, lerp(0.4, 1, vigor),
       (t, e) => addNoteMaybeTrill(ctx.snare2, t, e * randf(0.8, 0.5)));
   for (let i = 0; i < kBar; ++i) {
     notes.push(drumNote(ctx.hat1, i + 0.5));
-    notes.push(drumNote(ctx.hat2, i + 0.25, randVol(0.5)));
-    notes.push(drumNote(ctx.hat2, i + 0.75, randVol(0.5)));
+    if (randb(vigor)) notes.push(drumNote(ctx.hat2, i + 0.25, randVol(0.5)));
+    if (randb(vigor)) notes.push(drumNote(ctx.hat2, i + 0.75, randVol(0.5)));
   }
   return notes;
 }
 
-function genLoFiDrums(ctx) {
+function genLoFiDrums(ctx, vigor) {
   const bars = [];
   for (let i = 0; i < kSection - 1; ++i) {
-    bars.push(genLoFiDrumsOneBar(ctx, i == 0));
+    bars.push(genLoFiDrumsOneBar(ctx, i == 0, vigor));
   }
-  bars.push(genLoFiDrumsOneBarBreak(ctx));
+  bars.push(genLoFiDrumsOneBarBreak(ctx, vigor));
   return joinBars(bars);
 }
 
@@ -507,7 +568,7 @@ class MelodicRhythm {
   }
 };
 
-function genLoFiMelodyChunk(length, dt) {
+function genLoFiMelodyChunk(length, dt, vigor) {
   // The most important constraint for melody generation is to end every phrase
   // on a note from the current chord's triad. Using the usual breatEmphasis
   // based rhythm generation, a new phrase is defined as any time there's more
@@ -524,33 +585,41 @@ function genLoFiMelodyChunk(length, dt) {
   for (let t = 0; t < length; t += dt) {
     if (repTime >= repStop && phrase != null && t > (phrase.t0 + 2 * dt) &&
         randb(0.1)) {
+      // Begin new repetition.
       repStop = t;
       repTime = randBeat(t - dt, phrase.t0, dt);
     }
     if (repTime < repStop) {
+      // Continue the repetition.
       phrase.repeat(repTime, t);
       repTime += dt;
       continue;
     }
     const e = Math.min(1, beatEmphasis(t) / 0.8);
-    if (!randb(lerp(0.3, 0.9, e))) continue;
+    if (!randb(lerp(0.3, lerp(0.5, 0.9, vigor), e))) continue;
+    // Add a new beat here.
     if (phrase === null || t - pt > phraseLimit) {
       if (phrase !== null) phrases.push(phrase.finish());
       phrase = new MelodicRhythm(t);
     }
-    const triad = randb(lerp(0, 0.3, e));
+    const triad = randb(lerp(0, lerp(0.1, 0.5, vigor), e));
     let index;
     let index2 = -1;
     if (triad) {
+      // Add a triad note.
       index = randi(2);
       if (randb(0.3)) {
+        // Add a second triad note.
         index2 = index;
         while (index2 == index) index2 = randi(2);
       }
     } else {
+      // Add a non-triad note.
       if (lastNonTriadIndex === null) {
+        // Pick a random note from the scale.
         index = randi(kMajorScale.length - 1);
       } else {
+        // Step up or down from the last non-triad note.
         index = lastNonTriadIndex + choose(
             [-2, -2, -1, -1, -1, 0, 1, 1, 1, 2, 2]);
       }
@@ -563,10 +632,10 @@ function genLoFiMelodyChunk(length, dt) {
   return phrases;
 }
 
-function genLoFiMelody(ctx, inst, secondary) {
+function genLoFiMelody(ctx, inst, secondary, vigor) {
   const dt = secondary ? 0.5 : 0.25;
   const oct = secondary ? 6 : 5;
-  const vol = secondary ? 0.6 : 1;
+  const vol = secondary ? 0.7 : 1;
   const all = ctx.chords[0].scale();
   const notes = [];
   let pj = null;
@@ -595,9 +664,9 @@ function genLoFiMelody(ctx, inst, secondary) {
       });
     }
   }
-  const a = genLoFiMelodyChunk(2 * kBar, dt);
-  const b = genLoFiMelodyChunk(1 * kBar, dt);
-  const c = genLoFiMelodyChunk(2 * kBar, dt);
+  const a = genLoFiMelodyChunk(2 * kBar, dt, vigor);
+  const b = genLoFiMelodyChunk(1 * kBar, dt, vigor);
+  const c = genLoFiMelodyChunk(2 * kBar, dt, vigor);
   addChunk(a, 0);
   addChunk(b, 2);
   addChunk(b, 3);
@@ -718,7 +787,6 @@ function genLoFiMarkers(ctx, sections) {
 
 function genLoFi() {
   // TODO:
-  //  - Volume adjustments to all the instrument tables (not lofi specific)
   //  - Better breakdowns
 
   const key = randi(11);
@@ -746,20 +814,20 @@ function genLoFi() {
 
   const chords = genLoFiChords(ctx);
   const bass = genLoFiBass(ctx);
-  const melody1v1 = genLoFiMelody(ctx, ctx.melody1Inst, false);
-  const melody1v2 = genLoFiMelody(ctx, ctx.melody1Inst, false);
-  const melody1c = genLoFiMelody(ctx, ctx.melody1Inst, false);
-  const melody2 = genLoFiMelody(ctx, ctx.melody2Inst, true);
-  const melody2b = genLoFiMelody(ctx, ctx.melody2Inst, false);
+  const melody1v1 = genLoFiMelody(ctx, ctx.melody1Inst, false, 0);
+  const melody1v2 = genLoFiMelody(ctx, ctx.melody1Inst, false, 0);
+  const melody1c = genLoFiMelody(ctx, ctx.melody1Inst, false, 1);
+  const melody2 = genLoFiMelody(ctx, ctx.melody2Inst, true, 1);
+  const melody2b = genLoFiMelody(ctx, ctx.melody2Inst, false, 0.5);
 
-  const secIntro = merge(genLoFiDrums(ctx), chords, bass, genLoFiAtmo(ctx));
-  const secVerse1 = merge(genLoFiDrums(ctx), chords, bass, melody1v1, genLoFiAtmo(ctx));
-  const secChorus1 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
-  const secVerse2 = merge(genLoFiDrums(ctx), chords, bass, melody1v2, genLoFiAtmo(ctx));
-  const secChorus2 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
-  const secBridge = merge(genLoFiDrums(ctx), bass, melody2b, genLoFiAtmo(ctx));
-  const secChorus3 = merge(genLoFiDrums(ctx), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
-  const secOutro = merge(genLoFiDrums(ctx), chords, bass, genLoFiAtmo(ctx));
+  const secIntro = merge(genLoFiDrums(ctx, 0), chords, bass, genLoFiAtmo(ctx));
+  const secVerse1 = merge(genLoFiDrums(ctx, 0.5), chords, bass, melody1v1, genLoFiAtmo(ctx));
+  const secChorus1 = merge(genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
+  const secVerse2 = merge(genLoFiDrums(ctx, 0.5), chords, bass, melody1v2, genLoFiAtmo(ctx));
+  const secChorus2 = merge(genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
+  const secBridge = merge(genLoFiDrums(ctx, 0), bass, melody2b, genLoFiAtmo(ctx));
+  const secChorus3 = merge(genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
+  const secOutro = merge(genLoFiDrums(ctx, 0), chords, bass, genLoFiAtmo(ctx));
   const secOutro2 = merge(chords, bass);
 
   const sections = [
