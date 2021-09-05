@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">const exports={};</script>
+<script src="https://onlinesequencer.net/resources/google-protobuf.js"></script>
+<script src="https://onlinesequencer.net/proto/js/instrumentsettings.js"></script>
+<script src="https://onlinesequencer.net/proto/js/marker.js"></script>
+<script src="https://onlinesequencer.net/proto/js/note.js"></script>
+<script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="util.js"></script>
+<script src="lofi.js"></script>
+<script src="dnb.js"></script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+a {
+  color: #ff5722;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+</style>
+<body>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>Dr. Jarvis</h1>
+</div>
+<div id="wrap">
+  Hi, I'm Dr. Jarvis, a bot that generates random
+  <a href="https://onlinesequencer.net/">Online Sequencer</a> songs. Click below
+  and I'll write you a song and send you the sequence file. You can drag and
+  drop that file into OS. Check out my
+  <a href="https://onlinesequencer.net/members/65405">OS profile</a> to listen
+  to some of my songs.
+  <br/>
+  <br/>
+  <a onclick="generate(genShortChords)">Generate Short Chord Progression</a>
+  <br/>
+  <a onclick="generate(genLongChords)">Generate Long Chord Progression</a>
+  <br/>
+  <a onclick="generate(genLoFi)">Generate Lo-Fi</a>
+  <br/>
+  <a onclick="generate(genDnB)">Generate Drum&Bass (WIP)</a>
+</div>
+</body>
+</html>
