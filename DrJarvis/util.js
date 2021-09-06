@@ -390,3 +390,127 @@ function genBassline(chords, inst, beatsPerChord) {
   }
   return notes;
 }
+
+function genChordNotes(chords, inst, beatsPerChord) {
+  const notes = [];
+  const style = randi(2);
+  const vol = 0.5;
+  if (style == 0) {
+    // Plain chords, optionally decimated.
+    const dec = randb(0.3);
+    const len = 2;
+    for (let i = 0; i < chords.length; ++i) {
+      const ch = chords[i].noteIndexesFolded();
+      for (let j = 0; j < ch.length; ++j) {
+        for (let t = 0; t < beatsPerChord; t += len) {
+          if (j != 0 && dec && randb(0.2)) continue;
+          notes.push(new Note(
+              noteType(chordVoice(ch[j], 2), 3), i * beatsPerChord + t, len,
+              inst, vol * (j == 0 ? 1 : randf(1, 0.5))));
+        }
+      }
+    }
+  } else if (style == 1) {
+    // Chords with a random rhythm.
+    function makeRhythm() {
+      const rhythm = [];
+      for (let t = 0; t < beatsPerChord;) {
+        rhythm.push(t);
+        t += randw([0, 1, 3, 5]) * 0.5;
+      }
+      return rhythm;
+    }
+    function makeChords(i, rhythm) {
+      const ch = chords[i].noteIndexesFolded();
+      const t0 = i * beatsPerChord;
+      const addNote = (n, v) => {
+        for (let k = 0; k < rhythm.length; ++k) {
+          const t = rhythm[k];
+          const t2 = k < rhythm.length - 1 ? rhythm[k + 1] : beatsPerChord;
+          notes.push(
+              new Note(noteType(n, 3), t0 + t, t2 - 0.125 - t, inst, v * vol));
+        }
+      };
+      addNote(ch[0], 0.5);
+      addNote(ch[0] + 12, 0.5);
+      for (let j = 1; j < ch.length; ++j) {
+        addNote(chordVoice(ch[j], 2), randf(0.4, 0.25));
+      }
+    }
+    const r0 = makeRhythm();
+    const r1 = makeRhythm();
+    for (let i = 0; i < chords.length - 1; ++i) makeChords(i, r0);
+    makeChords(chords.length - 1, r1);
+  } else if (style == 2) {
+    // Arpegios, in a random direction.
+    const dir = randi(kPossibleArpDirs - 1);
+    const oct = randi(2, 1);
+    const len = choose([0.5, 1]);
+    for (let i = 0; i < chords.length; ++i) {
+      const ch = chords[i].noteIndexesFolded();
+      for (let t = 0, j = 0; t < beatsPerChord; t += len, ++j) {
+        const k = arpIndex(j, ch.length * oct, dir);
+        notes.push(new Note(
+            noteType(ch[mod(k, ch.length)], 3 + Math.floor(k / ch.length)),
+            i * beatsPerChord + t, len, inst,
+            vol * (mod(k, ch.length) == 0 ? 1 : randf(1, 0.5))));
+      }
+    }
+  }
+  return notes;
+}
+
+class Structure {
+  constructor(lens, layout) {
+    this.lens = lens;
+    this.layout = layout;
+  }
+}
+
+function genStructuredMelody(getChord, inst, dt, oct, vol, vigor, structure) {
+  const all = getChord(0).scale();
+  const notes = [];
+  let pj = null;
+  function wrap(j) {
+    if (pj === null) return j;
+    j = mod(j, 12);
+    while (pj - j > 7) j += 12;
+    while (j - pj > 7) j -= 12;
+    return j;
+  }
+  function addChunk(phrases, barOffset) {
+    const toff = barOffset * kBar;
+    for (const phrase of phrases) {
+      phrase.forEach(toff, (t, triad, index, index2) => {
+        const ch = getChord(t);
+        const tri = ch.triadIndexes();
+        const j = triad ? wrap(getWithOctaves(tri, index)) :
+                          getWithOctaves(all, index);
+        const v = lerp(0.6, 1, beatEmphasis(t)) * vol;
+        notes.push(new Note(noteType(j, oct), t, dt, inst.inst, v));
+        if (triad && index2 != -1) {
+          const j2 = wrap(getWithOctaves(tri, index2));
+          notes.push(new Note(noteType(j2, oct), t, dt, inst.inst, v));
+        }
+        pj = j;
+      });
+    }
+  }
+  const chunks = [];
+  for (const l of structure.lens) {
+    chunks.push(genMelodyChunk(l * kBar, dt, vigor));
+  }
+  let t = 0;
+  for (const k of structure.layout) {
+    addChunk(chunks[k], t);
+    t += structure.lens[k];
+  }
+  console.assert(t == kSection);
+
+  // Add an extra triad note at the start of the next section.
+  notes.push(new Note(
+      noteType(choose(getChord(0).triadIndexes()), oct), kSection * kBar, dt,
+      inst.inst, vol));
+
+  return notes;
+}
