@@ -105,13 +105,218 @@ function genDnBDrumsOneBarBreak(ctx, vigor) {
   return notes;
 }
 
+function genDnBAtmo(ctx) {
+  const notes = [];
+  const dt = 0.25;
+  for (let k = 0; k < kSection; ++k) {
+    const end = randBeat(kBar * kSection, 0, 0.5);
+    const start = Math.max(0, end - randBeat(1.5, 0.25, 0.25));
+    for (let t = start; t <= end; t += dt) {
+      const vol = 0.8 * (t == end ? 1 : Math.min(1, beatEmphasis(t) + 0.4));
+      const n = choose(ctx.atmo);
+      notes.push(new Note(n.type, t, dt, n.inst, vol));
+    }
+  }
+  return notes;
+}
+
 function genDnBDrums(ctx, vigor) {
   const bars = [];
   for (let i = 0; i < kSection - 1; ++i) {
     bars.push(genDnBDrumsOneBar(ctx, i, vigor));
   }
   bars.push(genDnBDrumsOneBarBreak(ctx, vigor));
+  return merge(joinBars(bars), genDnBAtmo(ctx));
+}
+
+function genDnBBreakDrumsOneBar(ctx) {
+  const notes = [];
+  function addNoteMaybeTrill(inst, t, vol = 1) {
+    addNoteWithTrill(
+        notes, inst, t, vol, randb(0.1) ? randi(2, 1) : 0, kDnBTrillDt,
+        kDnBTrillVol);
+  }
+
+  // Beats.
+  addNoteMaybeTrill(ctx.snare1, 1);
+  addNoteMaybeTrill(ctx.snare1, 3);
+
+  return notes;
+}
+
+function genDnBBreakDrums(ctx) {
+  const bars = [];
+  for (let i = 0; i < kSection - 1; ++i) {
+    bars.push(genDnBBreakDrumsOneBar(ctx));
+  }
+  bars.push(genDnBDrumsOneBarBreak(ctx, 0));
   return joinBars(bars);
+}
+
+const kDnBBarsPerChord = 2;
+const kDnBBeatsPerChord = kDnBBarsPerChord * kBar;
+function getDnBChord(ctx, t) {
+  return ctx.chords[Math.floor(t / kDnBBeatsPerChord)];
+}
+
+function genDnBChords(ctx) {
+  const notes = [];
+  const style = randi(2);
+  const vol = 0.5;
+  if (style == 0) {
+    // Plain chords, optionally decimated.
+    const dec = randb(0.3);
+    const len = 2;
+    for (let i = 0; i < ctx.chords.length; ++i) {
+      const ch = ctx.chords[i].noteIndexesFolded();
+      for (let j = 0; j < ch.length; ++j) {
+        for (let t = 0; t < kDnBBeatsPerChord; t += len) {
+          if (j != 0 && dec && randb(0.2)) continue;
+          notes.push(new Note(
+              noteType(chordVoice(ch[j], 2), 3), i * kDnBBeatsPerChord + t, len,
+              ctx.chordInst.inst, vol * (j == 0 ? 1 : randf(1, 0.5))));
+        }
+      }
+    }
+  } else if (style == 1) {
+    // Chords with a random rhythm.
+    function makeRhythm() {
+      const rhythm = [];
+      for (let t = 0; t < kDnBBeatsPerChord;) {
+        rhythm.push(t);
+        t += randw([0, 1, 3, 5]) * 0.5;
+      }
+      return rhythm;
+    }
+    function makeChords(i, rhythm) {
+      const ch = ctx.chords[i].noteIndexesFolded();
+      const t0 = i * kDnBBeatsPerChord;
+      const addNote = (n, v) => {
+        for (let k = 0; k < rhythm.length; ++k) {
+          const t = rhythm[k];
+          const t2 = k < rhythm.length - 1 ? rhythm[k + 1] : kDnBBeatsPerChord;
+          notes.push(new Note(
+              noteType(n, 3), t0 + t, t2 - 0.125 - t, ctx.chordInst.inst,
+              v * vol));
+        }
+      };
+      addNote(ch[0], 0.5);
+      addNote(ch[0] + 12, 0.5);
+      for (let j = 1; j < ch.length; ++j) {
+        addNote(chordVoice(ch[j], 2), randf(0.4, 0.25));
+      }
+    }
+    console.assert(ctx.chords.length == 4);
+    const r0 = makeRhythm();
+    const r1 = makeRhythm();
+    makeChords(0, r0);
+    makeChords(1, r0);
+    makeChords(2, r0);
+    makeChords(3, r1);
+  } else if (style == 2) {
+    // Arpegios, in a random direction.
+    const dir = randi(kPossibleArpDirs - 1);
+    const oct = randi(2, 1);
+    const len = choose([0.5, 1]);
+    for (let i = 0; i < ctx.chords.length; ++i) {
+      const ch = ctx.chords[i].noteIndexesFolded();
+      for (let t = 0, j = 0; t < kDnBBeatsPerChord; t += len, ++j) {
+        const k = arpIndex(j, ch.length * oct, dir);
+        notes.push(new Note(
+            noteType(ch[mod(k, ch.length)], 3 + Math.floor(k / ch.length)),
+            i * kDnBBeatsPerChord + t, len, ctx.chordInst.inst,
+            vol * (mod(k, ch.length) == 0 ? 1 : randf(1, 0.5))));
+      }
+    }
+  }
+  return notes;
+}
+
+function genDnBBass(ctx) {
+  return genBassline(ctx.chords, ctx.bassInst.inst, kDnBBeatsPerChord);
+}
+
+function genDnBMelody(ctx, inst, dt, oct, vol, vigor, structure) {
+  const all = ctx.chords[0].scale();
+  const notes = [];
+  let pj = null;
+  function wrap(j) {
+    if (pj === null) return j;
+    j = mod(j, 12);
+    while (pj - j > 7) j += 12;
+    while (j - pj > 7) j -= 12;
+    return j;
+  }
+  function addChunk(phrases, barOffset) {
+    const toff = barOffset * kBar;
+    for (const phrase of phrases) {
+      phrase.forEach(toff, (t, triad, index, index2) => {
+        const ch = getDnBChord(ctx, t);
+        const tri = ch.triadIndexes();
+        const j = triad ? wrap(getWithOctaves(tri, index)) :
+                          getWithOctaves(all, index);
+        const v = lerp(0.6, 1, beatEmphasis(t)) * vol;
+        notes.push(new Note(noteType(j, oct), t, dt, inst.inst, v));
+        if (triad && index2 != -1) {
+          const j2 = wrap(getWithOctaves(tri, index2));
+          notes.push(new Note(noteType(j2, oct), t, dt, inst.inst, v));
+        }
+        pj = j;
+      });
+    }
+  }
+  if (structure == 0) {
+    const a = genMelodyChunk(2 * kBar, dt, vigor);
+    addChunk(a, 0);
+    addChunk(a, 2);
+    addChunk(a, 4);
+    addChunk(a, 6);
+  } else if (structure == 1) {
+    const a = genMelodyChunk(1 * kBar, dt, vigor);
+    const b = genMelodyChunk(2 * kBar, dt, vigor);
+    const c = genMelodyChunk(2 * kBar, dt, vigor);
+    addChunk(a, 0);
+    addChunk(a, 1);
+    addChunk(b, 2);
+    addChunk(a, 4);
+    addChunk(a, 5);
+    addChunk(c, 6);
+  } else if (structure == 2) {
+    const a = genMelodyChunk(2 * kBar, dt, vigor);
+    const b = genMelodyChunk(2 * kBar, dt, vigor);
+    addChunk(a, 0);
+    addChunk(a, 2);
+    addChunk(b, 4);
+    addChunk(a, 6);
+  }
+
+  // Add an extra triad note at the start of the next section.
+  notes.push(new Note(
+      noteType(choose(ctx.chords[0].triadIndexes()), oct), kSection * kBar, dt,
+      inst.inst, vol));
+
+  return notes;
+}
+
+function genDnBSubMelody(ctx) {
+  // ctx, inst, dt, oct, vol, vigor, structure
+  return genDnBMelody(ctx, ctx.melodySInst, 0.5, 6, 0.8, 0, 0);
+}
+
+function genDnBSlowMelody(ctx) {
+  return genDnBMelody(ctx, ctx.melody1Inst, 0.5, 5, 1, 0, 1);
+}
+
+function genDnBMainMelody(ctx) {
+  return genDnBMelody(ctx, ctx.melody1Inst, 0.25, 5, 1, 1, 1);
+}
+
+function genDnBSlowAltMelody(ctx) {
+  return genDnBMelody(ctx, ctx.melody2Inst, 0.5, 5, 1, 0, 2);
+}
+
+function genDnBAltMelody(ctx) {
+  return genDnBMelody(ctx, ctx.melody2Inst, 0.25, 5, 1, 0.5, 2);
 }
 
 function genDnBInstSettings(ctx) {
@@ -138,6 +343,7 @@ function genDnBInstSettings(ctx) {
   const m1pan = randf(-0.8, 0.8);
   settings(ctx.melody1Inst.inst).setPan(m1pan);
   settings(ctx.melody2Inst.inst).setPan(-m1pan);
+  settings(ctx.melodySInst.inst).setPan(randf(-1, 1));
   for (const a of ctx.atmo) settings(a.inst).setPan(randf(-1, 1));
 
   // Overwrite panning on drums and bass, in case they're the same as one of the
@@ -184,13 +390,14 @@ function genDnBInstSettings(ctx) {
   chooseEffect(ctx.chordInst.inst);
   chooseEffect(ctx.melody1Inst.inst);
   chooseEffect(ctx.melody2Inst.inst);
+  chooseEffect(ctx.melodySInst.inst);
 }
 
 function genDnB() {
   const key = randi(11);
   const ctx = {
     key: key,
-    chords: genTwinChords(kSection, key),
+    chords: genChords(kSection / kDnBBarsPerChord, key),
     kick: choose(kDrumKicks),
     snare1: choose(kDrumSnaresDnB),
     snare2: choose(kDrumSnares),
@@ -203,6 +410,7 @@ function genDnB() {
     chordInst: choose(kChordsInst),
     melody1Inst: choose(kMelodyInst),
     melody2Inst: choose(kMelodyInst),
+    melodySInst: choose(kMelodyInst),
     atmo: [choose(kDrumAll), choose(kDrumAll), choose(kDrumAll)],
     drums: null,
     tunedInst: null,
@@ -214,12 +422,39 @@ function genDnB() {
     ctx.kick, ctx.snare1, ctx.snare2, ctx.hat1, ctx.hat2, ctx.ride1, ctx.ride2,
     ctx.cymbal, ...ctx.atmo
   ]);
-  ctx.tunedInst =
-      new Set([ctx.chordInst, ctx.bassInst, ctx.melody1Inst, ctx.melody2Inst]);
+  ctx.tunedInst = new Set([
+    ctx.chordInst, ctx.bassInst, ctx.melody1Inst, ctx.melody2Inst,
+    ctx.melodySInst
+  ]);
   ctx.allInst = new Set([...ctx.drums, ...ctx.tunedInst]);
 
-  const notes = joinSections(
-      [genDnBDrums(ctx, 0), genDnBDrums(ctx, 0.5), genDnBDrums(ctx, 1)]);
+  const subMelody = genDnBSubMelody(ctx);
+  const slowMelody = genDnBSlowMelody(ctx);
+  const mainMelody = genDnBMainMelody(ctx);
+  const main2Melody = genDnBMainMelody(ctx);
+  const altMelody = genDnBSlowAltMelody(ctx);
+  const alt2Melody = genDnBAltMelody(ctx);
+  const chords = genDnBChords(ctx);
+  const bass = genDnBBass(ctx);
+
+  const s1 = merge(genDnBDrums(ctx, 0), subMelody);
+  const s2 = merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, slowMelody);
+  const s3 = merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody);
+  const s4 = merge(genDnBDrums(ctx, 1), chords, bass, subMelody, slowMelody);
+  const s5 = merge(genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody);
+  const s6 = merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody);
+  const s7 = merge(genDnBDrums(ctx, 1), chords, subMelody, bass);
+  const s8 = merge(genDnBBreakDrums(ctx), bass, subMelody, altMelody);
+  const s9 = merge(genDnBDrums(ctx, 0), bass, subMelody, slowMelody);
+  const s10 = merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, mainMelody);
+  const s11 = merge(
+      genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody, altMelody);
+  const s12 = merge(
+      genDnBDrums(ctx, 1), chords, bass, subMelody, main2Melody, alt2Melody);
+  const s13 = merge(genDnBDrums(ctx, 0), bass, subMelody);
+
+  const sections = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13];
+  const notes = joinSections(sections);
 
   // const sections = [
   //     secIntro, secVerse1, secChorus1, secVerse2, secChorus2, secBridge,
@@ -227,8 +462,7 @@ function genDnB() {
   // const notes = joinSections(sections);
 
   // Dummy note after the end of the song to prevent loops.
-  // notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar,
-  // 0));
+  notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar, 0));
 
   // Instrument settings.
   genDnBInstSettings(ctx);

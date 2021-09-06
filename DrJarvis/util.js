@@ -271,6 +271,69 @@ class MelodicRhythm {
   }
 }
 
+function genMelodyChunk(length, dt, vigor) {
+  // The most important constraint for melody generation is to end every phrase
+  // on a note from the current chord's triad. Using the usual breatEmphasis
+  // based rhythm generation, a new phrase is defined as any time there's more
+  // than half a beat between notes. At this point we just generate the rhythms,
+  // because some of the notes depend on which chord the chunk is in.
+  console.assert(kMajorScale.length == kMinorScale.length);
+  const phraseLimit = 0.5;
+  const phrases = [];
+  let phrase = null;
+  let pt = -2 * phraseLimit;
+  let lastNonTriadIndex = null;
+  let repTime = 0;
+  let repStop = 0;
+  for (let t = 0; t < length; t += dt) {
+    if (repTime >= repStop && phrase != null && t > (phrase.t0 + 2 * dt) &&
+        randb(0.1)) {
+      // Begin new repetition.
+      repStop = t;
+      repTime = randBeat(t - dt, phrase.t0, dt);
+    }
+    if (repTime < repStop) {
+      // Continue the repetition.
+      phrase.repeat(repTime, t);
+      repTime += dt;
+      continue;
+    }
+    const e = Math.min(1, beatEmphasis(t) / 0.8);
+    if (!randb(lerp(0.3, lerp(0.5, 0.9, vigor), e))) continue;
+    // Add a new beat here.
+    if (phrase === null || t - pt > phraseLimit) {
+      if (phrase !== null) phrases.push(phrase.finish());
+      phrase = new MelodicRhythm(t);
+    }
+    const triad = randb(lerp(0, lerp(0.1, 0.5, vigor), e));
+    let index;
+    let index2 = -1;
+    if (triad) {
+      // Add a triad note.
+      index = randi(2);
+      if (randb(0.3)) {
+        // Add a second triad note.
+        index2 = index;
+        while (index2 == index) index2 = randi(2);
+      }
+    } else {
+      // Add a non-triad note.
+      if (lastNonTriadIndex === null) {
+        // Pick a random note from the scale.
+        index = randi(kMajorScale.length - 1);
+      } else {
+        // Step up or down from the last non-triad note.
+        index = lastNonTriadIndex + [-2, -1, 0, 1, 2][randw([2, 3, 1, 3, 2])];
+      }
+      lastNonTriadIndex = index;
+    }
+    phrase.add(t, triad, index, index2);
+    pt = t;
+  }
+  if (phrase !== null) phrases.push(phrase.finish());
+  return phrases;
+}
+
 class MarkerEffect {
   constructor(t0) {
     this.t0 = t0;
@@ -310,4 +373,20 @@ function genShortChords() {
 
 function genLongChords() {
   return genChordsImpl(genTwinChords, 8);
+}
+
+function genBassline(chords, inst, beatsPerChord) {
+  const notes = [];
+  const len = 0.5;
+  for (let i = 0; i < chords.length; ++i) {
+    const ch = chords[i].triadIndexes();
+    for (let t = 0; t < beatsPerChord; t += len) {
+      if (t == 0 || randb(0.4)) {
+        notes.push(new Note(
+            noteType(mod(choose(ch), 12), 2), i * beatsPerChord + t, len, inst,
+            randf(1, 0.5)));
+      }
+    }
+  }
+  return notes;
 }

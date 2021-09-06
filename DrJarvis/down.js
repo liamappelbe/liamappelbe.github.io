@@ -1,6 +1,6 @@
-const kLoFiTrillDt = 0.125;
-const kLoFiTrillVol = 0.25;
-function genLoFiDrumsOneBar(ctx, first, vigor) {
+const kDownTrillDt = 0.125;
+const kDownTrillVol = 0.25;
+function genDownDrumsOneBar(ctx, first, vigor) {
   const notes = [
     drumNote(ctx.kick, 0),
     drumNote(ctx.kick, randb() ? 2 : 2.5),
@@ -8,8 +8,8 @@ function genLoFiDrumsOneBar(ctx, first, vigor) {
 
   function addNoteMaybeTrill(inst, t, vol = 1) {
     addNoteWithTrill(
-        notes, inst, t, vol, randb(0.2 * vigor) ? randi(2, 1) : 0, kLoFiTrillDt,
-        kLoFiTrillVol);
+        notes, inst, t, vol, randb(0.2 * vigor) ? randi(2, 1) : 0, kDownTrillDt,
+        kDownTrillVol);
   }
   addNoteMaybeTrill(ctx.snare1, 1);
   addNoteMaybeTrill(ctx.snare1, randb(0.7) ? 3 : 3.5);
@@ -31,12 +31,12 @@ function genLoFiDrumsOneBar(ctx, first, vigor) {
   return notes;
 }
 
-function genLoFiDrumsOneBarBreak(ctx, vigor) {
+function genDownDrumsOneBarBreak(ctx, vigor) {
   const notes = [];
   function addNoteMaybeTrill(inst, t, vol = 1) {
     addNoteWithTrill(
-        notes, inst, t, vol, randb(0.5 * vigor) ? randi(4, 1) : 0, kLoFiTrillDt,
-        kLoFiTrillVol);
+        notes, inst, t, vol, randb(0.5 * vigor) ? randi(4, 1) : 0, kDownTrillDt,
+        kDownTrillVol);
   }
   genEmphasisBar(
       0.1, lerp(0.4, 1, vigor),
@@ -55,16 +55,16 @@ function genLoFiDrumsOneBarBreak(ctx, vigor) {
   return notes;
 }
 
-function genLoFiDrums(ctx, vigor) {
+function genDownDrums(ctx, vigor) {
   const bars = [];
   for (let i = 0; i < kSection - 1; ++i) {
-    bars.push(genLoFiDrumsOneBar(ctx, i == 0, vigor));
+    bars.push(genDownDrumsOneBar(ctx, i == 0, vigor));
   }
-  bars.push(genLoFiDrumsOneBarBreak(ctx, vigor));
+  bars.push(genDownDrumsOneBarBreak(ctx, vigor));
   return joinBars(bars);
 }
 
-function genLoFiChords(ctx) {
+function genDownChords(ctx) {
   const notes = [];
   const style = randi(1);
   if (style == 0) {
@@ -101,86 +101,11 @@ function genLoFiChords(ctx) {
   return notes;
 }
 
-function genLoFiBass(ctx) {
-  const notes = [];
-  const len = 0.5;
-  for (let i = 0; i < ctx.chords.length; ++i) {
-    const ch = ctx.chords[i].triadIndexes();
-    for (let t = 0; t < kBar; t += len) {
-      if (t == 0 || randb(0.4)) {
-        notes.push(new Note(
-            noteType(mod(choose(ch), 12), 2), i * kBar + t, len,
-            ctx.bassInst.inst, randf(1, 0.5)));
-      }
-    }
-  }
-  return notes;
+function genDownBass(ctx) {
+  return genBassline(ctx.chords, ctx.bassInst.inst, kBar);
 }
 
-function genLoFiMelodyChunk(length, dt, vigor) {
-  // The most important constraint for melody generation is to end every phrase
-  // on a note from the current chord's triad. Using the usual breatEmphasis
-  // based rhythm generation, a new phrase is defined as any time there's more
-  // than half a beat between notes. At this point we just generate the rhythms,
-  // because some of the notes depend on which chord the chunk is in.
-  console.assert(kMajorScale.length == kMinorScale.length);
-  const phraseLimit = 0.5;
-  const phrases = [];
-  let phrase = null;
-  let pt = -2 * phraseLimit;
-  let lastNonTriadIndex = null;
-  let repTime = 0;
-  let repStop = 0;
-  for (let t = 0; t < length; t += dt) {
-    if (repTime >= repStop && phrase != null && t > (phrase.t0 + 2 * dt) &&
-        randb(0.1)) {
-      // Begin new repetition.
-      repStop = t;
-      repTime = randBeat(t - dt, phrase.t0, dt);
-    }
-    if (repTime < repStop) {
-      // Continue the repetition.
-      phrase.repeat(repTime, t);
-      repTime += dt;
-      continue;
-    }
-    const e = Math.min(1, beatEmphasis(t) / 0.8);
-    if (!randb(lerp(0.3, lerp(0.5, 0.9, vigor), e))) continue;
-    // Add a new beat here.
-    if (phrase === null || t - pt > phraseLimit) {
-      if (phrase !== null) phrases.push(phrase.finish());
-      phrase = new MelodicRhythm(t);
-    }
-    const triad = randb(lerp(0, lerp(0.1, 0.5, vigor), e));
-    let index;
-    let index2 = -1;
-    if (triad) {
-      // Add a triad note.
-      index = randi(2);
-      if (randb(0.3)) {
-        // Add a second triad note.
-        index2 = index;
-        while (index2 == index) index2 = randi(2);
-      }
-    } else {
-      // Add a non-triad note.
-      if (lastNonTriadIndex === null) {
-        // Pick a random note from the scale.
-        index = randi(kMajorScale.length - 1);
-      } else {
-        // Step up or down from the last non-triad note.
-        index = lastNonTriadIndex + [-2, -1, 0, 1, 2][randw([2, 3, 1, 3, 2])];
-      }
-      lastNonTriadIndex = index;
-    }
-    phrase.add(t, triad, index, index2);
-    pt = t;
-  }
-  if (phrase !== null) phrases.push(phrase.finish());
-  return phrases;
-}
-
-function genLoFiMelody(ctx, inst, secondary, vigor) {
+function genDownMelody(ctx, inst, secondary, vigor) {
   const dt = secondary ? 0.5 : 0.25;
   const oct = secondary ? 6 : 5;
   const vol = secondary ? 0.7 : 1;
@@ -212,9 +137,9 @@ function genLoFiMelody(ctx, inst, secondary, vigor) {
       });
     }
   }
-  const a = genLoFiMelodyChunk(2 * kBar, dt, vigor);
-  const b = genLoFiMelodyChunk(1 * kBar, dt, vigor);
-  const c = genLoFiMelodyChunk(2 * kBar, dt, vigor);
+  const a = genMelodyChunk(2 * kBar, dt, vigor);
+  const b = genMelodyChunk(1 * kBar, dt, vigor);
+  const c = genMelodyChunk(2 * kBar, dt, vigor);
   addChunk(a, 0);
   addChunk(b, 2);
   addChunk(b, 3);
@@ -229,7 +154,7 @@ function genLoFiMelody(ctx, inst, secondary, vigor) {
   return notes;
 }
 
-function genLoFiAtmo(ctx) {
+function genDownAtmo(ctx) {
   const notes = [];
   const dt = 0.25;
   for (let k = 0; k < kSection; ++k) {
@@ -244,7 +169,7 @@ function genLoFiAtmo(ctx) {
   return notes;
 }
 
-function genLoFiInstSettings(ctx) {
+function genDownInstSettings(ctx) {
   function setEq(settings, eq) {
     settings.setEnableEq(true);
     settings.setEqHigh(eq.high);
@@ -332,7 +257,7 @@ function genLoFiInstSettings(ctx) {
   chooseEffect(ctx.melody2Inst.inst);
 }
 
-function genLoFiMarkers(ctx, sections) {
+function genDownMarkers(ctx, sections) {
   const markers = [];
 
   function eqMarker(time, inst, eq, fade = false) {
@@ -435,7 +360,7 @@ function genLoFiMarkers(ctx, sections) {
   return markers;
 }
 
-function genLoFiMarkerEffect(t) {
+function genDownMarkerEffect(t) {
   const effect = new MarkerEffect(t);
   const type = randw([10, 3, 1, 2, 10]);
   if (type == 0) {
@@ -455,7 +380,7 @@ function genLoFiMarkerEffect(t) {
   return effect;
 }
 
-function genLoFi() {
+function genDown() {
   const key = randi(11);
   const ctx = {
     key: key,
@@ -474,8 +399,8 @@ function genLoFi() {
     drums: null,
     tunedInst: null,
     allInst: null,
-    effectIntro: genLoFiMarkerEffect((1 * kSection - 1) * kBar),
-    effectBridge: genLoFiMarkerEffect((6 * kSection - 1) * kBar),
+    effectIntro: genDownMarkerEffect((1 * kSection - 1) * kBar),
+    effectBridge: genDownMarkerEffect((6 * kSection - 1) * kBar),
   };
   ctx.drums = new Set([
     ctx.kick, ctx.snare1, ctx.snare2, ctx.hat1, ctx.hat2, ctx.cymbal,
@@ -485,28 +410,28 @@ function genLoFi() {
       new Set([ctx.chordInst, ctx.bassInst, ctx.melody1Inst, ctx.melody2Inst]);
   ctx.allInst = new Set([...ctx.drums, ...ctx.tunedInst]);
 
-  const chords = genLoFiChords(ctx);
-  const bass = genLoFiBass(ctx);
-  const melody1v1 = genLoFiMelody(ctx, ctx.melody1Inst, false, 0);
-  const melody1v2 = genLoFiMelody(ctx, ctx.melody1Inst, false, 0);
-  const melody1c = genLoFiMelody(ctx, ctx.melody1Inst, false, 1);
-  const melody2 = genLoFiMelody(ctx, ctx.melody2Inst, true, 1);
-  const melody2b = genLoFiMelody(ctx, ctx.melody2Inst, false, 0.5);
+  const chords = genDownChords(ctx);
+  const bass = genDownBass(ctx);
+  const melody1v1 = genDownMelody(ctx, ctx.melody1Inst, false, 0);
+  const melody1v2 = genDownMelody(ctx, ctx.melody1Inst, false, 0);
+  const melody1c = genDownMelody(ctx, ctx.melody1Inst, false, 1);
+  const melody2 = genDownMelody(ctx, ctx.melody2Inst, true, 1);
+  const melody2b = genDownMelody(ctx, ctx.melody2Inst, false, 0.5);
 
-  const secIntro = merge(genLoFiDrums(ctx, 0), chords, bass, genLoFiAtmo(ctx));
+  const secIntro = merge(genDownDrums(ctx, 0), chords, bass, genDownAtmo(ctx));
   const secVerse1 =
-      merge(genLoFiDrums(ctx, 0.5), chords, bass, melody1v1, genLoFiAtmo(ctx));
+      merge(genDownDrums(ctx, 0.5), chords, bass, melody1v1, genDownAtmo(ctx));
   const secChorus1 = merge(
-      genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
+      genDownDrums(ctx, 1), chords, bass, melody1c, melody2, genDownAtmo(ctx));
   const secVerse2 =
-      merge(genLoFiDrums(ctx, 0.5), chords, bass, melody1v2, genLoFiAtmo(ctx));
+      merge(genDownDrums(ctx, 0.5), chords, bass, melody1v2, genDownAtmo(ctx));
   const secChorus2 = merge(
-      genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
+      genDownDrums(ctx, 1), chords, bass, melody1c, melody2, genDownAtmo(ctx));
   const secBridge =
-      merge(genLoFiDrums(ctx, 0), bass, melody2b, genLoFiAtmo(ctx));
+      merge(genDownDrums(ctx, 0), bass, melody2b, genDownAtmo(ctx));
   const secChorus3 = merge(
-      genLoFiDrums(ctx, 1), chords, bass, melody1c, melody2, genLoFiAtmo(ctx));
-  const secOutro = merge(genLoFiDrums(ctx, 0), chords, bass, genLoFiAtmo(ctx));
+      genDownDrums(ctx, 1), chords, bass, melody1c, melody2, genDownAtmo(ctx));
+  const secOutro = merge(genDownDrums(ctx, 0), chords, bass, genDownAtmo(ctx));
   const secOutro2 = merge(chords, bass);
 
   const sections = [
@@ -519,10 +444,10 @@ function genLoFi() {
   notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar, 0));
 
   // Instrument settings.
-  genLoFiInstSettings(ctx);
+  genDownInstSettings(ctx);
 
   // Markers.
-  const markers = genLoFiMarkers(ctx, sections);
+  const markers = genDownMarkers(ctx, sections);
 
   // Apply swing.
   const beatMidpoint = randb() ? 0.5 : 0.666666;
