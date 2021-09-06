@@ -305,7 +305,7 @@ function genMelodyChunk(length, dt, vigor) {
       if (phrase !== null) phrases.push(phrase.finish());
       phrase = new MelodicRhythm(t);
     }
-    const triad = randb(lerp(0, lerp(0.1, 0.5, vigor), e));
+    const triad = randb(lerp(0, lerp(0.3, 0.7, vigor), e));
     let index;
     let index2 = -1;
     if (triad) {

@@ -1,19 +1,22 @@
 const kDownTrillDt = 0.125;
 const kDownTrillVol = 0.25;
 function genDownDrumsOneBar(ctx, first, vigor) {
-  const notes = [
-    drumNote(ctx.kick, 0),
-    drumNote(ctx.kick, randb() ? 2 : 2.5),
-  ];
-
+  const notes = [];
   function addNoteMaybeTrill(inst, t, vol = 1) {
     addNoteWithTrill(
         notes, inst, t, vol, randb(0.2 * vigor) ? randi(2, 1) : 0, kDownTrillDt,
         kDownTrillVol);
   }
-  addNoteMaybeTrill(ctx.snare1, 1);
-  addNoteMaybeTrill(ctx.snare1, randb(0.7) ? 3 : 3.5);
 
+  const minimal = vigor < 0;
+  vigor = Math.max(0, vigor);
+  notes.push(drumNote(ctx.kick, 0));
+  addNoteMaybeTrill(ctx.snare1, 1);
+  addNoteMaybeTrill(ctx.snare1, minimal || randb(0.7) ? 3 : 3.5);
+
+  if (minimal) return notes;
+
+  notes.push(drumNote(ctx.kick, randb() ? 2 : 2.5));
   if (first) notes.push(drumNote(ctx.cymbal, 0));
 
   genEmphasisBar(
@@ -32,6 +35,7 @@ function genDownDrumsOneBar(ctx, first, vigor) {
 }
 
 function genDownDrumsOneBarBreak(ctx, vigor) {
+  vigor = Math.max(0, vigor);
   const notes = [];
   function addNoteMaybeTrill(inst, t, vol = 1) {
     addNoteWithTrill(
@@ -301,13 +305,13 @@ function genDownMarkers(ctx, sections) {
   markers.push(marker(endOfSong, kMSVol, 0, 0, true));
 
   // Apply marker effects.
-  function effectMarkers(e) {
+  for (const e of ctx.effects) {
     if (e.volumePulses != 0) {
       const kBeats = [0, 2, 1, 3];
       for (let i = 0; i < e.volumePulses; ++i) {
         const t = e.t0 + kBeats[i];
         markers.push(marker(t, kMSVol, 0, 1));
-        markers.push(marker(t + 0.25, kMSVol, 0, 0, true));
+        markers.push(marker(t + 0.5, kMSVol, 0, 0, true));
       }
       markers.push(marker(e.t0 + kBar, kMSVol, 0, 1));
     }
@@ -354,8 +358,6 @@ function genDownMarkers(ctx, sections) {
     dropInst(e.dropChords, [ctx.chordInst]);
     dropInst(e.dropBass, [ctx.bassInst]);
   }
-  effectMarkers(ctx.effectIntro);
-  effectMarkers(ctx.effectBridge);
 
   return markers;
 }
@@ -399,8 +401,10 @@ function genDown() {
     drums: null,
     tunedInst: null,
     allInst: null,
-    effectIntro: genDownMarkerEffect((1 * kSection - 1) * kBar),
-    effectBridge: genDownMarkerEffect((6 * kSection - 1) * kBar),
+    effects: [
+      genDownMarkerEffect((1 * kSection - 1) * kBar),
+      genDownMarkerEffect((6 * kSection - 1) * kBar),
+    ]
   };
   ctx.drums = new Set([
     ctx.kick, ctx.snare1, ctx.snare2, ctx.hat1, ctx.hat2, ctx.cymbal,
