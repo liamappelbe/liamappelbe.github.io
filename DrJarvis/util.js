@@ -391,10 +391,9 @@ function genBassline(chords, inst, beatsPerChord) {
   return notes;
 }
 
-function genChordNotes(chords, inst, beatsPerChord) {
+function genChordNotes(chords, inst, beatsPerChord, vol = 0.5) {
   const notes = [];
   const style = randi(2);
-  const vol = 0.5;
   if (style == 0) {
     // Plain chords, optionally decimated.
     const dec = randb(0.3);

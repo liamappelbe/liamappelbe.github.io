@@ -160,7 +160,7 @@ function getDnBChord(ctx, t) {
 }
 
 function genDnBChords(ctx) {
-  return genChordNotes(ctx.chords, ctx.chordInst.inst, kDnBBeatsPerChord);
+  return genChordNotes(ctx.chords, ctx.chordInst.inst, kDnBBeatsPerChord, 0.8);
 }
 
 function genDnBBass(ctx) {
@@ -245,6 +245,10 @@ function genDnBInstSettings(ctx) {
   setEq(settings(ctx.snare2.inst), eq(5, 0, -48));
   setEq(settings(ctx.kick.inst), eq(0, 0, ctx.kick.inst == 36 ? 0 : 10));
 
+  for (const i of [ctx.melody1Inst, ctx.melody2Inst, ctx.melodySInst]) {
+    if (randb(0.5)) setEq(settings(i.inst), choose(kFadedEqSettings));
+  }
+
   // Randomize reverb effects.
   const kEffects = [
     [1, 1], [2, 1], [3, 1], [4, 1], [5, 0.5], [6, 0.5], [7, 0.5], [8, 0.5],
@@ -261,17 +265,103 @@ function genDnBInstSettings(ctx) {
       s.setReverb(false);
     }
   }
-  // chooseEffect(ctx.kick.inst);
-  // chooseEffect(ctx.snare1.inst);
-  // chooseEffect(ctx.snare2.inst);
-  // chooseEffect(ctx.hat1.inst);
-  // chooseEffect(ctx.hat2.inst);
-  // chooseEffect(ctx.cymbal.inst);
   chooseEffect(ctx.bassInst.inst);
   chooseEffect(ctx.chordInst.inst);
   chooseEffect(ctx.melody1Inst.inst);
   chooseEffect(ctx.melody2Inst.inst);
   chooseEffect(ctx.melodySInst.inst);
+}
+
+function genDnBMarkers(ctx) {
+  const markers = [];
+
+  function eqMarker(time, inst, eq, fade = false) {
+    markers.push(marker(time, kMSEqH, inst, eq.high, fade));
+    markers.push(marker(time, kMSEqM, inst, eq.mid, fade));
+    markers.push(marker(time, kMSEqL, inst, eq.low, fade));
+  }
+
+  function getDefaultEq(inst) {
+    const s = ctx.instSettings.get(inst);
+    return eq(s.getEqHigh(), s.getEqMid(), s.getEqLow());
+  }
+
+  // Apply marker effects.
+  for (const e of ctx.effects) {
+    if (e.volumePulses != 0) {
+      const kBeats = [0, 2, 1, 3];
+      for (let i = 0; i < e.volumePulses; ++i) {
+        const t = e.t0 + kBeats[i];
+        markers.push(marker(t, kMSVol, 0, 1));
+        markers.push(marker(t + 0.5, kMSVol, 0, 0, true));
+      }
+      markers.push(marker(e.t0 + kBar, kMSVol, 0, 1));
+    }
+    function allInstrumentEq(t, eq, fade = false) {
+      for (const i of ctx.allInst) {
+        eqMarker(t, i.inst, eq === null ? getDefaultEq(i.inst) : eq, fade);
+      }
+    }
+    if (e.eqFade == 1) {
+      allInstrumentEq(e.t0, choose(kFadedEqSettings));
+      allInstrumentEq(e.t0 + kBar - 0.25, null, true);
+    } else if (e.eqFade == -1) {
+      allInstrumentEq(e.t0, null);
+      allInstrumentEq(e.t0 + kBar - 0.25, choose(kFadedEqSettings), true);
+      allInstrumentEq(e.t0 + kBar, null);
+    }
+    if (e.detuneDescent) {
+      for (const i of ctx.allInst) {
+        const dd = ctx.instSettings.get(i.inst).getDetune();
+        markers.push(marker(e.t0, kMSDetune, i.inst, dd));
+        markers.push(marker(e.t0 + kBar - 1, kMSDetune, i.inst, -1200, true));
+        markers.push(marker(e.t0 + kBar, kMSDetune, i.inst, dd));
+      }
+    }
+    if (e.crossPan) {
+      for (const i of ctx.allInst) {
+        const dp = ctx.instSettings.get(i.inst).getPan();
+        const p = randb() ? -1 : 1;
+        markers.push(marker(e.t0, kMSPan, i.inst, dp));
+        markers.push(marker(e.t0 + kBar - 1, kMSPan, i.inst, p, true));
+        markers.push(marker(e.t0 + kBar, kMSPan, i.inst, dp));
+      }
+    }
+    function dropInst(drop, insts) {
+      if (!drop) return;
+      for (const i of insts) {
+        markers.push(marker(e.t0 + 0.25, kMSInstVol, i.inst, 1));
+        markers.push(marker(e.t0 + 0.5, kMSInstVol, i.inst, 0, true));
+        markers.push(marker(e.t0 + kBar, kMSInstVol, i.inst, 1));
+      }
+    }
+    dropInst(e.dropDrums, ctx.drums);
+    dropInst(e.dropMelody, [ctx.melody1Inst, ctx.melody2Inst, ctx.melodySInst]);
+    dropInst(e.dropChords, [ctx.chordInst]);
+    dropInst(e.dropBass, [ctx.bassInst]);
+  }
+
+  return markers;
+}
+
+function genDnBMarkerEffect(t) {
+  const effect = new MarkerEffect(t);
+  const type = randw([10, 3, 1, 2, 10]);
+  if (type == 0) {
+    effect.volumePulses = randi(4, 1);
+  } else if (type == 1) {
+    effect.eqFade = randb() ? -1 : 1;
+  } else if (type == 2) {
+    effect.detuneDescent = true;
+  } else if (type == 3) {
+    effect.crossPan = true;
+  } else if (type == 4) {
+    effect.dropDrums = randb();
+    effect.dropMelody = randb();
+    effect.dropChords = randb();
+    effect.dropBass = randb();
+  }
+  return effect;
 }
 
 function genDnB() {
@@ -296,6 +386,13 @@ function genDnB() {
     drums: null,
     tunedInst: null,
     allInst: null,
+    effects: [
+      genLoFiMarkerEffect((1 * kSection - 1) * kBar),
+      genLoFiMarkerEffect((3 * kSection - 1) * kBar),
+      genLoFiMarkerEffect((6 * kSection - 1) * kBar),
+      genLoFiMarkerEffect((9 * kSection - 1) * kBar),
+      genLoFiMarkerEffect((11 * kSection - 1) * kBar),
+    ],
   };
   ctx.drums = new Set([
     ctx.kick, ctx.snare1, ctx.snare2, ctx.hat1, ctx.hat2, ctx.ride1, ctx.ride2,
@@ -316,29 +413,29 @@ function genDnB() {
   const chords = genDnBChords(ctx);
   const bass = genDnBBass(ctx);
 
-  const s1 = merge(genDnBDrums(ctx, 0), subMelody);
-  const s2 = merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, slowMelody);
-  const s3 = merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody);
-  const s4 = merge(genDnBDrums(ctx, 1), chords, bass, subMelody, slowMelody);
-  const s5 = merge(genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody);
-  const s6 = merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody);
-  const s7 = merge(genDnBDrums(ctx, 1), chords, subMelody, bass);
-  const s8 = merge(genDnBBreakDrums(ctx), bass, subMelody, altMelody);
-  const s9 = merge(genDnBDrums(ctx, 0), bass, subMelody, slowMelody);
-  const s10 = merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, mainMelody);
-  const s11 = merge(
-      genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody, altMelody);
-  const s12 = merge(
-      genDnBDrums(ctx, 1), chords, bass, subMelody, main2Melody, alt2Melody);
-  const s13 = merge(genDnBDrums(ctx, 0), bass, subMelody);
+  const sections = [
+    merge(genDnBDrums(ctx, 0), subMelody),
+    /* effect[0] */
+    merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, slowMelody),
+    merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody),
+    /* effect[1] */
+    merge(genDnBDrums(ctx, 1), chords, bass, subMelody, slowMelody),
+    merge(genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody),
+    merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody),
+    /* effect[2] */
+    merge(genDnBDrums(ctx, 1), chords, subMelody, bass),
+    merge(genDnBBreakDrums(ctx), bass, subMelody, altMelody),
+    merge(genDnBDrums(ctx, 0), bass, subMelody, slowMelody),
+    /* effect[3] */
+    merge(genDnBDrums(ctx, 0.5), chords, bass, subMelody, mainMelody),
+    merge(genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody, altMelody),
+    /* effect[4] */
+    merge(
+        genDnBDrums(ctx, 1), chords, bass, subMelody, main2Melody, alt2Melody),
+    merge(genDnBDrums(ctx, 0), bass, subMelody),
+  ];
 
-  const sections = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13];
   const notes = joinSections(sections);
-
-  // const sections = [
-  //     secIntro, secVerse1, secChorus1, secVerse2, secChorus2, secBridge,
-  //     secChorus3, secOutro, secOutro2];
-  // const notes = joinSections(sections);
 
   // Dummy note after the end of the song to prevent loops.
   notes.push(drumNote(ctx.cymbal, sections.length * kSection * kBar + kBar, 0));
@@ -346,12 +443,13 @@ function genDnB() {
   // Instrument settings.
   genDnBInstSettings(ctx);
 
-  const markers = [];
+  // Markers.
+  const markers = genDnBMarkers(ctx, sections);
 
   // Generate proto.
   const seq = new proto.Sequence();
   const seqSettings = new proto.SequenceSettings();
-  seqSettings.setBpm(randi(140, 180));
+  seqSettings.setBpm(randi(130, 180));
   seq.setSettings(seqSettings);
   for (const [inst, settings] of ctx.instSettings) {
     seqSettings.getInstrumentsMap().set(inst, settings);

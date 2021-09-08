@@ -226,17 +226,8 @@ function genDownInstSettings(ctx) {
 
   // Randomize reverb effects.
   const kEffects = [
-    [1, 1],
-    [2, 1],
-    [3, 1],
-    [4, 1],
-    [5, 0.5],
-    [6, 0.5],
-    [7, 0.5],
-    [8, 0.5],
-    [9, 0.1],
-    [10, 0.5],
-    [11, 0.3],
+    [1, 1], [2, 1], [3, 1], [4, 1], [5, 0.5], [6, 0.5], [7, 0.5], [8, 0.5],
+    [9, 0.1], [10, 0.5], [11, 0.3]
   ];
   function chooseEffect(inst) {
     const s = settings(inst);
