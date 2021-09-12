@@ -14,7 +14,7 @@ let domInputView = null;
 let domOutputView = null;
 let ctxInput = null;
 let ctxOutput = null;
-let inputFile = null;
+let inputImage = null;
 let outputNotes = null;
 
 function onLoad() {
@@ -23,6 +23,7 @@ function onLoad() {
   domWide = document.getElementById("wide");
   domClamp = document.getElementById("clamp");
   domInvis = document.getElementById("invis");
+  domWhite = document.getElementById("white");
   domDither = document.getElementById("dither");
   domInputView = document.getElementById("input_view");
   domOutputView = document.getElementById("output_view");
@@ -33,14 +34,24 @@ function onLoad() {
 }
 window.addEventListener("load", onLoad);
 
+function setImage(url = null) {
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.onload = () => {
+    inputImage = img;
+    onChange();
+    URL.revokeObjectURL(url);  // Does nothing if not an object URL.
+  };
+  img.src = url ?? `https://picsum.photos/300?random=${Math.random()}`;
+}
+
 function setInputFile(files) {
   for (const file of files) {
     if (file.type.startsWith('image/')) {
-      inputFile = file;
+      setImage(URL.createObjectURL(file));
       break;
     }
   }
-  onChange();
 }
 
 function onFile() { setInputFile(domImage.files); }
@@ -65,41 +76,32 @@ function setInputFileFromDataTransfer(dt) {
   setInputFile(files);
 }
 
-function randomize() {
-  runThumbnailGenerator(`https://picsum.photos/300?random=${Math.random()}`);
-}
-
 function copyNotes() {
   if (outputNotes != null) navigator.clipboard.writeText(outputNotes);
 }
 
 function onChange() {
-  if (inputFile == null) return;
-  runThumbnailGenerator(URL.createObjectURL(inputFile));
+  if (inputImage == null) return;
+  runThumbnailGenerator(inputImage);
 }
 
-function runThumbnailGenerator(url) {
+function runThumbnailGenerator(img) {
   const options = {
     small: domSize.value == 'small',
     wide: domWide.checked,
     invis: domInvis.checked,
     clamp: domClamp.checked,
+    white: domWhite.checked,
     dither: parseFloat(domDither.value),
   };
-  const image = new Image();
-  image.crossOrigin = 'Anonymous';
-  image.onload = function() {
-    ctxInput.drawImage(image, 0, 0, domInputView.width, domInputView.height);
-    const notes = [];
-    const result = generateThumbnail(image, options, (type, t, len, inst) => {
-      notes.push(`${t} ${type} ${len} ${inst} 0`);
-    });
-    ctxOutput.drawImage(
-        result, 0, 0, domOutputView.width, domOutputView.height);
-    URL.revokeObjectURL(url);  // Does nothing if not an object URL.
-    outputNotes = 'Online Sequencer:0:' + notes.join(';') + ';:';
-  };
-  image.src = url;
+  ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
+  const notes = [];
+  const result = generateThumbnail(img, options, (type, t, len, inst) => {
+    notes.push(`${t} ${type} ${len} ${inst} 0`);
+  });
+  ctxOutput.drawImage(
+      result, 0, 0, domOutputView.width, domOutputView.height);
+  outputNotes = 'Online Sequencer:0:' + notes.join(';') + ';:';
 }
 </script>
 <style>
@@ -185,7 +187,7 @@ canvas {
       <input type="file" id="image" accept="image/*" onchange="onFile()">
       <a>Choose a file</a>
     </label>
-    or drag and drop it. Click <a onclick="randomize()">here</a> for a random
+    or drag and drop it. Click <a onclick="setImage()">here</a> for a random
     image.
     <br/><br/>
     <label for="size">Size:</label>
@@ -199,6 +201,9 @@ canvas {
     <br/><br/>
     <input type="checkbox" id="clamp" checked onchange="onChange()"/>
     <label for="clamp">Clamp dithered colors</label>
+    <br/><br/>
+    <input type="checkbox" id="white" checked onchange="onChange()"/>
+    <label for="white">Clamp white</label>
     <br/><br/>
     <input type="checkbox" id="invis" onchange="onChange()"/>
     <label for="invis">Use invisible notes</label>

@@ -3,7 +3,7 @@
 //  - Hide clamping and the following options in an advanced section.
 //  - Configurable dither direction.
 //  - Configurable clamping limits.
-//  - Tweakable colors (by default, just fix the white issue).
+//  - Tweakable colors.
 
 let generateThumbnail_context = null;
 function generateThumbnail(image, options, addNote) {
@@ -33,6 +33,11 @@ function generateThumbnail(image, options, addNote) {
 
     clamp() {
       return new Color(fclamp(this.r), fclamp(this.g), fclamp(this.b));
+    }
+
+    min(c) {
+      return new Color(
+          Math.min(this.r, c.r), Math.min(this.g, c.g), Math.min(this.b, c.b));
     }
   }
 
@@ -76,6 +81,20 @@ function generateThumbnail(image, options, addNote) {
     hexColor(0x82, 0x05, 0x15), hexColor(0x03, 0xA9, 0xF4),
     hexColor(0x98, 0x00, 0xFE),
   ];
+  const kWhiteInst = 23;
+
+  function nearest(c) {
+    let mk = 0;
+    let md2 = 0;
+    for (let k = 0; k < kColors.length; ++k) {
+      const d2 = c.dist2(kColors[k]);
+      if (k == 0 || d2 < md2) {
+        mk = k;
+        md2 = d2;
+      }
+    }
+    return mk;
+  }
 
   const kNote =
       ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -84,6 +103,7 @@ function generateThumbnail(image, options, addNote) {
   const wide = options.wide ?? true;
   const invis = options.invis ?? false;
   const clamp = options.clamp ?? true;
+  const white = options.white ?? true;
   const dither = options.dither ?? 1;
   const len = invis ? 0.000001 : wide ? 1 : 2;
   const base = small ? 3 * 12 + 5 /*F3*/ : 2 * 12 + 8 /*G#2*/;
@@ -100,26 +120,21 @@ function generateThumbnail(image, options, addNote) {
   view.width = w;
   view.height = h;
 
-
   buf.drawImage(image, 0, 0, w, h);
   const imgData = buf.getImageData(0, 0, w, h);
   const a = [];
   for (let i = 0; i < imgData.data.length; i += 4) {
-    a.push(hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]));
+    let c = hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]);
+    if (white && nearest(c) == kWhiteInst) {
+      c = c.min(kColors[kWhiteInst]);
+    }
+    a.push(c);
   }
   const b = [];
   for (let j = 0; j < h; ++j) {
     for (let i = 0; i < w; ++i) {
       const c = a[pixIndex(w, h, i, j)];
-      let mk = 0;
-      let md2 = 0;
-      for (let k = 0; k < kColors.length; ++k) {
-        const d2 = c.dist2(kColors[k]);
-        if (k == 0 || d2 < md2) {
-          mk = k;
-          md2 = d2;
-        }
-      }
+      const mk = nearest(c);
       const mc = kColors[mk];
       b.push(mc);
       const e = c.diff(mc);
