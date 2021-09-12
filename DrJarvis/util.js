@@ -31,8 +31,8 @@ function genName() {
       choose(kAnimals)}.sequence`;
 }
 
-function generate(generator) {
-  const blob = protoToBlob(generator());
+async function generate(generator) {
+  const blob = protoToBlob(await generator());
   if (!blob) return;
   const name = genName() + '';
   saveBlob(name, [blob], 'application/octet-stream');
@@ -40,7 +40,7 @@ function generate(generator) {
 
 function getVolWeight(inst, index) {
   const a = kVolWeights[inst];
-  return (a instanceof Map ? a.get(index) : a) || 0;
+  return (a instanceof Map ? a.get(index) : a) || 1;
 }
 
 // I'm representing note times and lengths as a float number of beats, whereas
@@ -373,6 +373,36 @@ function genShortChords() {
 
 function genLongChords() {
   return genChordsImpl(genTwinChords, 8);
+}
+
+let domThumbImage = null;
+function newThumbImage(url = null) {
+  domThumbImage.src = url ?? `https://picsum.photos/200?random=${randi(1e9)}`;
+}
+
+window.addEventListener('load', () => {
+  domThumbImage = document.getElementById('thumb');
+  newThumbImage();
+});
+
+async function genThumbNotes() {
+  const notes = [];
+  const options = {invis: true};
+  generateThumbnail(domThumbImage, options, (type, t, len, inst) => {
+    notes.push(new Note(type, t / 4, len / 4, inst, 0));
+  });
+  newThumbImage();
+  return notes;
+}
+
+async function genThumb(url = null) {
+  const notes = await genThumbNotes(url);
+  const seq = new proto.Sequence();
+  for (const note of notes) {
+    const p = note.asProto;
+    if (p !== null) seq.addNotes(p);
+  }
+  return seq;
 }
 
 function genBassline(chords, inst, beatsPerChord) {

@@ -53,7 +53,7 @@ function genLoFiMarkerEffect(t) {
   return genDownMarkerEffect(t);
 }
 
-function genLoFi() {
+async function genLoFi() {
   const key = randi(11);
   const ctx = {
     key: key,
@@ -129,6 +129,10 @@ function genLoFi() {
   // Apply swing.
   const beatMidpoint = randb() ? 0.5 : 0.666666;
   const finalNotes = notes.map(n => n.swing(beatMidpoint));
+
+  // Add a thumbnail.
+  const thumbNotes = await genThumbNotes();
+  for (const n of thumbNotes) notes.push(n);
 
   // Generate proto.
   const seq = new proto.Sequence();

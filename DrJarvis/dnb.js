@@ -364,7 +364,7 @@ function genDnBMarkerEffect(t) {
   return effect;
 }
 
-function genDnB() {
+async function genDnB() {
   const key = randi(11);
   const ctx = {
     key: key,
@@ -446,6 +446,10 @@ function genDnB() {
 
   // Markers.
   const markers = genDnBMarkers(ctx, sections);
+
+  // Add a thumbnail.
+  const thumbNotes = await genThumbNotes();
+  for (const n of thumbNotes) notes.push(n);
 
   // Generate proto.
   const seq = new proto.Sequence();

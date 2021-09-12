@@ -77,6 +77,9 @@ function generateThumbnail(image, options, addNote) {
     hexColor(0x98, 0x00, 0xFE),
   ];
 
+  const kNote =
+      ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
   const small = options.small ?? false;
   const wide = options.wide ?? true;
   const invis = options.invis ?? false;

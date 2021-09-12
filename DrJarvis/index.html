@@ -10,6 +10,7 @@
 <script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
 <script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
 <script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
+<script src="../thumb.js"></script>
 <script src="core.js"></script>
 <script src="data.js"></script>
 <script src="util.js"></script>
@@ -47,6 +48,7 @@ h1, #index {
   color: #f5f5f5;
   font-family: monospace;
   font-size: 16px;
+  display: flex;
 }
 a {
   color: #ff5722;
@@ -55,6 +57,17 @@ a {
   cursor: pointer;
   text-decoration: underline;
 }
+#thumb {
+  border: solid 1px #f5f5f5;
+  width: 200px;
+  height: 200px;
+}
+.center {
+  text-align: center;
+}
+#left {
+  padding-right: 16px;
+}
 </style>
 <body>
 <div id="head">
@@ -62,23 +75,34 @@ a {
   <h1>Dr. Jarvis</h1>
 </div>
 <div id="wrap">
-  Hi, I'm Dr. Jarvis, a bot that generates random
-  <a href="https://onlinesequencer.net/">Online Sequencer</a> songs. Click below
-  and I'll write you a song and send you the sequence file. You can drag and
-  drop that file into OS. Check out my
-  <a href="https://onlinesequencer.net/members/65405">OS profile</a> to listen
-  to some of my songs.
-  <br/>
-  <br/>
-  <a onclick="generate(genShortChords)">Generate Short Chord Progression</a>
-  <br/>
-  <a onclick="generate(genLongChords)">Generate Long Chord Progression</a>
-  <br/>
-  <a onclick="generate(genDown)">Generate Downtempo</a>
-  <br/>
-  <a onclick="generate(genLoFi)">Generate Lo-Fi</a>
-  <br/>
-  <a onclick="generate(genDnB)">Generate Drum&Bass</a>
+  <div id="left">
+    Hi, I'm Dr. Jarvis, a bot that generates random
+    <a href="https://onlinesequencer.net/">Online Sequencer</a> songs. Click
+    below and I'll write you a song and send you the sequence file. You can drag
+    and drop that file into OS. Check out my
+    <a href="https://onlinesequencer.net/members/65405">OS profile</a> to listen
+    to some of my songs.
+    <br/>
+    <br/>
+    <a onclick="generate(genShortChords)">Generate Short Chord Progression</a>
+    <br/>
+    <a onclick="generate(genLongChords)">Generate Long Chord Progression</a>
+    <br/>
+    <a onclick="generate(genThumb)">Generate Thumbnail</a>
+    <br/>
+    <a onclick="generate(genDown)">Generate Downtempo</a>
+    <br/>
+    <a onclick="generate(genLoFi)">Generate Lo-Fi</a>
+    <br/>
+    <a onclick="generate(genDnB)">Generate Drum&Bass</a>
+  </div>
+  <div class="center" id="right">
+    Thumbnail
+    <br/>
+    <img id="thumb" crossorigin="Anonymous">
+    <br/>
+    <a class="center" onclick="newThumbImage()">New image</a>
+  </div>
 </div>
 </body>
 </html>
