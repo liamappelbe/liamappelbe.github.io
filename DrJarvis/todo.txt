@@ -1,0 +1,11 @@
+More genres:
+  - House
+  - Bossa Nova
+  - Classical???
+
+Melody generator V2:
+  - Fractal structure
+
+Other stuff:
+  - Can we randomize the overall structure of the song?
+  - Thumbnail art using https://picsum.photos/200

@@ -346,7 +346,7 @@ function genDnBMarkers(ctx) {
 
 function genDnBMarkerEffect(t) {
   const effect = new MarkerEffect(t);
-  const type = randw([10, 3, 1, 2, 10]);
+  const type = randw([2, 2, 1, 1, 3]);
   if (type == 0) {
     effect.volumePulses = randi(4, 1);
   } else if (type == 1) {
@@ -387,11 +387,11 @@ function genDnB() {
     tunedInst: null,
     allInst: null,
     effects: [
-      genLoFiMarkerEffect((1 * kSection - 1) * kBar),
-      genLoFiMarkerEffect((3 * kSection - 1) * kBar),
-      genLoFiMarkerEffect((6 * kSection - 1) * kBar),
-      genLoFiMarkerEffect((9 * kSection - 1) * kBar),
-      genLoFiMarkerEffect((11 * kSection - 1) * kBar),
+      genDnBMarkerEffect((1 * kSection - 1) * kBar),
+      genDnBMarkerEffect((3 * kSection - 1) * kBar),
+      genDnBMarkerEffect((7 * kSection - 1) * kBar),
+      genDnBMarkerEffect((10 * kSection - 1) * kBar),
+      genDnBMarkerEffect((12 * kSection - 1) * kBar),
     ],
   };
   ctx.drums = new Set([
@@ -421,6 +421,7 @@ function genDnB() {
     /* effect[1] */
     merge(genDnBDrums(ctx, 1), chords, bass, subMelody, slowMelody),
     merge(genDnBDrums(ctx, 1), chords, bass, subMelody, mainMelody),
+    merge(genDnBDrums(ctx, 1), chords, bass, subMelody, altMelody, mainMelody),
     merge(genDnBDrums(ctx, 0), bass, subMelody, altMelody),
     /* effect[2] */
     merge(genDnBDrums(ctx, 1), chords, subMelody, bass),
