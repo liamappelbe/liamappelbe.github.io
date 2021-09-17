@@ -448,7 +448,7 @@ async function genDnB() {
   const markers = genDnBMarkers(ctx, sections);
 
   // Add a thumbnail.
-  const thumbNotes = await genThumbNotes();
+  const thumbNotes = genThumbNotes();
   for (const n of thumbNotes) notes.push(n);
 
   // Generate proto.

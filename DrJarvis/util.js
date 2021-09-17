@@ -76,35 +76,157 @@ function forEachFloatInSequence(seq, fn) {
   for (const m of seq.getMarkersList()) forEachFloatInMarker(m, fn);
 }
 
-function stegWrite(seq, msg) {
+function stegWrite(seq, bytes) {
   let i = 0;
   forEachFloatInSequence(seq, x => {
-    const y = castU32ToF32((castF32ToU32(x) & 0xFFFFFF00) | msg.charCodeAt(i));
-    i = (i + 1) % msg.length;
+    const y = castU32ToF32((castF32ToU32(x) & 0xFFFFFF00) | bytes[i]);
+    i = (i + 1) % bytes.length;
     return y;
   });
 }
 
 function stegRead(seq) {
-  let msg = '';
+  const bytes = [];
   forEachFloatInSequence(seq, x => {
-    msg += String.fromCharCode(castF32ToU32(x) & 0xFF);
+    bytes.push(castF32ToU32(x) & 0xFF);
     return x;
   });
-  return msg;
+  return bytes;
+}
+
+function asciiToBytes(str) {
+  const bytes = [];
+  for (let i = 0; i < str.length; ++i) bytes.push(str.charCodeAt(i));
+  return bytes;
+}
+
+function bytesToAscii(bytes) {
+  let str = '';
+  for (let i = 0; i < bytes.length; ++i) str += String.fromCharCode(bytes[i]);
+  return str;
+}
+
+const kEpoch2020Ms = Date.UTC(2020, 0, 0, 0, 0, 0);
+function encodeDate(epochMs) {
+  return BigInt(Math.floor((epochMs - kEpoch2020Ms) / 1000));
+}
+function decodeDate(watermarkTimestamp) {
+  return Number(watermarkTimestamp) * 1000 + kEpoch2020Ms;
+}
+
+function pushBigInt(bytes, n, i) {
+  while (n > 0 || i > 0) {
+    bytes.push(Number(n & 0xFFn));
+    n >>= 8n;
+    --i;
+  }
+}
+
+const kWatermarkMagicString = 'DrJarvis';
+function buildWatermark(seed) {
+  const bytes = asciiToBytes(kWatermarkMagicString);
+  pushBigInt(bytes, seed, 16);
+  console.assert(bytes.length == 24);  // Seed not allowed to overflow.
+  pushBigInt(bytes, encodeDate(Date.now()), 0);
+  return bytes;
+}
+
+function parseBigInt(bytes, start, stop) {
+  let x = 0n;
+  for (let i = stop - 1; i >= start; --i) {
+    x <<= 8n;
+    x |= BigInt(bytes[i]);
+  }
+  return x;
+}
+
+function parseWatermark(bytes) {
+  const pre = asciiToBytes(kWatermarkMagicString);
+  for (let i = 0; i < pre.length; ++i) {
+    if (pre[i] != bytes[i]) return null;
+  }
+  const seed = parseBigInt(bytes, pre.length, pre.length + 16);
+  const time = decodeDate(parseBigInt(bytes, pre.length + 16, bytes.length));
+  return [seed, time];
+}
+
+function findBytes(bytes, pre, start) {
+  for (let i = start; i < bytes.length; ++i) {
+    let found = true;
+    for (let j = 0; j < pre.length; ++j) {
+      const k = i + j;
+      if (k >= bytes.length || bytes[k] != pre[j]) {
+        found = false;
+        break;
+      }
+    }
+    if (found) return i;
+  }
+  return bytes.length;
+}
+
+function stegParse(seq) {
+  const bytes = stegRead(seq);
+  const pre = asciiToBytes(kWatermarkMagicString);
+  const db = new Map();
+  function add(l, r) {
+    const key = parseBigInt(bytes, l, r);
+    if (!db.has(key)) {
+      db.set(key, {
+        bytes: bytes.slice(l, r),
+        count: 1,
+      });
+    } else {
+      ++db.get(key).count;
+    }
+  }
+  let l = 0;
+  while (true) {
+    const r = findBytes(bytes, pre, l + 1);
+    add(l, r);
+    if (r >= bytes.length) break;
+    l = r;
+  }
+  let mc = 0;
+  let mp = null;
+  let sum = 0;
+  for (const v of db.values()) {
+    sum += v.count;
+    if (v.count > mc) {
+      const p = parseWatermark(v.bytes);
+      if (p != null) {
+        mc = v.count;
+        mp = p;
+      }
+    }
+  }
+  if (mp == null) return null;
+  return [mp[0], mp[1], mc / sum];
 }
 
 function finishProto(seq, seed) {
-  stegWrite(seq, `DrJarvis: ${seed} ${new Date().toISOString()}\n`);
+  if (seq != null) {
+    stegWrite(seq, buildWatermark(seed));
+  }
   return seq;
 }
 
+async function setSeqSeed(seed = null) {
+  setSeed(seed);
+  await setThumbImage();
+}
+
 async function generate(generator, seed = null) {
-  seed = setSeed(seed);
-  console.log('Seed = ', seed);
+  if (seed !== null) await setSeqSeed(seed);
+  seed = randSeed;
+  console.log('Seed =', seed);
   const blob = protoToBlob(finishProto(await generator(), seed));
-  if (!blob) return;
+  if (!blob) {
+    console.log('Generation failed');
+    return;
+  }
   saveBlob(genName(), [blob], 'application/octet-stream');
+  await setSeqSeed();
 }
 
 async function getFileFromDialog() {
@@ -462,27 +584,36 @@ function genLongChords() {
 }
 
 let domThumbImage = null;
-function newThumbImage(url = null) {
-  domThumbImage.src = url ?? `https://picsum.photos/200?random=${randi(1e9)}`;
+async function setThumbImage(url = null) {
+  return new Promise((resolve, reject) => {
+    domThumbImage.src = url ?? `https://picsum.photos/seed/${randSeed}/200`;
+    const resolveOnce = () => {
+      if (resolve == null) return;
+      const r = resolve;
+      resolve = null;
+      r();
+    };
+    domThumbImage.onload = resolveOnce;
+    window.setTimeout(resolveOnce, 10000);
+  });
 }
 
 window.addEventListener('load', () => {
   domThumbImage = document.getElementById('thumb');
-  newThumbImage();
+  setSeqSeed();
 });
 
-async function genThumbNotes() {
+function genThumbNotes() {
   const notes = [];
   const options = {invis: true};
   generateThumbnail(domThumbImage, options, (type, t, len, inst) => {
     notes.push(new Note(type, t / 4, len / 4, inst, 0));
   });
-  newThumbImage();
   return notes;
 }
 
 async function genThumb(url = null) {
-  const notes = await genThumbNotes(url);
+  const notes = genThumbNotes(url);
   const seq = new proto.Sequence();
   for (const note of notes) {
     const p = note.asProto;

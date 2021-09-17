@@ -131,8 +131,8 @@ async function genLoFi() {
   const finalNotes = notes.map(n => n.swing(beatMidpoint));
 
   // Add a thumbnail.
-  const thumbNotes = await genThumbNotes();
-  for (const n of thumbNotes) notes.push(n);
+  const thumbNotes = genThumbNotes();
+  for (const n of thumbNotes) finalNotes.push(n);
 
   // Generate proto.
   const seq = new proto.Sequence();
