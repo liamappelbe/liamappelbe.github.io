@@ -31,11 +31,97 @@ function genName() {
       choose(kAnimals)}.sequence`;
 }
 
-async function generate(generator) {
-  const blob = protoToBlob(await generator());
+const castF32Buffer = new Float32Array(1);
+const castU32Buffer = new Uint32Array(castF32Buffer.buffer);
+function castF32ToU32(x) {
+  castF32Buffer[0] = x;
+  return castU32Buffer[0];
+}
+function castU32ToF32(x) {
+  castU32Buffer[0] = x;
+  return castF32Buffer[0];
+}
+
+function forEachFloatInInstumentSettings(s, fn) {
+  s.setVolume(fn(s.getVolume()));
+  s.setOneMinusReverbVolume(fn(s.getOneMinusReverbVolume()));
+  s.setPan(fn(s.getPan()));
+  s.setEqLow(fn(s.getEqLow()));
+  s.setEqMid(fn(s.getEqMid()));
+  s.setEqHigh(fn(s.getEqHigh()));
+  s.setDetune(fn(s.getDetune()));
+}
+
+function forEachFloatInSequenceSettings(ss, fn) {
+  ss.setOneMinusVolume(fn(ss.getOneMinusVolume()));
+  for (const [i, s] of ss.getInstrumentsMap().entries()) {
+    forEachFloatInInstumentSettings(s, fn);
+  }
+}
+
+function forEachFloatInNote(n, fn) {
+  n.setTime(fn(n.getTime()));
+  n.setLength(fn(n.getLength()));
+  n.setVolume(fn(n.getVolume()));
+}
+
+function forEachFloatInMarker(m, fn) {
+  m.setTime(fn(m.getTime()));
+  m.setValue(fn(m.getValue()));
+}
+
+function forEachFloatInSequence(seq, fn) {
+  forEachFloatInSequenceSettings(seq.getSettings(), fn);
+  for (const n of seq.getNotesList()) forEachFloatInNote(n, fn);
+  for (const m of seq.getMarkersList()) forEachFloatInMarker(m, fn);
+}
+
+function stegWrite(seq, msg) {
+  let i = 0;
+  forEachFloatInSequence(seq, x => {
+    const y = castU32ToF32((castF32ToU32(x) & 0xFFFFFF00) | msg.charCodeAt(i));
+    i = (i + 1) % msg.length;
+    return y;
+  });
+}
+
+function stegRead(seq) {
+  let msg = '';
+  forEachFloatInSequence(seq, x => {
+    msg += String.fromCharCode(castF32ToU32(x) & 0xFF);
+    return x;
+  });
+  return msg;
+}
+
+function finishProto(seq, seed) {
+  stegWrite(seq, `DrJarvis: ${seed} ${new Date().toISOString()}\n`);
+  return seq;
+}
+
+async function generate(generator, seed = null) {
+  seed = setSeed(seed);
+  console.log('Seed = ', seed);
+  const blob = protoToBlob(finishProto(await generator(), seed));
   if (!blob) return;
-  const name = genName() + '';
-  saveBlob(name, [blob], 'application/octet-stream');
+  saveBlob(genName(), [blob], 'application/octet-stream');
+}
+
+async function getFileFromDialog() {
+  return new Promise((resolve, reject) => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.onchange = () => {
+      if (inp.files == null || inp.files.length == 0) {
+        reject('No file chosen');
+      } else {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsArrayBuffer(inp.files[0]);
+      }
+    };
+    inp.click();
+  });
 }
 
 function getVolWeight(inst, index) {

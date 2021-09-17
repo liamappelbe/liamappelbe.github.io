@@ -1,13 +1,34 @@
-function mod(x, y) {
-  return ((x % y) + y) % y;
+let randSeed = 0n;
+function setSeed(seed = null) {
+  if (seed == null) {
+    randSeed = 0n;
+    for (let i = 0; i < 16; ++i) {
+      randSeed <<= 8n;
+      randSeed |= BigInt(~~(0x100 * Math.random()));
+    }
+  } else {
+    randSeed = seed;
+  }
+  return randSeed;
+}
+setSeed();
+
+function randImpl() {
+  const r = Number(randSeed & 0xFFFFFFFFn);
+  for (let i = 0; i < 32; ++i) {
+    const b = (randSeed >> 128n) ^ (randSeed >> 126n) ^ (randSeed >> 101n) ^
+        (randSeed >> 99n);
+    randSeed = (randSeed >> 1n) | ((b & 1n) << 127n);
+  }
+  return r / (1 << 16) / (1 << 16);
 }
 
 function randb(p = 0.5) {
-  return Math.random() < p;
+  return randImpl() < p;
 }
 
 function randf(h = 1, l = 0) {
-  return l + Math.random() * (h - l);
+  return l + randImpl() * (h - l);
 }
 
 function randi(h = 1, l = 0) {
@@ -15,7 +36,7 @@ function randi(h = 1, l = 0) {
 }
 
 function randfq(h = 1) {
-  return h * (Math.random() ** 2);
+  return h * (randImpl() ** 2);
 }
 
 function randBeat(h, l, q) {
@@ -32,6 +53,10 @@ function choose(array) {
 
 function chooseq(array) {
   return array[Math.floor(randfq(array.length))];
+}
+
+function mod(x, y) {
+  return ((x % y) + y) % y;
 }
 
 function lerp(a, b, t) {
