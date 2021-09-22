@@ -50,6 +50,10 @@ h1, #index {
   font-size: 16px;
   display: flex;
 }
+h2 {
+  margin-bottom: 0;
+  color: #ffc107;
+}
 a {
   color: #ff5722;
   font-family: monospace;
@@ -82,19 +86,22 @@ a {
     and drop that file into OS. Check out my
     <a href="https://onlinesequencer.net/members/65405">OS profile</a> to listen
     to some of my songs.
-    <br/>
-    <br/>
+    <h2>Tools</h2>
     <a onclick="generate(genShortChords)">Generate Short Chord Progression</a>
     <br/>
     <a onclick="generate(genLongChords)">Generate Long Chord Progression</a>
     <br/>
-    <a onclick="generate(genThumb)">Generate Thumbnail</a>
+    <a onclick="generate(genLoFiDrumSeq)">Generate Lo-Fi Drums</a>
     <br/>
-    <a onclick="generate(genDown)">Generate Downtempo</a>
+    <a onclick="generate(genDnBDrumSeq)">Generate Drum&Bass Drums</a>
+    <br/>
+    <a onclick="generate(genThumb)">Generate Thumbnail</a>
+    <h2>Full songs</h2>
+    <a onclick="generate(genDnB)">Generate Drum&Bass</a>
     <br/>
     <a onclick="generate(genLoFi)">Generate Lo-Fi</a>
     <br/>
-    <a onclick="generate(genDnB)">Generate Drum&Bass</a>
+    <a onclick="generate(genDown)">Generate Downtempo</a>
   </div>
   <div class="center" id="right">
     Thumbnail

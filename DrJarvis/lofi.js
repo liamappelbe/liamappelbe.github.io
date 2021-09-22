@@ -53,7 +53,7 @@ function genLoFiMarkerEffect(t) {
   return genDownMarkerEffect(t);
 }
 
-async function genLoFi() {
+function genLoFiCtx() {
   const key = randi(11);
   const ctx = {
     key: key,
@@ -88,6 +88,11 @@ async function genLoFi() {
     ctx.melodySInst
   ]);
   ctx.allInst = new Set([...ctx.drums, ...ctx.tunedInst]);
+  return ctx;
+}
+
+async function genLoFi() {
+  const ctx = genLoFiCtx();
 
   const chords = genLoFiChords(ctx);
   const bass = genLoFiBass(ctx);
@@ -143,6 +148,43 @@ async function genLoFi() {
     seqSettings.getInstrumentsMap().set(inst, settings);
   }
   for (const m of markers) seq.addMarkers(m);
+  for (const note of finalNotes) {
+    const p = note.asProto;
+    if (p !== null) seq.addNotes(p);
+  }
+
+  return seq;
+}
+
+async function genLoFiDrumSeq() {
+  const ctx = genLoFiCtx();
+
+  function sect(dv) {
+    return merge(genLoFiAtmo(ctx), genLoFiDrums(ctx, dv));
+  }
+  const sections = [
+    merge(genLoFiAtmo(ctx), genLoFiDrums(ctx, 0)),
+    merge(genLoFiAtmo(ctx), genLoFiDrums(ctx, 0.5)),
+    merge(genLoFiAtmo(ctx), genLoFiDrums(ctx, 1)),
+  ];
+
+  const notes = joinSections(sections);
+
+  // Instrument settings.
+  genLoFiInstSettings(ctx);
+
+  // Apply swing.
+  const beatMidpoint = randb() ? 0.5 : 0.666666;
+  const finalNotes = notes.map(n => n.swing(beatMidpoint));
+
+  // Generate proto.
+  const seq = new proto.Sequence();
+  const seqSettings = new proto.SequenceSettings();
+  seqSettings.setBpm(randi(100, 70));
+  seq.setSettings(seqSettings);
+  for (const [inst, settings] of ctx.instSettings) {
+    seqSettings.getInstrumentsMap().set(inst, settings);
+  }
   for (const note of finalNotes) {
     const p = note.asProto;
     if (p !== null) seq.addNotes(p);

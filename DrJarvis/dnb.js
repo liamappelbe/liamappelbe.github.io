@@ -364,7 +364,7 @@ function genDnBMarkerEffect(t) {
   return effect;
 }
 
-async function genDnB() {
+function genDnBCtx() {
   const key = randi(11);
   const ctx = {
     key: key,
@@ -403,6 +403,11 @@ async function genDnB() {
     ctx.melodySInst
   ]);
   ctx.allInst = new Set([...ctx.drums, ...ctx.tunedInst]);
+  return ctx;
+}
+
+async function genDnB() {
+  const ctx = genDnBCtx();
 
   const subMelody = genDnBSubMelody(ctx);
   const slowMelody = genDnBSlowMelody(ctx);
@@ -460,6 +465,36 @@ async function genDnB() {
     seqSettings.getInstrumentsMap().set(inst, settings);
   }
   for (const m of markers) seq.addMarkers(m);
+  for (const note of notes) {
+    const p = note.asProto;
+    if (p !== null) seq.addNotes(p);
+  }
+
+  return seq;
+}
+
+async function genDnBDrumSeq() {
+  const ctx = genDnBCtx();
+
+  const sections = [
+    genDnBDrums(ctx, 0),
+    genDnBDrums(ctx, 0.5),
+    genDnBDrums(ctx, 1),
+  ];
+
+  const notes = joinSections(sections);
+
+  // Instrument settings.
+  genDnBInstSettings(ctx);
+
+  // Generate proto.
+  const seq = new proto.Sequence();
+  const seqSettings = new proto.SequenceSettings();
+  seqSettings.setBpm(randi(130, 180));
+  seq.setSettings(seqSettings);
+  for (const [inst, settings] of ctx.instSettings) {
+    seqSettings.getInstrumentsMap().set(inst, settings);
+  }
   for (const note of notes) {
     const p = note.asProto;
     if (p !== null) seq.addNotes(p);

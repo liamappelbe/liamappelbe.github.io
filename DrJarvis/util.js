@@ -53,6 +53,7 @@ function forEachFloatInInstumentSettings(s, fn) {
 }
 
 function forEachFloatInSequenceSettings(ss, fn) {
+  if (!ss) return;
   ss.setOneMinusVolume(fn(ss.getOneMinusVolume()));
   for (const [i, s] of ss.getInstrumentsMap().entries()) {
     forEachFloatInInstumentSettings(s, fn);
