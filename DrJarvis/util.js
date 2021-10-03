@@ -124,10 +124,10 @@ function pushBigInt(bytes, n, i) {
 }
 
 const kWatermarkMagicString = 'DrJarvis';
-function buildWatermark(seed) {
-  const bytes = asciiToBytes(kWatermarkMagicString);
+function buildWatermark(code, seed) {
+  const bytes = asciiToBytes(kWatermarkMagicString + code);
   pushBigInt(bytes, seed, 16);
-  console.assert(bytes.length == 24);  // Seed not allowed to overflow.
+  console.assert(bytes.length == 25);  // Seed not allowed to overflow.
   pushBigInt(bytes, encodeDate(Date.now()), 0);
   return bytes;
 }
@@ -146,9 +146,11 @@ function parseWatermark(bytes) {
   for (let i = 0; i < pre.length; ++i) {
     if (pre[i] != bytes[i]) return null;
   }
-  const seed = parseBigInt(bytes, pre.length, pre.length + 16);
-  const time = decodeDate(parseBigInt(bytes, pre.length + 16, bytes.length));
-  return [seed, time];
+  const code = String.fromCharCode(bytes[pre.length]);
+  const seed = parseBigInt(bytes, pre.length + 1, pre.length + 17);
+  const time =
+      new Date(decodeDate(parseBigInt(bytes, pre.length + 17, bytes.length)));
+  return [code, seed, time];
 }
 
 function findBytes(bytes, pre, start) {
@@ -202,12 +204,12 @@ function stegParse(seq) {
     }
   }
   if (mp == null) return null;
-  return [mp[0], mp[1], mc / sum];
+  return [mp[0], mp[1], mp[2], mc / sum];
 }
 
-function finishProto(seq, seed) {
+function finishProto(seq, code, seed) {
   if (seq != null) {
-    stegWrite(seq, buildWatermark(seed));
+    stegWrite(seq, buildWatermark(code, seed));
   }
   return seq;
 }
@@ -217,11 +219,11 @@ async function setSeqSeed(seed = null) {
   await setThumbImage();
 }
 
-async function generate(generator, seed = null) {
+async function generate(generator, code, seed = null) {
   if (seed !== null) await setSeqSeed(seed);
   seed = randSeed;
   console.log('Seed =', seed);
-  const blob = protoToBlob(finishProto(await generator(), seed));
+  const blob = protoToBlob(finishProto(await generator(), code, seed));
   if (!blob) {
     console.log('Generation failed');
     return;
