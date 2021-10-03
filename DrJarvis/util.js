@@ -177,3 +177,10 @@ async function genThumb(url = null) {
   }
   return seq;
 }
+
+function setEq(settings, eq) {
+  settings.setEnableEq(true);
+  settings.setEqHigh(eq.high);
+  settings.setEqMid(eq.mid);
+  settings.setEqLow(eq.low);
+}

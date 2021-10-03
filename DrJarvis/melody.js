@@ -197,9 +197,9 @@ function genFractalMelody(
   //    and blend the shapes of fresh chunks into the previous chunk.
   // 3. Generate the melodic rhythm using genEmphasisEx and the shape.
   // 4. Generate the notes from the melodic rhythm and the chords.
-  const kRoughness = 0.75;
+  const kRoughness = 0.85;
   const kRepetitiveness = 0.5;
-  const kPhraseLimit = 0.5;
+  const kPhraseLimit = 2 * dt;
 
   // 1. Structure.
   let layers = 0;
@@ -211,7 +211,6 @@ function genFractalMelody(
   }
   console.assert(chunkSize == 1 || chunkSize == 2);
   const structure = genFractalMelodyStructure(layers, kRepetitiveness);
-  console.log(numBars, layers, chunkSize, structure.length);
 
   // 2. Shape.
   const chunkLen = chunkSize * kBar;
@@ -242,7 +241,7 @@ function genFractalMelody(
       const sr = [];
       s.rhythm = sr;
       genEmphasisEx(
-          chunkLen, dt, 0.3, lerp(0.5, 0.9, vigor), 0.8, 0, (t, e) => {
+          chunkLen, dt, 0.1, lerp(0.5, 0.9, vigor), 0.8, 0, (t, e) => {
             const triad = randb(lerp(0, lerp(0.3, 0.7, vigor), e));
             if (triad) {
               sr.push(triadNote(t));
@@ -264,7 +263,6 @@ function genFractalMelody(
         }
         pt = sri.t;
       }
-      console.log(sr.length);
     }
   }
 
@@ -289,25 +287,31 @@ function genFractalMelody(
   }
   for (let i = 0; i < structure.length; ++i) {
     const toff = i * chunkLen;
-    console.log(structure[i].rhythm, toff);
-    for (const r of structure[i].rhythm) {
+    const sr = structure[i].rhythm;
+    for (let j = 0; j < sr.length; ++j) {
+      const r = sr[j];
+      const len = j + 1 < sr.length ? sr[j + 1].t - r.t : 1;
       const v = vol * lerp(0.5, 1.0, beatEmphasis(r.t));
       const t = toff + r.t;
-      console.log(t);
       if (r.triad) {
         const ch = getChord(r.t);
         const tri = ch.triadIndexes();
         notes.push(new Note(
-            noteType(wrap(getWithOctaves(tri, r.index))), t, dt, inst, v));
+            noteType(wrap(getWithOctaves(tri, r.index))), t, len, inst, v));
         if (r.index2 !== null) {
           notes.push(new Note(
-              noteType(wrap(getWithOctaves(tri, r.index2))), t, dt, inst, v));
+              noteType(wrap(getWithOctaves(tri, r.index2))), t, len, inst,
+              0.3 * v));
         }
       } else {
         notes.push(new Note(
-            noteType(pj = getWithOctaves(scale, r.index)), t, dt, inst, v));
+            noteType(pj = getWithOctaves(scale, r.index)), t, len, inst, v));
       }
     }
+    // Add an extra triad note at the start of the next section.
+    notes.push(new Note(noteType(
+        wrap(choose(getChord(0).triadIndexes())), toff + chunkLen, 1, inst,
+        vol)));
   }
   return notes;
 }

@@ -201,12 +201,6 @@ function genDnBAltMelody(ctx) {
 }
 
 function genDnBInstSettings(ctx) {
-  function setEq(settings, eq) {
-    settings.setEnableEq(true);
-    settings.setEqHigh(eq.high);
-    settings.setEqMid(eq.mid);
-    settings.setEqLow(eq.low);
-  }
   ctx.instSettings = new Map();
   function settings(inst) {
     if (!ctx.instSettings.has(inst)) {

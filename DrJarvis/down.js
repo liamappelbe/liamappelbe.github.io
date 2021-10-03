@@ -174,12 +174,6 @@ function genDownAtmo(ctx) {
 }
 
 function genDownInstSettings(ctx) {
-  function setEq(settings, eq) {
-    settings.setEnableEq(true);
-    settings.setEqHigh(eq.high);
-    settings.setEqMid(eq.mid);
-    settings.setEqLow(eq.low);
-  }
   ctx.instSettings = new Map();
   function settings(inst) {
     if (!ctx.instSettings.has(inst)) {
