@@ -3,20 +3,26 @@
 <head>
 <title>Dr. Jarvis</title>
 <script type="text/javascript">const exports={};</script>
-<script src="https://onlinesequencer.net/resources/google-protobuf.js"></script>
-<script src="https://onlinesequencer.net/proto/js/instrumentsettings.js"></script>
-<script src="https://onlinesequencer.net/proto/js/marker.js"></script>
-<script src="https://onlinesequencer.net/proto/js/note.js"></script>
-<script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
-<script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
-<script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
+<script src="../../../onlinesequencer/www/resources/google-protobuf.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/instrumentsettings.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/marker.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/note.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/notetype.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/sequence.js"></script>
+<script src="../../../onlinesequencer/www/proto/js/sequencesettings.js"></script>
 <script src="../thumb.js"></script>
 <script src="core.js"></script>
 <script src="data.js"></script>
+<script src="noise.js"></script>
+<script src="note.js"></script>
+<script src="steg.js"></script>
 <script src="util.js"></script>
+<script src="chords.js"></script>
+<script src="melody.js"></script>
 <script src="down.js"></script>
 <script src="dnb.js"></script>
 <script src="lofi.js"></script>
+<script src="study.js"></script>
 <style>
 body {
   background-color: #212121;
@@ -101,7 +107,9 @@ a {
     <br/>
     <a onclick="generate(genLoFi, 'L')">Generate Lo-Fi</a>
     <br/>
-    <a onclick="generate(genDown, 'L')">Generate Downtempo</a>
+    <a onclick="generate(genDown, 'D')">Generate Downtempo</a>
+    <br/>
+    <a onclick="generate(genStudy, 'S')">Generate Study Music</a>
   </div>
   <div class="center" id="right">
     Thumbnail

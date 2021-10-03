@@ -241,6 +241,11 @@ const kVolWeights = [
   kDw2,  1.25,   1.1111, kDw3,   kDw4,   0.9524, kDw5,
 ];
 
+function getVolWeight(inst, index) {
+  const a = kVolWeights[inst];
+  return (a instanceof Map ? a.get(index) : a) || 1;
+}
+
 const kMSInstVol = 1;
 const kMSPan = 2;
 const kMSEqH = 3;
@@ -345,3 +350,4 @@ const kSection = 8;
 // Note: Melody generator assumes these scales are the same length.
 const kMajorScale = [0, 2, 4, 5, 7, 9, 11];
 const kMinorScale = [0, 2, 3, 5, 7, 8, 10];  // Natural minor.
+const kScaleLen = kMajorScale.length;

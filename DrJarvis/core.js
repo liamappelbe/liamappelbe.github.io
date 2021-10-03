@@ -87,7 +87,7 @@ function getWithOctaves(a, i) {
   return o * 12 + a[j];
 }
 
-function noteType(key, octave) {
+function noteType(key, octave = 0) {
   const kNoteTypeNames =
       ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const i = mod(key, 12);
@@ -113,4 +113,15 @@ function validNoteType(type) {
 
 function lowestSetBit(x) {
   return x & -x;
+}
+
+class ArrayCache {
+  constructor(f) {
+    this.a = [];
+    this.f = f;
+  }
+  get(i) {
+    while (this.a.length <= i) this.a.push(this.f(this.a.length));
+    return this.a[i];
+  }
 }
