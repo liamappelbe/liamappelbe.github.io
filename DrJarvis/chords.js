@@ -135,7 +135,7 @@ function genPlainChordNotes(chords, inst, beatsPerChord, dt, dec, vol = 0.5) {
 }
 
 function genChordNotes(chords, inst, beatsPerChord, vol = 0.5) {
-  const notes = [];
+  let notes = [];
   const style = randi(2);
   if (style == 0) {
     // Plain chords, optionally decimated.
