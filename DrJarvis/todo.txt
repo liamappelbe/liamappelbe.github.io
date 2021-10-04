@@ -3,9 +3,12 @@ More genres:
   - Bossa Nova
   - Classical???
 
-Melody generator V2:
-  - Fractal structure
-
 Other stuff:
   - Can we randomize the overall structure of the song?
-  - Thumbnail art using https://picsum.photos/200
+  - Note bending, for melodies and chords
+  - Lo fi atmo should include white noise
+  - Button that randomly chooses one of the full song generators
+  - side melodies should only activate sometimes
+  - Side chaining
+  - Half time drums
+  - Chord changes
