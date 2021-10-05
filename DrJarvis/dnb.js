@@ -21,29 +21,32 @@ function genDnBDrumsOneBar(ctx, bar, vigor) {
   const first = bar == 0;
   const notes = [];
 
-  function add(inst, t, vol = 1) {
-    notes.push(drumNote(inst, t, vol));
+  function add(inst, t, vol = 1, extra = null) {
+    const n = drumNote(inst, t, vol);
+    n.extra = extra;
+    notes.push(n);
   }
 
-  function addNoteMaybeTrill(inst, t, vol = 1) {
-    addNoteWithTrill(
+  function addNoteMaybeTrill(inst, t, vol = 1, extra = null) {
+    const n = addNoteWithTrill(
         notes, inst, t, vol, randb(0.2 * vigor + 0.1) ? randi(2, 1) : 0,
         kDnBTrillDt, kDnBTrillVol);
+    n.extra = extra;
   }
 
   // Core rhythm.
   if (first) add(ctx.cymbal, 0);
   if ((bar % 2 == 0) || randb(0.7)) {
-    add(ctx.kick, 0);
+    add(ctx.kick, 0, 1, true);
     add(ctx.snare1, 1);
-    add(ctx.kick, 2.5);
+    add(ctx.kick, 2.5, 1, true);
     add(ctx.snare1, first || randb(0.6) ? 3 : 3.5);
   } else {
-    add(ctx.kick, 0);
+    add(ctx.kick, 0, 1, true);
     add(ctx.snare1, 1);
-    add(ctx.kick, 1.5);
+    add(ctx.kick, 1.5, 1, true);
     add(ctx.snare1, 2.5);
-    add(ctx.kick, 3);
+    add(ctx.kick, 3, 1, true);
   }
   if (vigor > 0.7) add(ctx.snare2, choose([0.25, 0.5, 0.75]), 0.15);
   if (vigor > 0.3) add(ctx.snare2, 1.75, 0.2);
@@ -52,7 +55,7 @@ function genDnBDrumsOneBar(ctx, bar, vigor) {
 
   // Extras.
   if (randb(lerp(0.2, 0.6, vigor))) {
-    addNoteMaybeTrill(ctx.kick, randBeat(2.5, 0.5, 0.5), 0.25);
+    addNoteMaybeTrill(ctx.kick, randBeat(2.5, 0.5, 0.5), 0.25, true);
   }
   if (randb(lerp(0.2, 0.6, vigor))) {
     addNoteMaybeTrill(ctx.snare1, randBeat(4, 0.5, 0.5), 0.25);
@@ -83,7 +86,7 @@ function genDnBDrumsOneBarBreak(ctx, vigor) {
   // Beats.
   genEmphasisEx(
       kBar, 0.25, 0.0, lerp(0.3, 0.6, vigor), 0.6, 0.0,
-      (t, e) => addNoteMaybeTrill(ctx.kick, t, e));
+      (t, e) => addNoteMaybeTrill(ctx.kick, t, e, true));
   genEmphasisEx(
       kBar, 0.25, 0.0, lerp(0.3, 0.6, vigor), 0.6, 0.5,
       (t, e) => addNoteMaybeTrill(ctx.snare1, t, e));
@@ -338,6 +341,33 @@ function genDnBMarkers(ctx) {
   return markers;
 }
 
+function genDnBSideChains(ctx, markers, notes) {
+  const insts = [ctx.chordInst.inst, ctx.melodySInst.inst];
+  const mask = [];
+  for (const n of notes) {
+    if (n.extra) {
+      const i = Math.round(noteTimeToOsFormat(n.time));
+      mask[i] = true;
+    }
+  }
+  mask[mask.length] = false;
+  for (let i = 0; i < mask.length; ++i) {
+    if (!mask[i] == !mask[i - 1]) continue;
+    const t = noteTimeFromOsFormat(i);
+    for (const inst of insts) {
+      const v = ctx.instSettings.get(inst).getVolume();
+      if (mask[i]) {
+        // Newly masked.
+        markers.push(marker(t, kMSInstVol, inst, 0.1 * v));
+      } else {
+        // Newly unmasked.
+        markers.push(marker(t, kMSInstVol, inst, 0.1 * v));
+        markers.push(marker(t + 0.25, kMSInstVol, inst, v, true));
+      }
+    }
+  }
+}
+
 function genDnBMarkerEffect(t) {
   const effect = new MarkerEffect(t);
   const type = randw([2, 2, 1, 1, 3]);
@@ -444,7 +474,8 @@ async function genDnB() {
   genDnBInstSettings(ctx);
 
   // Markers.
-  const markers = genDnBMarkers(ctx, sections);
+  const markers = genDnBMarkers(ctx);
+  // genDnBSideChains(ctx, markers, notes);
 
   // Add a thumbnail.
   const thumbNotes = genThumbNotes();
