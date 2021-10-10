@@ -3,11 +3,19 @@
 <head>
 <title>Sudoku</title>
 <script>
+function load(w, h, d) {
+  document.getElementById("sudoku").src =
+      `sudoku_embed.html?w=${w}&h=${h}&d=${d}`;
+}
 </script>
 <style>
+html, body { height: 100%; }
 body {
   background-color: #212121;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 #head {
   background-color: #424242;
@@ -48,6 +56,17 @@ a {
   color: #f5f5f5;
   font-family: monospace;
   font-size: 16px;
+  height: 100%;
+}
+#menu {
+  flex-grow: 0;
+  flex-basis: 100px;
+  margin: auto;
+}
+#sudoku {
+  flex-grow: 1;
+  height: 100%;
+  border: none;
 }
 </style>
 </head>
@@ -57,8 +76,18 @@ a {
   <h1>Sudoku</h1>
 </div>
 <div id="wrap">
-  <iframe src="sudoku_embed.html" style="width:900px;height:900px;border:none;">
-  </iframe>
+  <div id="menu">
+    <a onclick="load(3, 3, 0)">Easy</a><br/>
+    <a onclick="load(3, 3, 1)">Medium</a><br/>
+    <a onclick="load(3, 3, 2)">Hard</a><br/>
+    <a onclick="load(3, 3, null)">Very Hard</a><br/>
+    <a onclick="load(2, 2, 2)">2x2</a><br/>
+    <a onclick="load(3, 2, 2)">3x2</a><br/>
+    <a onclick="load(4, 2, 2)">4x2</a><br/>
+    <a onclick="load(4, 3, 2)">4x3</a><br/>
+    <a onclick="load(4, 4, 0)">4x4</a><br/>
+  </div>
+  <iframe id="sudoku" src="sudoku_embed.html"></iframe>
 </div>
 </body>
 </html>

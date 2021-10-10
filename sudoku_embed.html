@@ -3,11 +3,629 @@
 <head>
 <title>Sudoku</title>
 <script>
+const kSolved = 1;
+const kUnsolved = 0;
+const kBroken = -1;
+
+const kValueDisplay = [
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "A", "B", "C", "D", "E",
+  "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+  "U", "V", "W", "X", "Y", "Z",
+];
+const kValueKey = [
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "a", "b", "c", "d", "e",
+  "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+  "u", "v", "w", "x", "y", "z",
+];
+const kKeyClearCell = " ";
+const kKeyDirs = new Map([
+  ["ArrowRight", [0, 1]], ["ArrowUp", [-1, 0]],
+  ["ArrowLeft", [0, -1]], ["ArrowDown", [1, 0]]]);
+
+function getParams() {
+  let q = window.location.search;
+  if (q.startsWith("?")) q = q.substr(1);
+  const p = new Map();
+  for (const kv of q.split("&")) {
+    const i = kv.indexOf("=");
+    if (i == -1) continue;
+    p.set(kv.substr(0, i), kv.substr(i + 1));
+  }
+  return p;
+}
+
+function numSan(x, valueIfNaN = 0) {
+  const y = parseInt(x);
+  return (isFinite(y) && !isNaN(y)) ? y : valueIfNaN;
+}
+
+const kParams = getParams();
+const kDifficulty = numSan(kParams.get("d"), Infinity);
+// Width of a block. Num blocks stacked vertically.
+const kX = numSan(kParams.get("h"), 3);
+// Height of a block. Num blocks stacked horizontally.
+const kY = numSan(kParams.get("w"), 3);
+const kN = kX * kY;  // Total width/height. Num cells in block. Num numbers.
+const kNN = kN * kN;  // Total cells in puzzle.
+const kNNN = kNN * kN;  // Size of puzzle state.
+
+function makeArray(n, v) {
+  const a = [];
+  for (let i = 0; i < n; ++i) a.push(v);
+  return a;
+}
+
+function makeCountArray(n) {
+  const a = [];
+  for (let i = 0; i < n; ++i) a.push(i);
+  return a;
+}
+
+function shuffle(a) {
+  for (let i = 0; i < a.length; ++i) {
+    const r = Math.floor(i + Math.random() * (a.length - i));
+    const t = a[i];
+    a[i] = a[r];
+    a[r] = t;
+  }
+}
+
+function permutation(n) {
+  const a = makeCountArray(n);
+  shuffle(a);
+  return a;
+}
+
+function blockyPermutation(blockSize, numBlocks) {
+  const block = permutation(numBlocks);
+  let cell = makeCountArray(blockSize);
+  const a = makeArray(blockSize * numBlocks, 0);
+  for (let i = 0; i < a.length; ++i) {
+    if (i % blockSize == 0) shuffle(cell);
+    a[blockSize * block[Math.floor(i / blockSize)] + cell[i % blockSize]] = i;
+  }
+  return a;
+}
+
+let ui = null;
+class Ui {
+  constructor(wrap, puzzleMaker) {
+    this.wrap = wrap;
+    this.puzzleMaker = puzzleMaker;
+    this.s = null;
+    this.selected = null;
+    this.resizables = new Map();
+    this.gridSize = 0;
+    this.cellSize = 0;
+    this.numSize = 0;
+    this.multiCellSize = 0;
+    this.multiNumSize = 0;
+    this.cells = [];
+    this.grid = null;
+    this.messageBox = null;
+
+    window.setTimeout(() => {
+      // Make a new puzzle.
+      this.newPuzzle();
+
+      // Create UI.
+      while (this.wrap.hasChildNodes()) {
+        this.wrap.removeChild(this.wrap.lastChild);
+      }
+      this.grid = this.make(["grid"], () => {
+        this.grid.style.width = this.grid.style.height = this.gridSize + "px";
+      });
+      const flip = (i, j) => (i % 2) ^ (j % 2);
+      for (let i = 0; i < kN; ++i) {
+        this.cells.push([]);
+        for (let j = 0; j < kN; ++j) {
+          const d = flip(i, j) +
+              2 * flip(Math.floor(i / kY), Math.floor(j / kX));
+          const n = this.make(["c" + d], n => {
+            n.style.width = n.style.height = this.cellSize + "px";
+            n.style.fontSize = this.numSize + "px";
+          });
+          n.onclick = () => { this.selectCell(i, j); };
+          this.cells[i][j] = n;
+          this.grid.appendChild(n);
+        }
+      }
+      this.wrap.appendChild(this.grid);
+      this.messageBox = this.make(["message", "hidden"], n => {
+        n.style.width = "100%";
+        const size = 0.3 * this.gridSize;
+        n.style.top = (0.5 * (this.gridSize - size)) + "px";
+        n.style.height = n.style.lineHeight = size + "px";
+        n.style.fontSize = (0.3 * size) + "px";
+      });
+      this.wrap.appendChild(this.messageBox);
+
+      // Event listeners.
+      window.addEventListener("keydown", e => this.onKeyDown(e));
+      window.addEventListener("resize", e => this.onResize());
+      this.refresh();
+    }, 0);
+  }
+
+  make(classes, onResize = null) {
+    const n = document.createElement("div");
+    for (const cls of classes) n.classList.add(cls);
+    if (onResize) {
+      n.style.width = n.style.height = "0px";
+      this.resizables.set(n, () => onResize(n));
+    }
+    return n;
+  }
+
+  newPuzzle() {
+    this.s = this.puzzleMaker();
+  }
+
+  refresh() {
+    this.s.forEachCell((i, j, vals, given) => {
+      const c = this.cells[i][j];
+      while (c.hasChildNodes()) {
+        this.resizables.delete(c.lastChild);
+        c.removeChild(c.lastChild);
+      }
+      const multi = vals.reduce((x, y) => x + y) > 1;
+      for (let k = 0; k < vals.length; ++k) {
+        if (vals[k] || multi) {
+          const n = this.make(["num"], multi ? () => {
+            n.style.width = n.style.height = this.multiCellSize + "px";
+            n.style.fontSize = this.multiNumSize + "px";
+          } : null);
+          if (vals[k]) n.innerText = kValueDisplay[k];
+          if (given) n.classList.add("given");
+          if (multi) n.classList.add("multi");
+          c.appendChild(n);
+        }
+      }
+    });
+    if (this.s.getStatus() == kSolved) {
+      this.grid.classList.add("solved");
+      this.message("You solved it! :)", 10, () => {
+        this.grid.classList.remove("solved");
+        this.newPuzzle();
+        this.refresh();
+      });
+    }
+    this.onResize();
+  }
+
+  message(msg, seconds = 3, onHide = null) {
+    this.messageBox.innerText = msg;
+    this.messageBox.classList.remove("hidden");
+    window.setTimeout(() => {
+      this.messageBox.classList.add("hidden");
+      onHide();
+    }, seconds * 1e3);
+  }
+
+  selectCell(i, j) {
+    if (this.selected != null) {
+      this.cells[this.selected.i][this.selected.j].classList.remove("selected");
+    }
+    this.selected = { i, j };
+    this.cells[i][j].classList.add("selected");
+  }
+
+  onKeyDown(e) {
+    if (this.onKeyDownImpl(e.key)) {
+      this.refresh();
+      e.preventDefault();
+    }
+  }
+
+  onKeyDownImpl(key) {
+    if (this.selected == null) return false;
+    if (key == kKeyClearCell) {
+      this.s.toggleClearCell(this.selected.i, this.selected.j);
+      return true;
+    }
+    if (kKeyDirs.has(key)) {
+      const [di, dj] = kKeyDirs.get(key);
+      this.selectCell(
+          (this.selected.i + di + kN) % kN, (this.selected.j + dj + kN) % kN);
+      return true;
+    }
+    const k = kValueKey.indexOf(key);
+    if (k != -1 && k < kN) {
+      this.s.toggleCellValue(this.selected.i, this.selected.j, k);
+      return true;
+    }
+    return false;
+  }
+
+  onResize() {
+    this.gridSize = Math.min(this.wrap.clientWidth, this.wrap.clientHeight);
+    this.cellSize = this.gridSize / kN;
+    this.numSize = 0.8 * this.cellSize;
+    this.multiCellSize = this.cellSize / Math.ceil(Math.sqrt(kN));
+    this.multiNumSize = 0.8 * this.multiCellSize;
+    for (const fn of this.resizables.values()) fn();
+  }
+
+  static onLoad() {
+    const difficulty = Infinity;
+    const wrap = document.getElementById("wrap");
+    ui = new Ui(wrap, () => Sudoku.genPuzzle(difficulty));
+  }
+}
+window.addEventListener("load", Ui.onLoad);
+
+class Timer {
+  constructor() { this.clear(); }
+  clear() { this.t = performance.now(); }
+  get time() { return (performance.now() - this.t) / 1e3; }
+  log(msg) {
+    console.log(msg, this.time, "seconds");
+    this.clear();
+  }
+}
+
+class Sudoku {
+  constructor() {
+    this.a = makeArray(kNNN, false);
+    this.givenMask = makeArray(kNN, false);
+  }
+
+  // i = row, j = column, k = number
+  cellIJK(i, j, k) { return (i * kN + j) * kN + k; }
+  cellIK(i, k) { return i * kN + k; }
+  cellIJ(i, j) { return i * kN + j; }
+  getI(x) { return Math.floor(x / kNN); }
+  getJ(x) { return Math.floor(x / kN) % kN; }
+  getK(x) { return x % kN; }
+  changeI(x, i) { return x + (i - this.getI(x)) * kNN; }
+  changeJ(x, j) { return x + (j - this.getJ(x)) * kN; }
+  changeK(x, k) { return x + k - this.getK(x); }
+
+  cellBC(b, c) {
+    return this.cellIJ(Math.floor(b / kY) * kY + Math.floor(c / kX),
+        (b % kY) * kX + c % kX);
+  }
+  cellBCK(b, c, k) { return this.cellIK(this.cellBC(b, c), k); }
+
+  changeB(x, c) {
+    const bi = Math.floor(this.getI(x) / kY) * kY;
+    const bj = Math.floor(this.getJ(x) / kX) * kX;
+    const ci = Math.floor(c / kX);
+    const cj = c % kX;
+    return this.cellIJK(bi + ci, bj + cj, this.getK(x));
+  }
+
+  fillFromString(s) {
+    for (let i = 0; i < s.length; ++i) {
+      const x = s.charCodeAt(i) - "0".charCodeAt(0);
+      if (x >= 1 && x <= 9) {
+        this.a[this.cellIK(i, x - 1)] = true;
+        this.givenMask[i] = true;
+      }
+    }
+  }
+
+  forEachCell(f) {
+    const v = makeArray(kN, false);
+    for (let i = 0; i < kN; ++i) {
+      for (let j = 0; j < kN; ++j) {
+        for (let k = 0; k < kN; ++k) {
+          v[k] = this.a[this.cellIJK(i, j, k)];
+        }
+        f(i, j, v, this.givenMask[this.cellIJ(i, j)]);
+      }
+    }
+  }
+
+  clearUngiven(v = false) {
+    for (let i = 0; i < kN; ++i) {
+      for (let j = 0; j < kN; ++j) {
+        const g = this.givenMask[this.cellIJ(i, j)];
+        for (let k = 0; k < kN; ++k) {
+          if (!g) {
+            this.a[this.cellIJK(i, j, k)] = v;
+          }
+        }
+      }
+    }
+  }
+
+  toggleClearCell(i, j) {
+    if (this.givenMask[this.cellIJ(i, j)]) return;
+    let value = true;
+    for (let k = 0; k < kN; ++k) {
+      if (this.a[this.cellIJK(i, j, k)]) {
+        value = false;
+        break;
+      }
+    }
+    for (let k = 0; k < kN; ++k) this.a[this.cellIJK(i, j, k)] = value;
+  }
+
+  toggleCellValue(i, j, k) {
+    if (this.givenMask[this.cellIJ(i, j)]) return;
+    const ijk = this.cellIJK(i, j, k);
+    this.a[ijk] = !this.a[ijk];
+  }
+
+  applyLogic(fills) {
+    const clear = (ijk) => {
+      if (this.a[ijk]) {
+        fills.push(ijk);
+        this.a[ijk] = false;
+      }
+    }
+
+    // If any cell in an RCB has exactly one value, eliminate that value from
+    // other cells in the RCB.
+    for (let i = 0; i < kNN; ++i) {
+      let n = -1;
+      for (let k = 0; k < kN; ++k) {
+        if (this.a[this.cellIK(i, k)]) {
+          if (n == -1) {
+            n = k;
+          } else {
+            n = -2;
+            break;
+          }
+        }
+      }
+      if (n >= 0) {
+        const x = this.cellIK(i, n);
+        for (let i = 0; i < kN; ++i) {
+          let ijk = 0;
+          if ((ijk = this.changeI(x, i)) != x) clear(ijk);
+          if ((ijk = this.changeJ(x, i)) != x) clear(ijk);
+          if ((ijk = this.changeB(x, i)) != x) clear(ijk);
+        }
+      }
+    }
+
+    // If any cell is the only spot a particular value can appear in an RCB,
+    // eliminate the other values.
+    const maybeClearOthers = (ijk, k) => {
+      if (ijk < 0) return;
+      ijk -= k;
+      for (let kk = 0; kk < kN; ++kk) {
+        if (kk != k) clear(ijk + kk);
+      }
+    }
+    for (let i = 0; i < kN; ++i) {
+      for (let k = 0; k < kN; ++k) {
+        let nr = -1;
+        let nc = -1;
+        let nb = -1;
+        for (let j = 0; j < kN; ++j) {
+          let ijk = 0;
+          if (this.a[ijk = this.cellIJK(i, j, k)]) nr = (nr == -1) ? ijk : -2;
+          if (this.a[ijk = this.cellIJK(j, i, k)]) nc = (nc == -1) ? ijk : -2;
+          if (this.a[ijk = this.cellBCK(i, j, k)]) nb = (nb == -1) ? ijk : -2;
+        }
+        maybeClearOthers(nr, k);
+        maybeClearOthers(nc, k);
+        maybeClearOthers(nb, k);
+      }
+    }
+  }
+
+  undo(fills, popUntil) {
+    while (fills.length > popUntil) {
+      this.a[fills.pop()] = true;
+    }
+  }
+
+  getStatus() {
+    // If any cell has 0 possibilities, fail.
+    // If any RCB has duplicate single values, fail.
+    let anyMultiValueCells = false;
+    for (let i = 0; i < kN; ++i) {
+      let ar = makeArray(kN, false);
+      let ac = makeArray(kN, false);
+      let ab = makeArray(kN, false);
+      for (let j = 0; j < kN; ++j) {
+        let nr = -1;
+        let nc = -1;
+        let nb = -1;
+        for (let k = 0; k < kN; ++k) {
+          if (this.a[this.cellIJK(i, j, k)]) nr = (nr == -1) ? k : -2;
+          if (this.a[this.cellIJK(j, i, k)]) nc = (nc == -1) ? k : -2;
+          if (this.a[this.cellBCK(i, j, k)]) nb = (nb == -1) ? k : -2;
+        }
+        if (nr >= 0) {
+          if (ar[nr]) return kBroken;
+          ar[nr] = true;
+        }
+        if (nc >= 0) {
+          if (ac[nc]) return kBroken;
+          ac[nc] = true;
+        }
+        if (nb >= 0) {
+          if (ab[nb]) return kBroken;
+          ab[nb] = true;
+        }
+        if (nr == -1) {
+          return kBroken;
+        } else if (nr == -2) {
+          anyMultiValueCells = true;
+        }
+      }
+    }
+
+    // If any cells have more than 1 possibility, unsolved, else solved.
+    return anyMultiValueCells ? kUnsolved : kSolved;
+  }
+
+  findNextMultiValue(cursor) {
+    while (cursor < kNN) {
+      let n = 0;
+      for (let k = 0; k < kN; ++k) {
+        if (this.a[this.cellIK(cursor, k)]) ++n;
+      }
+      if (n > 1) break;
+      ++cursor;
+    }
+    return cursor;
+  }
+
+  solveImpl(fills, cursor, depth, maxDepth, report, orderer = null) {
+    if (depth > maxDepth) return 2;
+    const popUntil = fills.length;
+    for (let z = 0; z < 4; ++z) {
+      const prev = fills.length;
+      this.applyLogic(fills);
+      if (fills.length == prev) break;
+    }
+    const status = this.getStatus();
+    if (status == kSolved) {
+      const stop = report(depth);
+      this.undo(fills, popUntil);
+      return stop ? 2 : 1;
+    }
+    if (status == kBroken) {
+      this.undo(fills, popUntil);
+      return 0;
+    }
+    let solns = 0;
+    cursor = this.findNextMultiValue(cursor);
+    console.assert(cursor < this.a.length);
+    const nn = [];
+    const order = orderer ? orderer(kN) : null;
+    for (let k = 0; k < kN; ++k) {
+      const ijk = this.cellIK(cursor, order ? order[k] : k);
+      if (this.a[ijk]) {
+        nn.push(ijk);
+        this.a[ijk] = false;
+      }
+    }
+    for (const i of nn) {
+      this.a[i] = true;
+      solns += this.solveImpl(
+          fills, cursor, depth + 1, maxDepth, report, orderer);
+      this.a[i] = false;
+      if (solns > 1) break;
+    }
+    for (const i of nn) this.a[i] = true;
+    this.undo(fills, popUntil);
+    return solns;
+  }
+
+  solve() {
+    let soln = null;
+    const n = this.solveImpl([], 0, 0, Infinity, (depth) => {
+      console.log("Recursion depth:", depth);
+      if (soln == null) {
+        soln = Array.from(this.a);
+      }
+    });
+    console.log("Num solutions: ", n);
+    if (soln != null) this.a = soln;
+  }
+
+  numSolns(maxDepth = Infinity) {
+    return this.solveImpl([], 0, 0, maxDepth, () => {});
+  }
+
+  show(i, j) {
+    for (let k = 0; k < kN; ++k) {
+      if (this.a[this.cellIJK(i, j, k)]) console.log(k + 1);
+    }
+  }
+
+  fastRandomFill() {
+    // This is fast, but I haven't figured out how to hit the entire permutation
+    // space yet.
+    const base = [
+      0, 1, 2,    3, 4, 5,    6, 7, 8,
+      3, 4, 5,    6, 7, 8,    0, 1, 2,
+      6, 7, 8,    0, 1, 2,    3, 4, 5,
+
+      1, 2, 0,    4, 5, 3,    7, 8, 6,
+      4, 5, 3,    7, 8, 6,    1, 2, 0,
+      7, 8, 6,    1, 2, 0,    4, 5, 3,
+
+      2, 0, 1,    5, 3, 4,    8, 6, 7,
+      5, 3, 4,    8, 6, 7,    2, 0, 1,
+      8, 6, 7,    2, 0, 1,    5, 3, 4,
+    ];
+    const rows = blockyPermutation(kY, kX);
+    const cols = blockyPermutation(kX, kY);
+    const nums = permutation(kN);
+    for (let i = 0; i < kN; ++i) {
+      const ii = rows[i];
+      for (let j = 0; j < kN; ++j) {
+        const jj = cols[j];
+        for (let k = 0; k < kN; ++k) {
+          const kk = nums[k];
+          this.a[this.cellIJK(ii, jj, kk)] = (base[this.cellIJ(i, j)] == k);
+        }
+      }
+    }
+  }
+
+  slowRandomFill() {
+    for (let i = 0; i < kNNN; ++i) this.a[i] = true;
+    let soln = null;
+    this.solveImpl([], 0, 0, Infinity, () => {
+      if (soln == null) soln = Array.from(this.a);
+      return true;
+    }, permutation);
+    if (soln != null) this.a = soln;
+  }
+
+  static genPuzzle(difficulty = Infinity) {
+    const s = new Sudoku();
+    const t = new Timer();
+    s.slowRandomFill();
+    // s.fastRandomFill();
+    t.log("Random fill");
+    for (const c of permutation(kNN)) {
+      let n = -1;
+      for (let k = 0; k < kN; ++k) {
+        const ijk = s.cellIK(c, k);
+        if (s.a[ijk]) {
+          console.assert(n == -1);
+          n = k;
+        } else {
+          s.a[ijk] = true;
+        }
+      }
+      console.assert(n != -1);
+      const ns = s.numSolns(difficulty);
+      console.assert(ns > 0);
+      if (ns > 1) {
+        for (let k = 0; k < kN; ++k) {
+          if (k != n) s.a[s.cellIK(c, k)] = false;
+        }
+        s.givenMask[c] = true;
+      }
+    }
+    t.log("Generate");
+    console.assert(s.numSolns(difficulty) == 1);
+    s.clearUngiven();
+    return s;
+  }
+}
+
+function puzzleToString() {
+  // Extract a puzzle string from: https://www.puzzle-sudoku.com/?size=5
+  let s = "";
+  const cells = document.getElementById("game").firstChild.childNodes;
+  for (const c of cells) {
+    if (c.firstChild) {
+      const n = c.firstChild.innerText;
+      s += (n == "" ? " " : n);
+    }
+  }
+  return s;
+}
 </script>
 <style>
+html, body { height: 100%; }
 body {
   background-color: #212121;
   margin: 0;
+  display: flex;
+  align-items: stretch;
 }
 #head {
   background-color: #424242;
@@ -42,56 +660,45 @@ a {
   text-decoration: underline;
 }
 #wrap {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
   color: #f5f5f5;
   font-family: monospace;
-  font-size: 16px;
+  width: 100%;
+  height: 100%;
 }
-#grid {
+.grid {
   display: flex;
   flex-wrap: wrap;
-  width: 900px;
-  height: 900px;
 }
-.c0, .c1 ,.c2 ,.c3 {
-  width: 100px;
-  height: 100px;
+.c0, .c1, .c2, .c3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-evenly;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
 }
-.c1 { background-color: #8883; }
-.c2 { background-color: #8886; }
-.c3 { background-color: #8889; }
+.c0 { background-color: #8887; }
+.c1 { background-color: #8886; }
+.c2 { background-color: #8881; }
+.num { color: #f5f5f5; }
+.given { color: #ffc107; }
+.selected { background-color: #3f51b5; }
+.hidden { display: none; }
+.solved { background-color: #388e3c; }
+.message {
+  position: absolute;
+  left: 0;
+  text-align: center;
+  pointer-events: none;
+  background-color: #000B;
+}
 </style>
 </head>
 <body>
-<div id="wrap">
-  <div id="grid">
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c2"></div><div class="c3"></div><div class="c2"></div>
-    <div class="c1"></div><div class="c0"></div><div class="c1"></div>
-    <div class="c2"></div><div class="c3"></div><div class="c2"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c1"></div><div class="c0"></div><div class="c1"></div>
-    <div class="c2"></div><div class="c3"></div><div class="c2"></div>
-    <div class="c1"></div><div class="c0"></div><div class="c1"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c2"></div><div class="c3"></div><div class="c2"></div>
-    <div class="c1"></div><div class="c0"></div><div class="c1"></div>
-    <div class="c2"></div><div class="c3"></div><div class="c2"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-    <div class="c0"></div><div class="c1"></div><div class="c0"></div>
-    <div class="c3"></div><div class="c2"></div><div class="c3"></div>
-  </div>
-</div>
+<div id="wrap">Loading...</div>
 </body>
 </html>
