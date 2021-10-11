@@ -3,6 +3,11 @@
 <head>
 <title>Sudoku</title>
 <script>
+// TODO:
+//  - Save state to local storage.
+//  - Undo/redo
+//  - Push/pop
+
 const kSolved = 1;
 const kUnsolved = 0;
 const kBroken = -1;
@@ -103,6 +108,8 @@ class Ui {
     this.cells = [];
     this.grid = null;
     this.messageBox = null;
+    this.messageBoxTimeout = null;
+    this.frozen = false;
     this.loading = document.getElementById("loading");
     this.loadingBarFilled = document.getElementById("loading_bar_filled");
 
@@ -120,7 +127,7 @@ class Ui {
           n.style.width = n.style.height = this.cellSize + "px";
           n.style.fontSize = this.numSize + "px";
         });
-        n.onclick = () => { this.selectCell(i, j); };
+        n.onclick = () => { this.selectCell({i, j}); };
         this.cells[i][j] = n;
         this.grid.appendChild(n);
       }
@@ -154,6 +161,7 @@ class Ui {
 
   async newPuzzle() {
     this.s = await this.puzzleMaker(progress => this.setLoading(progress));
+    this.frozen = false;
     this.refresh();
   }
 
@@ -164,6 +172,7 @@ class Ui {
   }
 
   refresh() {
+    if (this.frozen) return;
     this.grid.classList.remove("hidden");
     this.loading.classList.add("hidden");
     this.s.forEachCell((i, j, vals, given) => {
@@ -188,53 +197,63 @@ class Ui {
     });
     if (this.s.getStatus() == kSolved) {
       this.grid.classList.add("solved");
+      this.selectCell(null);
+      this.frozen = true;
       this.message("You solved it! :)", 10, () => {
         this.grid.classList.remove("solved");
-        this.newPuzzle();
+        window.setTimeout(() => this.newPuzzle(), 0);
       });
     }
     this.onResize();
   }
 
   message(msg, seconds = 3, onHide = null) {
+    if (this.messageBoxTimeout !== null) {
+      window.clearTimeout(this.messageBoxTimeout);
+      this.messageBoxTimeout = null;
+    }
     this.messageBox.innerText = msg;
     this.messageBox.classList.remove("hidden");
-    window.setTimeout(() => {
+    this.messageBoxTimeout = window.setTimeout(() => {
       this.messageBox.classList.add("hidden");
       onHide();
     }, seconds * 1e3);
   }
 
-  selectCell(i, j) {
+  selectCell(sel) {
+    if (this.frozen) return;
     if (this.selected != null) {
       this.cells[this.selected.i][this.selected.j].classList.remove("selected");
     }
-    this.selected = { i, j };
-    this.cells[i][j].classList.add("selected");
+    this.selected = sel;
+    if (this.selected != null) {
+      this.cells[this.selected.i][this.selected.j].classList.add("selected");
+    }
   }
 
   onKeyDown(e) {
-    if (this.onKeyDownImpl(e.key)) {
-      this.refresh();
-      e.preventDefault();
-    }
+    if (this.onKeyDownImpl(e.key)) e.preventDefault();
   }
 
   onKeyDownImpl(key) {
     if (this.selected == null) return false;
     if (key == kKeyClearCell) {
       this.s.toggleClearCell(this.selected.i, this.selected.j);
+      this.refresh();
       return true;
     }
     if (kKeyDirs.has(key)) {
       const [di, dj] = kKeyDirs.get(key);
-      this.selectCell(
-          (this.selected.i + di + kN) % kN, (this.selected.j + dj + kN) % kN);
+      this.selectCell({
+        i: (this.selected.i + di + kN) % kN,
+        j: (this.selected.j + dj + kN) % kN,
+      });
       return true;
     }
     const k = kValueKey.indexOf(key);
     if (k != -1 && k < kN) {
       this.s.toggleCellValue(this.selected.i, this.selected.j, k);
+      this.refresh();
       return true;
     }
     return false;
