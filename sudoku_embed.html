@@ -585,38 +585,43 @@ class Sudoku {
       onProgress(kFillProgress);
       const perm = permutation(kNN);
       let i = 0;
+      const f = new Timer();
       const loop = () => {
-        if (i >= kNN) {
-          t.log("Generate");
-          console.assert(s.numSolns(difficulty) == 1);
-          s.clearUngiven();
-          onProgress(1);
-          resolve(s);
-        } else {
-          onProgress(kFillProgress + (1 - kFillProgress) * i / kNN);
-          const c = perm[i];
-          let n = -1;
-          for (let k = 0; k < kN; ++k) {
-            const ijk = s.cellIK(c, k);
-            if (s.a[ijk]) {
-              console.assert(n == -1);
-              n = k;
-            } else {
-              s.a[ijk] = true;
-            }
-          }
-          console.assert(n != -1);
-          const ns = s.numSolns(difficulty);
-          console.assert(ns > 0);
-          if (ns > 1) {
+        while (f.time < 0.01) {
+          if (i >= kNN) {
+            t.log("Generate");
+            console.assert(s.numSolns(difficulty) == 1);
+            s.clearUngiven();
+            onProgress(1);
+            resolve(s);
+            return;
+          } else {
+            onProgress(kFillProgress + (1 - kFillProgress) * i / kNN);
+            const c = perm[i];
+            let n = -1;
             for (let k = 0; k < kN; ++k) {
-              if (k != n) s.a[s.cellIK(c, k)] = false;
+              const ijk = s.cellIK(c, k);
+              if (s.a[ijk]) {
+                console.assert(n == -1);
+                n = k;
+              } else {
+                s.a[ijk] = true;
+              }
             }
-            s.givenMask[c] = true;
+            console.assert(n != -1);
+            const ns = s.numSolns(difficulty);
+            console.assert(ns > 0);
+            if (ns > 1) {
+              for (let k = 0; k < kN; ++k) {
+                if (k != n) s.a[s.cellIK(c, k)] = false;
+              }
+              s.givenMask[c] = true;
+            }
+            ++i;
           }
-          ++i;
-          window.setTimeout(loop, 0);
         }
+        f.clear();
+        window.setTimeout(loop, 0);
       };
       window.setTimeout(loop, 0);
     });
