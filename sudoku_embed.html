@@ -312,10 +312,11 @@ class Ui {
   }
 
   onResize() {
+    const kSafe = 0.99;
     this.gridSize = Math.min(this.wrap.clientWidth, this.wrap.clientHeight);
-    this.cellSize = this.gridSize / kN;
+    this.cellSize = kSafe * this.gridSize / kN;
     this.numSize = 0.8 * this.cellSize;
-    this.multiCellSize = this.cellSize / Math.ceil(Math.sqrt(kN));
+    this.multiCellSize = kSafe * this.cellSize / Math.ceil(Math.sqrt(kN));
     this.multiNumSize = 0.8 * this.multiCellSize;
     for (const fn of this.resizables.values()) fn();
   }
@@ -806,6 +807,8 @@ a {
 .grid {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
 }
 .c0, .c1, .c2, .c3 {
   display: flex;
