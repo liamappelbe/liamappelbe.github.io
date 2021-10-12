@@ -41,7 +41,10 @@ function encodeArray(a) {
       r = x = 0;
     }
   }
-  if (r) add();
+  if (r) {
+    for (; r < 6; ++r) x <<= 1;
+    add();
+  }
   return s;
 }
 
