@@ -719,14 +719,29 @@ class Sudoku {
     return new Sudoku(a, givenMask);
   }
 
-  clearStorage(storage) { storage.removeItem(Sudoku.getStorageKey()); }
+  clearStorage(storage) {
+    console.log("Deleting puzzle at key:", Sudoku.getStorageKey());
+    storage.removeItem(Sudoku.getStorageKey());
+  }
+
   storePuzzle(storage) {
+    console.log("Storing puzzle at key:", Sudoku.getStorageKey());
     storage.setItem(Sudoku.getStorageKey(), this.encode());
   }
 
   static tryLoadFromStorage(storage) {
+    console.log("Loading puzzle at key:", Sudoku.getStorageKey());
     const value = storage.getItem(Sudoku.getStorageKey());
-    return (value == null) ? null : Sudoku.decode(value);
+    if (value == null) {
+      console.log("No stored puzzle");
+      return null;
+    }
+    console.log("Stored puzzle encoding:", value);
+    const s = Sudoku.decode(value);
+    if (s == null) {
+      console.log("Stored puzzle was corrupted");
+    }
+    return s;
   }
 }
 
