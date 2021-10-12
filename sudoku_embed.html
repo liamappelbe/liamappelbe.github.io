@@ -4,7 +4,6 @@
 <title>Sudoku</title>
 <script>
 // TODO:
-//  - Save state to local storage.
 //  - Undo/redo
 //  - Push/pop
 
@@ -26,6 +25,48 @@ const kKeyClearCell = " ";
 const kKeyDirs = new Map([
   ["ArrowRight", [0, 1]], ["ArrowUp", [-1, 0]],
   ["ArrowLeft", [0, -1]], ["ArrowDown", [1, 0]]]);
+
+const kB64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-=";
+function encodeArray(a) {
+  let x = 0;
+  let r = 0;
+  let s = "";
+  const add = () => { s += kB64[x]; };
+  for (const b of a) {
+    x <<= 1;
+    if (b) x |= 1;
+    ++r;
+    if (r == 6) {
+      add();
+      r = x = 0;
+    }
+  }
+  if (r) add();
+  return s;
+}
+
+const kB64i = ((s) => {
+  const m = new Map();
+  for (let i = 0; i < s.length; ++i) m.set(s[i], i);
+  return m;
+})(kB64);
+function decodeArray(s, n) {
+  if (s.length != Math.ceil(n / 6)) return null;
+  const a = [];
+  for (const c of s) {
+    if (!kB64i.has(c)) return null;
+    const x = kB64i.get(c);
+    for (let i = 5; i >= 0; --i) {
+      a.push((x & (1 << i)) != 0);
+      if (a.length >= n) {
+        if ((x & ((1 << i) - 1)) != 0) return null;
+        break;
+      }
+    }
+  }
+  console.assert(a.length == n);
+  return a;
+}
 
 function getParams() {
   let q = window.location.search;
@@ -92,11 +133,9 @@ function blockyPermutation(blockSize, numBlocks) {
   return a;
 }
 
-let ui = null;
 class Ui {
-  constructor(puzzleMaker) {
+  constructor() {
     this.wrap = document.getElementById("wrap");
-    this.puzzleMaker = puzzleMaker;
     this.s = null;
     this.selected = null;
     this.resizables = new Map();
@@ -146,7 +185,7 @@ class Ui {
     window.addEventListener("keydown", e => this.onKeyDown(e));
     window.addEventListener("resize", e => this.onResize());
 
-    window.setTimeout(() => this.newPuzzle(), 0);
+    window.setTimeout(() => this.newPuzzle(true), 0);
   }
 
   make(classes, onResize = null) {
@@ -159,20 +198,23 @@ class Ui {
     return n;
   }
 
-  async newPuzzle() {
-    this.s = await this.puzzleMaker(progress => this.setLoading(progress));
+  async newPuzzle(first) {
+    let s = null;
+    if (first) s = Sudoku.tryLoadFromStorage(window.localStorage);
+    if (s == null) s = await Sudoku.genPuzzle(prog => this.setLoading(prog));
+    this.s = s;
     this.frozen = false;
     this.refresh();
   }
 
-  setLoading(progress) {
+  setLoading(prog) {
     this.loading.classList.remove("hidden");
     this.grid.classList.add("hidden");
-    this.loadingBarFilled.style.width = (100 * progress) + "%";
+    this.loadingBarFilled.style.width = (100 * prog) + "%";
   }
 
   refresh() {
-    if (this.frozen) return;
+    if (this.frozen || this.s == null) return;
     this.grid.classList.remove("hidden");
     this.loading.classList.add("hidden");
     this.s.forEachCell((i, j, vals, given) => {
@@ -196,13 +238,20 @@ class Ui {
       }
     });
     if (this.s.getStatus() == kSolved) {
+      this.s.clearStorage(window.localStorage);
       this.grid.classList.add("solved");
       this.selectCell(null);
       this.frozen = true;
       this.message("You solved it! :)", 10, () => {
         this.grid.classList.remove("solved");
-        window.setTimeout(() => this.newPuzzle(), 0);
+        window.setTimeout(() => this.newPuzzle(false), 0);
       });
+    } else {
+      if (this.s.anyUngivenState()) {
+        this.s.storePuzzle(window.localStorage);
+      } else {
+        this.s.clearStorage(window.localStorage);
+      }
     }
     this.onResize();
   }
@@ -236,7 +285,7 @@ class Ui {
   }
 
   onKeyDownImpl(key) {
-    if (this.selected == null) return false;
+    if (this.frozen || this.selected == null || this.s == null) return false;
     if (key == kKeyClearCell) {
       this.s.toggleClearCell(this.selected.i, this.selected.j);
       this.refresh();
@@ -267,12 +316,9 @@ class Ui {
     this.multiNumSize = 0.8 * this.multiCellSize;
     for (const fn of this.resizables.values()) fn();
   }
-
-  static onLoad() {
-    ui = new Ui((onProgress) => Sudoku.genPuzzle(onProgress, kDifficulty));
-  }
 }
-window.addEventListener("load", Ui.onLoad);
+let ui = null;
+window.addEventListener("load", () => { ui = new Ui(); });
 
 class Timer {
   constructor() { this.clear(); }
@@ -285,9 +331,9 @@ class Timer {
 }
 
 class Sudoku {
-  constructor() {
-    this.a = makeArray(kNNN, false);
-    this.givenMask = makeArray(kNN, false);
+  constructor(a = null, givenMask = null) {
+    this.a = (a == null) ? makeArray(kNNN, false) : a;
+    this.givenMask = (givenMask == null) ? makeArray(kNN, false) : givenMask;
   }
 
   // i = row, j = column, k = number
@@ -366,6 +412,17 @@ class Sudoku {
     if (this.givenMask[this.cellIJ(i, j)]) return;
     const ijk = this.cellIJK(i, j, k);
     this.a[ijk] = !this.a[ijk];
+  }
+
+  anyUngivenState() {
+    for (let i = 0; i < kNN; ++i) {
+      if (!this.givenMask[i]) {
+        for (let k = 0; k < kN; ++k) {
+          if (this.a[this.cellIK(i, k)]) return true;
+        }
+      }
+    }
+    return false;
   }
 
   applyLogic(fills) {
@@ -592,7 +649,7 @@ class Sudoku {
     if (soln != null) this.a = soln;
   }
 
-  static async genPuzzle(onProgress, difficulty = Infinity) {
+  static async genPuzzle(onProgress) {
     onProgress(0);
     return new Promise((resolve, reject) => {
       const kFillProgress = 0.1;
@@ -609,7 +666,7 @@ class Sudoku {
         while (f.time < 0.01) {
           if (i >= kNN) {
             t.log("Generate");
-            console.assert(s.numSolns(difficulty) == 1);
+            console.assert(s.numSolns(kDifficulty) == 1);
             s.clearUngiven();
             onProgress(1);
             resolve(s);
@@ -628,7 +685,7 @@ class Sudoku {
               }
             }
             console.assert(n != -1);
-            const ns = s.numSolns(difficulty);
+            const ns = s.numSolns(kDifficulty);
             console.assert(ns > 0);
             if (ns > 1) {
               for (let k = 0; k < kN; ++k) {
@@ -644,6 +701,32 @@ class Sudoku {
       };
       window.setTimeout(loop, 0);
     });
+  }
+
+  static getStorageKey() {
+    return `w${kX}h${kY}` + (isFinite(kDifficulty) ? `d${kDifficulty}` : "");
+  }
+
+  encode() { return encodeArray(this.a) + " " + encodeArray(this.givenMask); }
+
+  static decode(value) {
+    const i = value.indexOf(" ");
+    if (i == -1) return null;
+    const a = decodeArray(value.substr(0, i), kNNN);
+    if (a == null) return null;
+    const givenMask = decodeArray(value.substr(i + 1), kNN);
+    if (givenMask == null) return null;
+    return new Sudoku(a, givenMask);
+  }
+
+  clearStorage(storage) { storage.removeItem(Sudoku.getStorageKey()); }
+  storePuzzle(storage) {
+    storage.setItem(Sudoku.getStorageKey(), this.encode());
+  }
+
+  static tryLoadFromStorage(storage) {
+    const value = storage.getItem(Sudoku.getStorageKey());
+    return (value == null) ? null : Sudoku.decode(value);
   }
 }
 
