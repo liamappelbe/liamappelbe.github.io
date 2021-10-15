@@ -220,6 +220,9 @@ select option {
 }
 
 .cardWrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .cardWrap svg {
