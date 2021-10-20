@@ -87,10 +87,9 @@ function emptyDiv(n) {
   while (n.hasChildNodes()) n.removeChild(n.lastChild);
 }
 
-function newDiv(parent, classes = [], text = null, onClick = null) {
+function newDiv(parent, classes = [], text = null) {
   const n = document.createElement('div');
   if (text != null) n.innerText = text;
-  if (onClick != null) n.addEventListener('click', onClick);
   for (const cls of classes) n.classList.add(cls);
   parent.appendChild(n);
   return n;
@@ -140,9 +139,11 @@ class PubMedImpl {
         `${pubMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.add('loaded');
-    newDiv(this.node, ['pub-med-citation'], this.cite, () => this._click());
+    newDiv(this.node, ['pub-med-citation'], this.cite)
+        .addEventListener('mouseover', () => this._click());
     const kCopy = String.fromCodePoint(0x0001F5D0);
-    const btn = newDiv(this.node, ['pub-med-copy'], kCopy, () => this._copy());
+    const btn = newDiv(this.node, ['pub-med-copy'], kCopy)
+                    .addEventListener('click', () => this._copy());
     btn.title = 'Copy';
   }
   _click() {
