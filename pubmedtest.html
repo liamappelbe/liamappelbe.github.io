@@ -54,27 +54,31 @@ a {
 #left, #right {
   width: 50%;
 }
+
 pub-med { opacity: 50%; }
 pub-med.loaded {
   opacity: 100%;
 }
-pub-med .pub-med-citation,
+pub-med .pub-med-article,
 pub-med .pub-med-copy,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-label,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-text {
   display: inline;
 }
-pub-med .pub-med-citation {
-  cursor: pointer;
-}
 pub-med .pub-med-copy {
-  padding-left: 0.5em;
-  color: #ffc107;
+  margin-left: 0.5em;
+  color: #0000;
   cursor: pointer;
+  background-image: url(res/cite.png);
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 #pub-med-abstract .pub-med-abstract-title {
   font-size: 1.5em;
   padding-bottom: 0.5em;
+}
+#pub-med-abstract .pub-med-abstract-citation {
+  font-size: 0.8em;
 }
 #pub-med-abstract .pub-med-abstract-part {
   padding-top: 0.5em;
@@ -92,7 +96,7 @@ pub-med .pub-med-copy {
 </div>
 <div id="wrap">
   <div id="left">
-    Click on an article to see the abstract.<br/>
+    Hover on an article to see the abstract.<br/>
     Click on the copy buton to copy the citation.<br/>
     <br/>
     <ol>
