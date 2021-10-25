@@ -187,7 +187,7 @@ class PubMedImpl {
     this.node.classList.add('loaded');
     newDiv(this.node, ['pub-med-article'], `${this.title} ${authorText}`)
         .addEventListener('mouseover', () => this._showAbstract());
-    const btn = newDiv(this.node, ['pub-med-copy'], '[]');
+    const btn = newDiv(this.node, ['pub-med-copy']);
     btn.addEventListener('click', () => this._copy());
     btn.title = 'Copy citation';
   }
@@ -195,7 +195,8 @@ class PubMedImpl {
     const pma = document.getElementById('pub-med-abstract');
     if (pma == null) return;
     emptyDiv(pma);
-    newLink(pma, ['pub-med-abstract-title'], kLink + this.pmid, this.title);
+    newLink(pma, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
+        .target = '_blank';
     newDiv(pma, ['pub-med-abstract-citation'], this.cite);
     if (this.abstract.length == 0) {
       const part = newDiv(pma, ['pub-med-abstract-part']);
