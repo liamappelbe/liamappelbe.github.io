@@ -4,7 +4,7 @@ const kApis = {
   esummary: 'esummary.fcgi?db=pmc&retmode=json',
   efetch: 'efetch.fcgi?db=pubmed&retmode=xml',
 };
-const kRetries = 3;
+const kRetries = 5;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
 
 async function asyncPubMedRequest(api, id) {
@@ -37,7 +37,7 @@ async function asyncPubMedRequest(api, id) {
       });
     } catch (e) {
       if (bail) break;
-      const t = 1 << i;
+      const t = (1 << i) * (0.5 + Math.random());
       console.log(`Retrying in ${t} seconds...`, url);
       await new Promise((resolve, reject) => {
         window.setTimeout(resolve, t * 1000);
