@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Md View</title>
+<script>
+async function readFile(file) {
+  return new Promise((resolve, reject) => {
+    let reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.result));
+    reader.readAsText(file);
+  });
+}
+
+let handle = null;
+async function reloadFile() {
+  if (handle == null) handle = (await showOpenFilePicker())[0];
+  document.getElementById("wrap").innerText =
+      await readFile(await handle.getFile());
+}
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Markdown Viewer</h1>
+</div>
+<div id="wrap" onclick="reloadFile()">
+  Click here to load file.
+</div>
+</body>
+</html>
