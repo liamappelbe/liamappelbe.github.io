@@ -185,7 +185,9 @@ class PubMedImpl {
         `${pubMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.add('loaded');
-    newDiv(this.node, ['pub-med-article'], `${this.title} ${authorText}`)
+    newDiv(this.node, ['pub-med-title'], `${this.title} `)
+        .addEventListener('mouseover', () => this._showAbstract());
+    newDiv(this.node, ['pub-med-authors'], authorText)
         .addEventListener('mouseover', () => this._showAbstract());
     const btn = newDiv(this.node, ['pub-med-copy']);
     btn.addEventListener('click', () => this._copy());
