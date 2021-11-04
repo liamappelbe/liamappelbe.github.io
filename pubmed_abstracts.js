@@ -13,16 +13,9 @@ class Cache {
   }
 
   async lookup(key, getter) {
-    if (this.storage == null) {
-      console.log('No cache');
-      return await getter();
-    }
+    if (this.storage == null) return await getter();
     let val = this.storage.getItem(key);
-    if (val != null) {
-      console.log('Loaded from cache', key);
-      return val;
-    }
-    console.log('Cache miss', key);
+    if (val != null) return val;
     val = await getter();
     this.storage.setItem(key, val);
     return val;
