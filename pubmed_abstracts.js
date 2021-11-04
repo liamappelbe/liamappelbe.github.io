@@ -4,48 +4,75 @@ const kApis = {
   esummary: 'esummary.fcgi?db=pmc&retmode=json',
   efetch: 'efetch.fcgi?db=pubmed&retmode=xml',
 };
-const kRetries = 5;
+const kRetries = 10;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
+
+class Cache {
+  constructor(storage) {
+    this.storage = storage;
+  }
+
+  async lookup(key, getter) {
+    if (this.storage == null) {
+      console.log('No cache');
+      return await getter();
+    }
+    let val = this.storage.getItem(key);
+    if (val != null) {
+      console.log('Loaded from cache', key);
+      return val;
+    }
+    console.log('Cache miss', key);
+    val = await getter();
+    this.storage.setItem(key, val);
+    return val;
+  }
+}
+const cache = new Cache(window.localStorage);
 
 async function asyncPubMedRequest(api, id) {
   const url = `${kBaseUrl}/${api}&id=${id}&${kPubMedApiSuffix}`;
-  let errorCode = null;
-  let errorResponse = null;
-  let bail = false;
-  for (let i = 0; i < kRetries; ++i) {
-    try {
-      return await new Promise((resolve, reject) => {
-        const r = new XMLHttpRequest();
-        r.type = 'text';
-        r.onload = () => {
-          if (r.status == 200) {
-            resolve(r.responseText);
-          } else {
-            errorResponse = r.responseText;
-            errorCode = r.status;
-            if (errorCode == 400) {
-              // Special case 400 errors, because it means that the id was bad,
-              // so don't bother retrying.
-              bail = true;
+  return cache.lookup(url, async () => {
+    let errorCode = null;
+    let errorResponse = null;
+    let bail = false;
+    for (let i = 0; i < kRetries; ++i) {
+      try {
+        return await new Promise((resolve, reject) => {
+          const r = new XMLHttpRequest();
+          r.type = 'text';
+          r.onload = () => {
+            if (r.status == 200) {
+              resolve(r.responseText);
+            } else {
+              errorResponse = r.responseText;
+              errorCode = r.status;
+              if (errorCode == 400) {
+                // Special case 400 errors, because it means that the id was
+                // bad, so don't bother retrying.
+                bail = true;
+              }
+              reject();
             }
-            reject();
-          }
-        };
-        r.onerror = reject;
-        r.open('GET', url, true);
-        r.send();
-      });
-    } catch (e) {
-      if (bail) break;
-      const t = (1 << i) * (0.5 + Math.random());
-      console.log(`Retrying in ${t} seconds...`, url);
-      await new Promise((resolve, reject) => {
-        window.setTimeout(resolve, t * 1000);
-      });
+          };
+          r.onerror = reject;
+          r.open('GET', url, true);
+          r.send();
+        });
+      } catch (e) {
+        if (bail) break;
+        // Exponential backoff, with a limit, and some randomization.
+        const t = Math.min(0.5 * (1 << i), 10) * (0.75 + 0.5 * Math.random());
+        console.log(`Retrying in ${t} seconds...`, url);
+        await new Promise((resolve, reject) => {
+          window.setTimeout(resolve, t * 1000);
+        });
+      }
     }
-  }
-  console.error('Request failed: ', url, errorCode, errorResponse);
-  throw errorCode == 400 ? 'Bad PMID (A)' : 'Network Error';
+    console.error('Request failed: ', url, errorCode, errorResponse);
+    throw errorCode == 400 ? 'Bad PMID (A)' :
+                             'Network Error. Try reloading the page.';
+  });
 }
 
 class Xml {
