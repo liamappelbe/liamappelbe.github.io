@@ -178,6 +178,7 @@ class PubMedImpl {
     this.node.innerText = error + ': ' + this.node.getAttribute('pmid');
   }
   _fill(data) {
+    if (domPma == null) domPma = this._setupAbstract();
     const mc = data?.one('PubmedArticle')?.one('MedlineCitation');
     if (mc == null) {
       this._fillError('Bad PMID (C)');
@@ -223,7 +224,6 @@ class PubMedImpl {
     btn.title = 'Copy citation';
   }
   _showAbstract() {
-    if (domPma == null) domPma = this._setupAbstract();
     if (domPma == null) return;
     emptyDiv(domPma);
     newLink(domPma, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
@@ -254,14 +254,14 @@ class PubMedImpl {
     // styles on them.
     const codeBlock = searchUp(pma, 'code-block');
     if (codeBlock != null) {
-      codeBlock.position = 'sticky';
-      codeBlock.top = '0';
+      codeBlock.style.position = 'sticky';
+      codeBlock.style.top = '0';
     } else {
       console.log('PUBMED', 'Couldn\'t find code-block');
     }
     const row = searchUp(pma, 'row');
     if (row != null) {
-      row.display = 'flex';
+      row.style.display = 'flex';
     } else {
       console.log('PUBMED', 'Couldn\'t find row');
     }
