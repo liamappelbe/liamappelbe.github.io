@@ -142,7 +142,7 @@ function newLink(parent, classes = [], url = null, text = null) {
 
 function searchUp(node, cls) {
   while (node) {
-    if (node.classList.contains(cls)) return node;
+    if (node.classList?.contains(cls)) return node;
     node = node.parentNode;
   }
   return null;
@@ -252,15 +252,15 @@ class PubMedImpl {
     // To get the sticky behavior to work on squarespace, we need to walk up the
     // parents to find the enclosing .code-block and .row, and set some custom
     // styles on them.
-    const codeBlock = searchUp(domPma, 'code-block');
-    if (codeBlock) {
+    const codeBlock = searchUp(pma, 'code-block');
+    if (codeBlock != null) {
       codeBlock.position = 'sticky';
       codeBlock.top = '0';
     } else {
       console.log('PUBMED', 'Couldn\'t find code-block');
     }
-    const row = searchUp(domPma, 'row');
-    if (row) {
+    const row = searchUp(pma, 'row');
+    if (row != null) {
       row.display = 'flex';
     } else {
       console.log('PUBMED', 'Couldn\'t find row');
