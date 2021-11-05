@@ -56,13 +56,13 @@ async function asyncPubMedRequest(api, id) {
         if (bail) break;
         // Exponential backoff, with a limit, and some randomization.
         const t = Math.min(0.5 * (1 << i), 10) * (0.75 + 0.5 * Math.random());
-        console.log(`Retrying in ${t} seconds...`, url);
+        console.log('PUBMED', `Retrying in ${t} seconds...`, url);
         await new Promise((resolve, reject) => {
           window.setTimeout(resolve, t * 1000);
         });
       }
     }
-    console.error('Request failed: ', url, errorCode, errorResponse);
+    console.error('PUBMED', 'Request failed: ', url, errorCode, errorResponse);
     throw errorCode == 400 ? 'Bad PMID (A)' :
                              'Network Error. Try reloading the page.';
   });
@@ -76,7 +76,7 @@ class Xml {
       const doc = parser.parseFromString(xml, 'application/xml');
       return new Xml(doc.documentElement);
     } catch (error) {
-      console.error(error);
+      console.error('PUBMED', error);
       return null;
     }
   }
@@ -140,6 +140,15 @@ function newLink(parent, classes = [], url = null, text = null) {
   return n;
 }
 
+function searchUp(node, cls) {
+  while (node) {
+    if (node.classList.contains(cls)) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+let domPma = null;
 class PubMedImpl {
   constructor(node) {
     this.node = node;
@@ -214,18 +223,18 @@ class PubMedImpl {
     btn.title = 'Copy citation';
   }
   _showAbstract() {
-    const pma = document.getElementById('pub-med-abstract');
-    if (pma == null) return;
-    emptyDiv(pma);
-    newLink(pma, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
+    if (domPma == null) domPma = this._setupAbstract();
+    if (domPma == null) return;
+    emptyDiv(domPma);
+    newLink(domPma, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
         .target = '_blank';
-    newDiv(pma, ['pub-med-abstract-citation'], this.cite);
+    newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
     if (this.abstract.length == 0) {
-      const part = newDiv(pma, ['pub-med-abstract-part']);
+      const part = newDiv(domPma, ['pub-med-abstract-part']);
       newDiv(part, ['pub-med-abstract-text'], 'Abstract not available.');
     } else {
       for (const [label, text] of this.abstract) {
-        const part = newDiv(pma, ['pub-med-abstract-part']);
+        const part = newDiv(domPma, ['pub-med-abstract-part']);
         if (label.length > 0) newDiv(part, ['pub-med-abstract-label'], label);
         newDiv(part, ['pub-med-abstract-text'], text);
       }
@@ -233,6 +242,30 @@ class PubMedImpl {
   }
   _copy() {
     navigator.clipboard.writeText(this.cite);
+  }
+  _setupAbstract() {
+    const pma = document.getElementById('pub-med-abstract');
+    if (pma == null) {
+      console.log('PUBMED', 'Couldn\'t find pub-med-abstract');
+      return null;
+    }
+    // To get the sticky behavior to work on squarespace, we need to walk up the
+    // parents to find the enclosing .code-block and .row, and set some custom
+    // styles on them.
+    const codeBlock = searchUp(domPma, 'code-block');
+    if (codeBlock) {
+      codeBlock.position = 'sticky';
+      codeBlock.top = '0';
+    } else {
+      console.log('PUBMED', 'Couldn\'t find code-block');
+    }
+    const row = searchUp(domPma, 'row');
+    if (row) {
+      row.display = 'flex';
+    } else {
+      console.log('PUBMED', 'Couldn\'t find row');
+    }
+    return pma;
   }
 }
 
