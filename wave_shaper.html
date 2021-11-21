@@ -52,6 +52,7 @@ void main() {
 <script type="text/javascript">
 const kHalfCurveSize = 512;
 const kCurveSize = 2 * kHalfCurveSize + 1;
+const kMinDistortGain = 0.001;
 class WaveView {
   constructor(canvas) {
     this.dirty = true;
@@ -205,7 +206,7 @@ class WaveView {
     }
   }
 
-  setAudioEnabled(enable) {
+  ensureAudio() {
     if (this.audioCtx == null) {
       this.audioCtx = new window.AudioContext();
       this.audioSource = this.audioCtx.createOscillator();
@@ -229,17 +230,46 @@ class WaveView {
       this.audioVolumeGain.connect(this.audioCtx.destination);
       this.audioSource.start();
     }
+  }
+
+  setGain(node, value) {
+    const dt = 0.03;
+    const t = this.audioCtx.currentTime;
+    node.gain.cancelScheduledValues(t + dt);
+    node.gain.setValueAtTime(node.gain.value, t + dt);
+    node.gain.linearRampToValueAtTime(value, t + 2 * dt);
+  }
+
+  setAudioEnabled(enable) {
+    this.ensureAudio();
     if (enable) {
       // this.audioCtx.resume();
     } else {
       // window.setTimeout(() => this.audioCtx.suspend(), 1);
     }
-    this.audioSourceGain.gain.cancelScheduledValues(
-        this.audioCtx.currentTime + 0.1);
-    this.audioSourceGain.gain.setValueAtTime(
-        enable ? 0 : 0.1, this.audioCtx.currentTime + 0.1);
-    this.audioSourceGain.gain.linearRampToValueAtTime(
-        enable ? 0.1 : 0, this.audioCtx.currentTime + 0.2);
+    this.setGain(this.audioSourceGain, enable ? 0.1 : 0);
+  }
+
+  setInputWave(value) {
+    this.ensureAudio();
+    this.audioSource.type = value;
+  }
+
+  setVolume(value) {
+    this.ensureAudio();
+    this.setGain(this.audioVolumeGain, value);
+  }
+
+  invertDistort(value) {
+    // TODO.
+    return 1 / value;
+  }
+
+  setDistort(value) {
+    this.ensureAudio();
+    value = Math.max(value, kMinDistortGain);
+    this.setGain(this.audioPostGain, this.invertDistort(value));
+    this.setGain(this.audioPreGain, value);
   }
 }
 
@@ -262,9 +292,25 @@ function onFuncChange(e) {
 
 let audioEnabled = false;
 function toggleAudio(domToggleAudio) {
+  if (!waveView) return;
   audioEnabled = !audioEnabled;
   domToggleAudio.innerText = audioEnabled ? "Disable audio" : "Enable audio";
-  if (waveView) waveView.setAudioEnabled(audioEnabled);
+  waveView.setAudioEnabled(audioEnabled);
+}
+
+function setInputWave(value) {
+  if (!waveView) return;
+  waveView.setInputWave(value);
+}
+
+function setVolume(value) {
+  if (!waveView) return;
+  waveView.setVolume(parseFloat(value));
+}
+
+function setDistort(value) {
+  if (!waveView) return;
+  waveView.setDistort(parseFloat(value));
 }
 </script>
 <style>
@@ -317,6 +363,15 @@ a {
 }
 #func {
   resize: none;
+  margin-left: 8px;
+}
+.menu_row {
+  padding-top: 1em;
+  display: flex;
+  flex-direction: row;
+}
+.menu_label {
+  margin-right: 8px;
 }
 </style>
 </head>
@@ -329,9 +384,29 @@ a {
   <canvas id="wave_view" width="800" height="800"></canvas>
   <div id="menu">
     <a onclick="toggleAudio(this)">Start audio</a>
-    <br/>
-    f(x) =
-    <textarea id="func" rows="1" cols="30" placeholder="x">x</textarea>
+    <div class="menu_row">
+      f(x) =
+      <textarea id="func" rows="1" cols="30" placeholder="x">x</textarea>
+    </div>
+    <div class="menu_row">
+      <label for="wave" class="menu_label">Input wave:</label>
+      <select id="wave" onchange="setInputWave(this.value)">
+        <option value="sine">Sine</option>
+        <option value="square">Square</option>
+        <option value="sawtooth">Sawtooth</option>
+        <option value="triangle">Triangle</option>
+      </select>
+    </div>
+    <div class="menu_row">
+      <label for="volume" class="menu_label">Volume:</label>
+      <input type="range" id="volume" min="0" max="2" value="0.5" step="0.02"
+          onchange="setVolume(this.value)"/>
+    </div>
+    <div class="menu_row">
+      <label for="distort" class="menu_label">Distort:</label>
+      <input type="range" id="distort" min="0" max="5" value="1" step="0.05"
+          onchange="setDistort(this.value)"/>
+    </div>
   </div>
 </div>
 </body>
