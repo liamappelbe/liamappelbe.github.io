@@ -215,10 +215,12 @@ class PubMedImpl {
         `${pubMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.add('loaded');
-    newDiv(this.node, ['pub-med-title'], `${this.title} `)
-        .addEventListener('mouseover', () => this._showAbstract());
-    newDiv(this.node, ['pub-med-authors'], authorText)
-        .addEventListener('mouseover', () => this._showAbstract());
+    const titleDiv = newDiv(this.node, ['pub-med-title'], `${this.title} `);
+    titleDiv.addEventListener('click', () => this._showAbstract());
+    titleDiv.title = 'View abstract';
+    const authorsDiv = newDiv(this.node, ['pub-med-authors'], authorText);
+    authorsDiv.addEventListener('click', () => this._showAbstract());
+    authorsDiv.title = 'View abstract';
     const btn = newDiv(this.node, ['pub-med-copy']);
     btn.addEventListener('click', () => this._copy());
     btn.title = 'Copy citation';
