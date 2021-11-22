@@ -82,9 +82,24 @@ pub-med .pub-med-copy {
   background-size: contain;
   background-repeat: no-repeat;
 }
+#pub-med-abstract .pub-med-abstract-title-row {
+  padding-bottom: 0.5em;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
 #pub-med-abstract .pub-med-abstract-title {
   font-size: 1.5em;
-  padding-bottom: 0.5em;
+}
+#pub-med-abstract .pub-med-abstract-close {
+  font-size: 1.5em;
+  color: #ff5722;
+  cursor: pointer;
+  height: fit-content;
+  margin-left: 1em;
+}
+#pub-med-abstract .pub-med-abstract-close::before {
+  content: 'x';
 }
 #pub-med-abstract .pub-med-abstract-citation {
   font-size: 0.8em;
