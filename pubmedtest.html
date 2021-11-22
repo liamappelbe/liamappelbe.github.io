@@ -60,6 +60,9 @@ pub-med { opacity: 50%; }
 pub-med.loaded {
   opacity: 100%;
 }
+pub-med.no-abstract {
+  color: #999;
+}
 pub-med .pub-med-title,
 pub-med .pub-med-authors,
 pub-med .pub-med-copy,
@@ -90,13 +93,16 @@ pub-med .pub-med-copy {
 }
 #pub-med-abstract .pub-med-abstract-title {
   font-size: 1.5em;
+  color: #ffc107;
+  cursor: pointer;
+  text-decoration: underline;
 }
 #pub-med-abstract .pub-med-abstract-close {
   font-size: 1.5em;
   color: #ff5722;
   cursor: pointer;
   height: fit-content;
-  margin-left: 1em;
+  margin-right: 1em;
 }
 #pub-med-abstract .pub-med-abstract-close::before {
   content: 'x';
@@ -124,7 +130,7 @@ pub-med .pub-med-copy {
     Click on the copy buton to copy the citation.<br/>
     <br/>
     <ol>
-      <li><pub-med pmid="30071148"></pub-med></li>
+      <li><pub-med pmid="30071148" no-abstract></pub-med></li>
       <li><pub-med pmid="22620707"></pub-med></li>
       <li><pub-med pmid="28792873"></pub-med></li>
       <li><pub-med pmid="22368089"></pub-med></li>

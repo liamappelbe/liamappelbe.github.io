@@ -126,7 +126,7 @@ function newElement(type, parent, classes = [], text = null) {
   const n = document.createElement(type);
   if (text != null) n.innerText = text;
   for (const cls of classes) n.classList.add(cls);
-  parent.appendChild(n);
+  if (parent != null) parent.appendChild(n);
   return n;
 }
 
@@ -162,6 +162,7 @@ class PubMedImpl {
   constructor(node) {
     this.node = node;
     this.pmid = parseInt(this.node.getAttribute('pmid'));
+    this.allowAbstract = this.node.getAttribute('no-abstract') == null;
     this.title = null;
     this.abstract = null;
     this.citation = null;
@@ -224,13 +225,17 @@ class PubMedImpl {
         `${pubMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.add('loaded');
+    if (!this.allowAbstract) this.node.classList.add('no-abstract');
+    const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
+    const absBtnFn = this.allowAbstract ? (() => this._showAbstract()) :
+                                          (() => this._openPubMed());
     newBtn(
-        this.node, ['pub-med-title'], () => this._showAbstract(),
-        'View abstract', `${this.title} `);
-    newBtn(
-        this.node, ['pub-med-authors'], () => this._showAbstract(),
-        'View abstract', authorText);
+        this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
+    newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
     newBtn(this.node, ['pub-med-copy'], () => this._copy(), 'Copy citation');
+  }
+  _openPubMed() {
+    newLink(null, [], kLink + this.pmid).click();
   }
   _hideAbstract() {
     if (domPma == null) return;
@@ -243,8 +248,9 @@ class PubMedImpl {
     newBtn(
         titleRow, ['pub-med-abstract-close'], () => this._hideAbstract(),
         'Close');
-    newLink(titleRow, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
-        .title = 'Open on PubMed';
+    newBtn(
+        titleRow, ['pub-med-abstract-title'], () => this._openPubMed(),
+        'Open on PubMed', this.title);
     newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
     if (this.abstract.length == 0) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
