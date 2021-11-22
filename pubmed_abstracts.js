@@ -240,11 +240,11 @@ class PubMedImpl {
     if (domPma == null) return;
     emptyDiv(domPma);
     const titleRow = newDiv(domPma, ['pub-med-abstract-title-row']);
-    newLink(titleRow, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
-        .title = 'Open on PubMed';
     newBtn(
         titleRow, ['pub-med-abstract-close'], () => this._hideAbstract(),
         'Close');
+    newLink(titleRow, ['pub-med-abstract-title'], kLink + this.pmid, this.title)
+        .title = 'Open on PubMed';
     newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
     if (this.abstract.length == 0) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
