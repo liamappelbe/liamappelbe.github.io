@@ -65,6 +65,7 @@ pub-med.no-abstract {
 }
 pub-med .pub-med-title,
 pub-med .pub-med-authors,
+pub-med .pub-med-date,
 pub-med .pub-med-copy,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-label,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-text {
@@ -77,6 +78,9 @@ pub-med .pub-med-title {
 pub-med .pub-med-authors {
   cursor: pointer;
 }
+pub-med .pub-med-date {
+  cursor: pointer;
+}
 pub-med .pub-med-copy {
   margin-left: 0.5em;
   padding-left: 0.8em;
@@ -84,6 +88,24 @@ pub-med .pub-med-copy {
   background-image: url(res/cite.png);
   background-size: contain;
   background-repeat: no-repeat;
+  position: relative;
+  top: 0;
+}
+pub-med .pub-med-copy.clicked {
+  animation: bounce 0.15s;
+}
+@keyframes bounce {
+  0% {
+    top: 0;
+    animation-timing-function: cubic-bezier(0,.5,.5,1);
+  }
+  50% {
+    top: -10px;
+    animation-timing-function: cubic-bezier(.5,0,1,.5);
+  }
+  100% {
+    top: 0;
+  }
 }
 #pub-med-abstract .pub-med-abstract-title-row {
   padding-bottom: 0.5em;

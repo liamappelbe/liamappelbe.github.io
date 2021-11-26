@@ -227,12 +227,13 @@ class PubMedImpl {
     this.node.classList.add('loaded');
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
     const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
-    const absBtnFn = this.allowAbstract ? (() => this._showAbstract()) :
-                                          (() => this._openPubMed());
+    const absBtnFn = () => this._showAbstract();
     newBtn(
         this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
     newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
-    newBtn(this.node, ['pub-med-copy'], () => this._copy(), 'Copy citation');
+    const dateText = ` - ${pubYear} ${pubMonth}`;
+    newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, dateText);
+    newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }
   _openPubMed() {
     newLink(null, [], kLink + this.pmid).click();
@@ -246,13 +247,17 @@ class PubMedImpl {
     emptyDiv(domPma);
     const titleRow = newDiv(domPma, ['pub-med-abstract-title-row']);
     newBtn(
-        titleRow, ['pub-med-abstract-close'], () => this._hideAbstract(),
-        'Close');
-    newBtn(
         titleRow, ['pub-med-abstract-title'], () => this._openPubMed(),
         'Open on PubMed', this.title);
+    newBtn(
+        titleRow, ['pub-med-abstract-close'], () => this._hideAbstract(),
+        'Close');
     newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
-    if (this.abstract.length == 0) {
+    if (!this.allowAbstract) {
+      const part = newDiv(domPma, ['pub-med-abstract-part']);
+      newDiv(part, ['pub-med-abstract-text'], 'Abstract opened in a new tab.');
+      this._openPubMed();
+    } else if (this.abstract.length == 0) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
       newDiv(part, ['pub-med-abstract-text'], 'Abstract not available.');
     } else {
@@ -263,8 +268,10 @@ class PubMedImpl {
       }
     }
   }
-  _copy() {
+  _copy(e) {
     navigator.clipboard.writeText(this.cite);
+    e.target.classList.add('clicked');
+    window.setTimeout(() => e.target.classList.remove('clicked'), 200);
   }
   _setupAbstract() {
     const pma = document.getElementById('pub-med-abstract');
