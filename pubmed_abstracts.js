@@ -255,11 +255,16 @@ class PubMedImpl {
     newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
     if (!this.allowAbstract) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
-      newDiv(part, ['pub-med-abstract-text'], 'Abstract opened in a new tab.');
+      newDiv(
+          part, ['pub-med-abstract-text', 'pub-med-abstract-text-no-abstract'],
+          'Abstract opened in a new tab.');
       this._openPubMed();
     } else if (this.abstract.length == 0) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
-      newDiv(part, ['pub-med-abstract-text'], 'Abstract not available.');
+      newDiv(
+          part,
+          ['pub-med-abstract-text', 'pub-med-abstract-text-not-available'],
+          'Abstract not available.');
     } else {
       for (const [label, text] of this.abstract) {
         const part = newDiv(domPma, ['pub-med-abstract-part']);
