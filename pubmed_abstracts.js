@@ -6,6 +6,7 @@ const kApis = {
 };
 const kRetries = 10;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
+const kBatchDelay = 300;
 
 class Cache {
   constructor(storage) {
@@ -22,51 +23,6 @@ class Cache {
   }
 }
 const cache = new Cache(window.localStorage);
-
-async function asyncPubMedRequest(api, id) {
-  const url = `${kBaseUrl}/${api}&id=${id}&${kPubMedApiSuffix}`;
-  return cache.lookup(url, async () => {
-    let errorCode = null;
-    let errorResponse = null;
-    let bail = false;
-    for (let i = 0; i < kRetries; ++i) {
-      try {
-        return await new Promise((resolve, reject) => {
-          const r = new XMLHttpRequest();
-          r.type = 'text';
-          r.onload = () => {
-            if (r.status == 200) {
-              resolve(r.responseText);
-            } else {
-              errorResponse = r.responseText;
-              errorCode = r.status;
-              if (errorCode == 400) {
-                // Special case 400 errors, because it means that the id was
-                // bad, so don't bother retrying.
-                bail = true;
-              }
-              reject();
-            }
-          };
-          r.onerror = reject;
-          r.open('GET', url, true);
-          r.send();
-        });
-      } catch (e) {
-        if (bail) break;
-        // Exponential backoff, with a limit, and some randomization.
-        const t = Math.min(0.5 * (1 << i), 10) * (0.75 + 0.5 * Math.random());
-        console.log('PUBMED', `Retrying in ${t} seconds...`, url);
-        await new Promise((resolve, reject) => {
-          window.setTimeout(resolve, t * 1000);
-        });
-      }
-    }
-    console.error('PUBMED', 'Request failed: ', url, errorCode, errorResponse);
-    throw errorCode == 400 ? 'Bad PMID (A)' :
-                             'Network Error. Try reloading the page.';
-  });
-}
 
 class Xml {
   static parse(xml) {
@@ -105,6 +61,113 @@ class Xml {
     }
     return null;
   }
+  serialize() {
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(this.node);
+  }
+}
+
+class RequestBatcher {
+  constructor(delay, batchRequest, splitResponse) {
+    this.delay = delay;
+    this.batchRequest = batchRequest;
+    this.splitResponse = splitResponse;
+    this.currentTimeout = null;
+    this.currentPromises = [];
+  }
+
+  get(id) {
+    return new Promise((resolve, reject) => {
+      this.currentPromises.push([id, resolve, reject]);
+      if (this.currentTimeout != null) window.clearTimeout(this.currentTimeout);
+      this.currentTimeout = window.setTimeout(() => this.send(), this.delay);
+    });
+  }
+
+  async send() {
+    this.currentTimeout = null;
+    if (this.currentPromises.length == 0) return;
+    const ids = this.currentPromises.map(x => x[0]);
+    let err = 'No result';
+    let response = null;
+    try {
+      response = await this.batchRequest(ids);
+    } catch (e) {
+      err = e;
+    }
+    const splitResults = response == null ? null : this.splitResponse(response);
+    for (const [id, resolve, reject] of this.currentPromises) {
+      const result = splitResults?.get(id);
+      if (result == null) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    }
+    this.currentPromises = [];
+  }
+}
+
+async function asyncPubMedRequest(api, id) {
+  const url = `${kBaseUrl}/${api}&id=${id}&${kPubMedApiSuffix}`;
+  let errorCode = null;
+  let errorResponse = null;
+  let bail = false;
+  for (let i = 0; i < kRetries; ++i) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const r = new XMLHttpRequest();
+        r.type = 'text';
+        r.onload = () => {
+          if (r.status == 200) {
+            resolve(r.responseText);
+          } else {
+            errorResponse = r.responseText;
+            errorCode = r.status;
+            if (errorCode == 400) {
+              // Special case 400 errors, because it means that the id was
+              // bad, so don't bother retrying.
+              bail = true;
+            }
+            reject();
+          }
+        };
+        r.onerror = reject;
+        r.open('GET', url, true);
+        r.send();
+      });
+    } catch (e) {
+      if (bail) break;
+      // Exponential backoff, with a limit, and some randomization.
+      const t = Math.min(0.5 * (1 << i), 10) * (0.75 + 0.5 * Math.random());
+      console.log('PUBMED', `Retrying in ${t} seconds...`, url);
+      await new Promise((resolve, reject) => {
+        window.setTimeout(resolve, t * 1000);
+      });
+    }
+  }
+  console.error('PUBMED', 'Request failed: ', url, errorCode, errorResponse);
+  throw errorCode == 400 ? 'Bad PMID (A)' :
+                           'Network Error. Try reloading the page.';
+}
+
+const asyncPubMedGetArticle_Batcher = new RequestBatcher(
+    kBatchDelay,
+    ids => asyncPubMedRequest(kApis.efetch, ids.join(',')),
+    (response) => {
+      const data = Xml.parse(response);
+      const split = new Map();
+      for (const article of data?.all('PubmedArticle')) {
+        const mc = article?.one('MedlineCitation');
+        const id = parseInt(mc?.one('PMID')?.text);
+        if (!isNaN(id)) split.set(id, mc.serialize());
+      }
+      return split;
+    },
+);
+async function asyncPubMedGetArticle(id) {
+  return cache.lookup(
+      'PUBMEDv2_getArticle_' + id, () => asyncPubMedGetArticle_Batcher.get(id));
 }
 
 function cleanText(text, end = null) {
@@ -177,7 +240,7 @@ class PubMedImpl {
       } else {
         let data = null;
         try {
-          data = Xml.parse(await asyncPubMedRequest(kApis.efetch, this.pmid));
+          data = Xml.parse(await asyncPubMedGetArticle(this.pmid));
         } catch (e) {
           this._fillError(e);
           return;
@@ -218,12 +281,11 @@ class PubMedImpl {
   }
   _fill(data) {
     if (domPma == null) domPma = this._setupAbstract();
-    const mc = data?.one('PubmedArticle')?.one('MedlineCitation');
-    if (mc == null) {
+    if (data == null) {
       this._fillError('Bad PMID (C)');
       return;
     }
-    const article = mc?.one('Article');
+    const article = data?.one('Article');
     this.title = cleanText(article?.one('ArticleTitle')?.text, '.');
     this.abstract = article?.one('Abstract')?.all('AbstractText')?.map(x => {
       return [fixCase(cleanText(x.attr('Label'), ':')), cleanText(x.text, '.')];
@@ -341,7 +403,6 @@ class PubMedImpl {
 class PubMed extends HTMLElement {
   constructor() {
     super();
-    this.innerText = 'Loading...';
     this.impl = new PubMedImpl(this);
   }
 }
