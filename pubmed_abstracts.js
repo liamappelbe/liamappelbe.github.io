@@ -200,11 +200,16 @@ class PubMedImpl {
       return [fixCase(cleanText(x.attr('Label'), ':')), cleanText(x.text, '.')];
     }) ??
         [];
-    let authors = article?.one('AuthorList')?.all('Author')?.map(x => {
-      const lastName = cleanText(x?.one('LastName')?.text);
-      const initials = cleanText(x?.one('Initials')?.text);
-      return `${lastName} ${initials}`;
-    }) ??
+    let authors = article?.one('AuthorList')
+                      ?.all('Author')
+                      ?.map(x => {
+                        const lastName = cleanText(x?.one('LastName')?.text);
+                        if (lastName == '') return '';
+                        const initials = cleanText(x?.one('Initials')?.text);
+                        if (initials == '') return lastName;
+                        return `${lastName} ${initials}`;
+                      })
+                      ?.filter(x => x != '') ??
         [];
     const kMaxAuthors = 3;
     if (authors.length > kMaxAuthors) {
