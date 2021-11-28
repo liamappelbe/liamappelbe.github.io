@@ -118,6 +118,10 @@ function fixCase(text) {
   return text.slice(0, 1).toUpperCase() + text.slice(1).toLowerCase();
 }
 
+function maybePrefix(text, pre = ' ') {
+  return text == '' ? '' : pre + text;
+}
+
 function emptyDiv(n) {
   while (n.hasChildNodes()) n.removeChild(n.lastChild);
 }
@@ -187,6 +191,31 @@ class PubMedImpl {
     this.node.classList.add('error');
     this.node.innerText = error + ': ' + this.node.getAttribute('pmid');
   }
+  _parseMonth(month) {
+    const kMonthNameLen = 3;
+    const kMonthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
+      'Nov', 'Dec'
+    ];
+    if (month == null || month == '') return '';
+    let monthNum = parseInt(month);
+    if (!isNaN(monthNum)) {
+      monthNum -= 1;
+      if (monthNum >= 0 && monthNum < kMonthNames.length) {
+        return kMonthNames[monthNum];
+      }
+    }
+    if (month.length >= kMonthNameLen) return month.slice(0, kMonthNameLen);
+    return '';
+  }
+  _parseDate(date) {
+    const year = maybePrefix(cleanText(date?.one('Year')?.text));
+    if (year == '') {
+      return maybePrefix(cleanText(date?.one('MedlineDate')?.text));
+    }
+    const month = maybePrefix(this._parseMonth(date?.one('Month')?.text));
+    return `${year}${month}`;
+  }
   _fill(data) {
     if (domPma == null) domPma = this._setupAbstract();
     const mc = data?.one('PubmedArticle')?.one('MedlineCitation');
@@ -222,12 +251,10 @@ class PubMedImpl {
     const journalIssue = journal?.one('JournalIssue');
     const volume = cleanText(journalIssue?.one('Volume')?.text);
     const issue = cleanText(journalIssue?.one('Issue')?.text);
-    const pubDate = journalIssue?.one('PubDate');
-    const pubYear = cleanText(pubDate?.one('Year')?.text);
-    const pubMonth = cleanText(pubDate?.one('Month')?.text);
+    const pubYearMonth = this._parseDate(journalIssue?.one('PubDate'));
     const page = cleanText(article?.one('Pagination')?.one('MedlinePgn')?.text);
-    this.cite = `${authorText}. ${this.title} ${isoAbbr} ${pubYear} ` +
-        `${pubMonth};${volume}(${issue}):${page}`;
+    this.cite = `${authorText}. ${this.title} ${isoAbbr}${pubYearMonth};` +
+        `${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.add('loaded');
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
@@ -236,8 +263,10 @@ class PubMedImpl {
     newBtn(
         this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
     newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
-    const dateText = ` - ${pubYear} ${pubMonth}`;
-    newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, dateText);
+    if (pubYearMonth != '') {
+      const dateText = ` -${pubYearMonth}`;
+      newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, dateText);
+    }
     newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }
   _openPubMed() {
