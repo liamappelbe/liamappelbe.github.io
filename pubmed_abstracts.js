@@ -7,6 +7,7 @@ const kApis = {
 const kRetries = 10;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
 const kBatchDelay = 300;
+const kBatchLimit = 100;
 
 class Cache {
   constructor(storage) {
@@ -68,26 +69,38 @@ class Xml {
 }
 
 class RequestBatcher {
-  constructor(delay, batchRequest, splitResponse) {
-    this.delay = delay;
+  constructor(batchRequest, splitResponse) {
     this.batchRequest = batchRequest;
     this.splitResponse = splitResponse;
     this.currentTimeout = null;
     this.currentPromises = [];
   }
 
+  clearTimeout() {
+    if (this.currentTimeout != null) {
+      window.clearTimeout(this.currentTimeout);
+      this.currentTimeout = null;
+    }
+  }
+
   get(id) {
     return new Promise((resolve, reject) => {
       this.currentPromises.push([id, resolve, reject]);
-      if (this.currentTimeout != null) window.clearTimeout(this.currentTimeout);
-      this.currentTimeout = window.setTimeout(() => this.send(), this.delay);
+      if (this.currentPromises.length >= kBatchLimit) {
+        this.send();
+      } else {
+        this.clearTimeout();
+        this.currentTimeout = window.setTimeout(() => this.send(), kBatchDelay);
+      }
     });
   }
 
   async send() {
-    this.currentTimeout = null;
+    this.clearTimeout();
     if (this.currentPromises.length == 0) return;
-    const ids = this.currentPromises.map(x => x[0]);
+    const promises = this.currentPromises;
+    this.currentPromises = [];
+    const ids = promises.map(x => x[0]);
     let err = 'No result';
     let response = null;
     try {
@@ -96,7 +109,8 @@ class RequestBatcher {
       err = e;
     }
     const splitResults = response == null ? null : this.splitResponse(response);
-    for (const [id, resolve, reject] of this.currentPromises) {
+    console.log('PUBMED', 'Batch response', Array.from(splitResults.keys()));
+    for (const [id, resolve, reject] of promises) {
       const result = splitResults?.get(id);
       if (result == null) {
         reject(err);
@@ -104,7 +118,6 @@ class RequestBatcher {
         resolve(result);
       }
     }
-    this.currentPromises = [];
   }
 }
 
@@ -152,7 +165,6 @@ async function asyncPubMedRequest(api, id) {
 }
 
 const asyncPubMedGetArticle_Batcher = new RequestBatcher(
-    kBatchDelay,
     ids => asyncPubMedRequest(kApis.efetch, ids.join(',')),
     (response) => {
       const data = Xml.parse(response);
