@@ -240,6 +240,7 @@ let domPma = null;
 class PubMedImpl {
   constructor(node) {
     this.node = node;
+    this.node.classList.add('loading');
     this.pmid = parseInt(this.node.getAttribute('pmid'));
     this.allowAbstract = this.node.getAttribute('no-abstract') == null;
     this.title = null;
@@ -263,6 +264,7 @@ class PubMedImpl {
   }
   _fillError(error) {
     emptyDiv(this.node);
+    this.node.classList.remove('loading');
     this.node.classList.add('error');
     this.node.innerText = error + ': ' + this.node.getAttribute('pmid');
   }
@@ -330,7 +332,7 @@ class PubMedImpl {
     this.cite = `${authorText}. ${this.title} ${isoAbbr}${pubYearMonth};` +
         `${volume}(${issue}):${page}`;
     emptyDiv(this.node);
-    this.node.classList.add('loaded');
+    this.node.classList.remove('loading');
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
     const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
     const absBtnFn = () => this._showAbstract();
