@@ -11,6 +11,15 @@ let domWide = null;
 let domClamp = null;
 let domInvis = null;
 let domDither = null;
+let domSpace = null;
+let domChan0 = null;
+let domChan1 = null;
+let domChan2 = null;
+let domChanLabel0 = null;
+let domChanLabel1 = null;
+let domChanLabel2 = null;
+let domAdvanced = null;
+let domAdvancedWrap = null;
 let domInputView = null;
 let domOutputView = null;
 let ctxInput = null;
@@ -26,6 +35,15 @@ function onLoad() {
   domInvis = document.getElementById("invis");
   domWhite = document.getElementById("white");
   domDither = document.getElementById("dither");
+  domSpace = document.getElementById("space");
+  domChan0 = document.getElementById("chan0");
+  domChan1 = document.getElementById("chan1");
+  domChan2 = document.getElementById("chan2");
+  domChan0Label = document.getElementById("chan0label");
+  domChan1Label = document.getElementById("chan1label");
+  domChan2Label = document.getElementById("chan2label");
+  domAdvanced = document.getElementById("advanced");
+  domAdvancedWrap = document.getElementById("advanced_wrap");
   domInputView = document.getElementById("input_view");
   domOutputView = document.getElementById("output_view");
   ctxInput = domInputView.getContext("2d");
@@ -81,9 +99,26 @@ function copyNotes() {
   if (outputNotes != null) navigator.clipboard.writeText(outputNotes);
 }
 
+function setChannelWeightLabels(space) {
+  const label = space.toUpperCase();
+  const nodes = [domChan0Label, domChan1Label, domChan2Label];
+  for (let i = 0; i < 3; ++i) {
+    nodes[i].innerText = label[i];
+  }
+}
+
 function onChange() {
+  setChannelWeightLabels(domSpace.value);
   if (inputImage == null) return;
   runThumbnailGenerator(inputImage);
+}
+
+function onAdvanced() {
+  if (domAdvanced.checked) {
+    domAdvancedWrap.classList.remove('hidden');
+  } else {
+    domAdvancedWrap.classList.add('hidden');
+  }
 }
 
 function runThumbnailGenerator(img) {
@@ -94,6 +129,8 @@ function runThumbnailGenerator(img) {
     clamp: domClamp.checked,
     white: domWhite.checked,
     dither: parseFloat(domDither.value),
+    space: domSpace.value,
+    chanWeight: [domChan0.value, domChan1.value, domChan2.value],
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
   const notes = [];
@@ -170,6 +207,9 @@ canvas {
 .warning {
   color: #f44336;
 }
+.hidden {
+  display: none;
+}
 </style>
 </head>
 <body ondrop="onDrop(event)" ondragover="onDragOver(event)"
@@ -179,10 +219,9 @@ canvas {
     <h1>OS Thumbnail Generator</h1>
   </div>
   <div id="wrap">
-    <div class="warning">
-      WARNING: Don't spam thumbnail sequences on OS, or I'll lock this page with
-      a password again.
-    </div>
+    <span class="warning">WARNING:</span>
+    Don't spam thumbnail sequences on OS, or I'll lock this page with a password
+    again. This tool is for adding thumbnail art to your sequences, not memes.
     <br/>
     <label id="image_label">
       <input type="file" id="image" accept="image/*" onchange="onFile()">
@@ -200,19 +239,44 @@ canvas {
     <input type="checkbox" id="wide" checked onchange="onChange()"/>
     <label for="wide">Double horizontal resolution</label>
     <br/><br/>
-    <input type="checkbox" id="clamp" checked onchange="onChange()"/>
-    <label for="clamp">Clamp dithered colors</label>
-    <br/><br/>
-    <input type="checkbox" id="white" checked onchange="onChange()"/>
-    <label for="white">Clamp white</label>
-    <br/><br/>
     <input type="checkbox" id="invis" onchange="onChange()"/>
     <label for="invis">Use invisible notes</label>
     <br/><br/>
-    <label for="dither">Dither factor</label>
-    <input type="range" id="dither" min="0" max="2" value="1" step="0.1"
-        onchange="onChange()"/>
+    <input type="checkbox" id="advanced" onchange="onAdvanced()"/>
+    <label for="advanced">Advanced options</label>
     <br/><br/>
+    <div id="advanced_wrap" class="hidden">
+      <input type="checkbox" id="clamp" checked onchange="onChange()"/>
+      <label for="clamp">Clamp dithered colors</label>
+      <br/><br/>
+      <input type="checkbox" id="white" checked onchange="onChange()"/>
+      <label for="white">Clamp white</label>
+      <br/><br/>
+      <label for="dither">Dither factor</label>
+      <input type="range" id="dither" min="0" max="2" value="1" step="0.1"
+          onchange="onChange()"/>
+      <br/><br/>
+      <label for="space">Color space:</label>
+      <select id="space" onchange="onChange()">
+        <option value="rgb" selected>RGB</option>
+        <option value="hsv">HSV</option>
+        <option value="hsl">HSL</option>
+      </select>
+      <br/><br/>
+      Channel weights:<br/>
+      <label id="chan0label" for="chan0">R</label>
+      <input type="range" id="chan0" min="0" max="2" value="1" step="0.1"
+          onchange="onChange()"/>
+      <br/>
+      <label id="chan1label" for="chan1">G</label>
+      <input type="range" id="chan1" min="0" max="2" value="1" step="0.1"
+          onchange="onChange()"/>
+      <br/>
+      <label id="chan2label" for="chan2">B</label>
+      <input type="range" id="chan2" min="0" max="2" value="1" step="0.1"
+          onchange="onChange()"/>
+      <br/><br/>
+    </div>
     <div id="views">
       <span>
         <div class="view_label">Input</div>
