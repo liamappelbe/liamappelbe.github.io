@@ -61,10 +61,12 @@ class WaveView {
 
     this.audioCtx = null;
     this.audioSource = null;
-    this.audioPreGain = null;
+    this.audioDryGain = null;
     this.audioWaveShaper = null;
-    this.audioPostGain = null;
+    this.audioWetGain = null;
     this.audioVolumeGain = null;
+
+    this.autoDistortInterval = null;
 
     const halfResX = canvas.clientWidth / 2;
     const halfResY = canvas.clientHeight / 2;
@@ -211,22 +213,24 @@ class WaveView {
       this.audioCtx = new window.AudioContext();
       this.audioSource = this.audioCtx.createOscillator();
       this.audioSource.type = 'sine';
+      this.audioSource.frequency.value = 261.626;  // C3
       this.audioSourceGain = this.audioCtx.createGain();
       this.audioSourceGain.gain.value = 0;
-      this.audioPreGain = this.audioCtx.createGain();
-      this.audioPreGain.gain.value = 1;
+      this.audioDryGain = this.audioCtx.createGain();
+      this.audioDryGain.gain.value = 1;
       this.audioWaveShaper = this.audioCtx.createWaveShaper();
       this.audioWaveShaper.oversample = 'none';
       this.audioWaveShaper.curve = this.curveAudio;
-      this.audioPostGain = this.audioCtx.createGain();
-      this.audioPostGain.gain.value = 1;
+      this.audioWetGain = this.audioCtx.createGain();
+      this.audioWetGain.gain.value = 0;
       this.audioVolumeGain = this.audioCtx.createGain();
       this.audioVolumeGain.gain.value = 1;
       this.audioSource.connect(this.audioSourceGain);
-      this.audioSourceGain.connect(this.audioPreGain);
-      this.audioPreGain.connect(this.audioWaveShaper);
-      this.audioWaveShaper.connect(this.audioPostGain);
-      this.audioPostGain.connect(this.audioVolumeGain);
+      this.audioSourceGain.connect(this.audioDryGain);
+      this.audioSourceGain.connect(this.audioWaveShaper);
+      this.audioDryGain.connect(this.audioVolumeGain);
+      this.audioWaveShaper.connect(this.audioWetGain);
+      this.audioWetGain.connect(this.audioVolumeGain);
       this.audioVolumeGain.connect(this.audioCtx.destination);
       this.audioSource.start();
     }
@@ -247,7 +251,7 @@ class WaveView {
     } else {
       // window.setTimeout(() => this.audioCtx.suspend(), 1);
     }
-    this.setGain(this.audioSourceGain, enable ? 0.1 : 0);
+    this.setGain(this.audioSourceGain, enable ? 1 : 0);
   }
 
   setInputWave(value) {
@@ -260,16 +264,29 @@ class WaveView {
     this.setGain(this.audioVolumeGain, value);
   }
 
-  invertDistort(value) {
-    // TODO.
-    return 1 / value;
+  setDistortImpl(value) {
+    this.setGain(this.audioDryGain, 1 - value);
+    this.setGain(this.audioWetGain, value);
+  }
+
+  setAutoDistort(value) {
+    this.ensureAudio();
+    if (value) {
+      const initTime = this.audioCtx.currentTime;
+      this.autoDistortInterval = window.setInterval(() => {
+        const t = this.audioCtx.currentTime - initTime;
+        const value = 0.5 - 0.5 * Math.cos(t);
+        document.getElementById("distort").value = value;
+        this.setDistortImpl(value);
+      }, 60);
+    } else {
+      window.clearInterval(this.autoDistortInterval);
+    }
   }
 
   setDistort(value) {
-    this.ensureAudio();
-    value = Math.max(value, kMinDistortGain);
-    this.setGain(this.audioPostGain, this.invertDistort(value));
-    this.setGain(this.audioPreGain, value);
+    this.setAutoDistort(false);
+    this.setDistortImpl(value);
   }
 }
 
@@ -311,6 +328,11 @@ function setVolume(value) {
 function setDistort(value) {
   if (!waveView) return;
   waveView.setDistort(parseFloat(value));
+}
+
+function setAutoDistort(value) {
+  if (!waveView) return;
+  waveView.setAutoDistort(value);
 }
 </script>
 <style>
@@ -399,13 +421,15 @@ a {
     </div>
     <div class="menu_row">
       <label for="volume" class="menu_label">Volume:</label>
-      <input type="range" id="volume" min="0" max="2" value="0.5" step="0.02"
+      <input type="range" id="volume" min="0" max="1" value="1" step="0.01"
           onchange="setVolume(this.value)"/>
     </div>
     <div class="menu_row">
       <label for="distort" class="menu_label">Distort:</label>
-      <input type="range" id="distort" min="0" max="5" value="1" step="0.05"
+      <input type="range" id="distort" min="0" max="1" value="0" step="0.01"
           onchange="setDistort(this.value)"/>
+      <input type="checkbox" id="autodistort"
+          onchange="setAutoDistort(this.checked)"/>
     </div>
   </div>
 </div>
