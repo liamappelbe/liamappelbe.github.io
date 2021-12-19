@@ -52,7 +52,6 @@ void main() {
 <script type="text/javascript">
 const kHalfCurveSize = 512;
 const kCurveSize = 2 * kHalfCurveSize + 1;
-const kMinDistortGain = 0.001;
 class WaveView {
   constructor(canvas) {
     this.dirty = true;
@@ -225,7 +224,7 @@ class WaveView {
       this.audioWetGain = this.audioCtx.createGain();
       this.audioWetGain.gain.value = 0;
       this.audioVolumeGain = this.audioCtx.createGain();
-      this.audioVolumeGain.gain.value = 0.1;
+      this.audioVolumeGain.gain.value = 1;
       this.audioOscillator.connect(this.audioSourceGain);
       this.audioSourceGain.connect(this.audioDryGain);
       this.audioSourceGain.connect(this.audioWaveShaper);
@@ -252,7 +251,7 @@ class WaveView {
     } else {
       // window.setTimeout(() => this.audioCtx.suspend(), 1);
     }
-    this.setGain(this.audioSourceGain, enable ? 1 : 0);
+    this.setGain(this.audioSourceGain, enable ? 0.1 : 0);
   }
 
   setInputWave(value) {
@@ -458,7 +457,7 @@ input[type="file"] {
     </div>
     <div class="menu_row">
       <label for="volume" class="menu_label">Volume:</label>
-      <input type="range" id="volume" min="0" max="1" value="0.1" step="0.01"
+      <input type="range" id="volume" min="0" max="1" value="1" step="0.01"
           onchange="setVolume(this.value)"/>
     </div>
     <div class="menu_row">
