@@ -60,7 +60,8 @@ class WaveView {
     this.curveGL = new Float32Array(2 * kCurveSize);
 
     this.audioCtx = null;
-    this.audioSource = null;
+    this.audioOscillator = null;
+    this.audioBuffer = null;
     this.audioDryGain = null;
     this.audioWaveShaper = null;
     this.audioWetGain = null;
@@ -211,9 +212,9 @@ class WaveView {
   ensureAudio() {
     if (this.audioCtx == null) {
       this.audioCtx = new window.AudioContext();
-      this.audioSource = this.audioCtx.createOscillator();
-      this.audioSource.type = 'sine';
-      this.audioSource.frequency.value = 261.626;  // C3
+      this.audioOscillator = this.audioCtx.createOscillator();
+      this.audioOscillator.type = 'sine';
+      this.audioOscillator.frequency.value = 261.626;  // C3
       this.audioSourceGain = this.audioCtx.createGain();
       this.audioSourceGain.gain.value = 0;
       this.audioDryGain = this.audioCtx.createGain();
@@ -224,15 +225,15 @@ class WaveView {
       this.audioWetGain = this.audioCtx.createGain();
       this.audioWetGain.gain.value = 0;
       this.audioVolumeGain = this.audioCtx.createGain();
-      this.audioVolumeGain.gain.value = 1;
-      this.audioSource.connect(this.audioSourceGain);
+      this.audioVolumeGain.gain.value = 0.1;
+      this.audioOscillator.connect(this.audioSourceGain);
       this.audioSourceGain.connect(this.audioDryGain);
       this.audioSourceGain.connect(this.audioWaveShaper);
       this.audioDryGain.connect(this.audioVolumeGain);
       this.audioWaveShaper.connect(this.audioWetGain);
       this.audioWetGain.connect(this.audioVolumeGain);
       this.audioVolumeGain.connect(this.audioCtx.destination);
-      this.audioSource.start();
+      this.audioOscillator.start();
     }
   }
 
@@ -256,7 +257,12 @@ class WaveView {
 
   setInputWave(value) {
     this.ensureAudio();
-    this.audioSource.type = value;
+    if (this.audioBuffer != null) {
+      this.audioBuffer.disconnect(this.audioSourceGain);
+      this.audioBuffer = null;
+    }
+    this.audioOscillator.connect(this.audioSourceGain);
+    this.audioOscillator.type = value;
   }
 
   setVolume(value) {
@@ -287,6 +293,22 @@ class WaveView {
   setDistort(value) {
     this.setAutoDistort(false);
     this.setDistortImpl(value);
+  }
+
+  async setCustomWave(file) {
+    this.ensureAudio();
+    if (this.audioBuffer != null) {
+      this.audioBuffer.disconnect(this.audioSourceGain);
+    }
+    this.audioBuffer = this.audioCtx.createBufferSource();
+    this.audioBuffer.loop = true;
+    this.audioBuffer.buffer =
+        await this.audioCtx.decodeAudioData(await file.arrayBuffer());
+    try {
+      this.audioOscillator.disconnect(this.audioSourceGain);
+    } catch(e) {}
+    this.audioBuffer.connect(this.audioSourceGain);
+    this.audioBuffer.start();
   }
 }
 
@@ -333,6 +355,11 @@ function setDistort(value) {
 function setAutoDistort(value) {
   if (!waveView) return;
   waveView.setAutoDistort(value);
+}
+
+function onFile(file) {
+  if (!waveView) return;
+  waveView.setCustomWave(file);
 }
 </script>
 <style>
@@ -395,6 +422,12 @@ a {
 .menu_label {
   margin-right: 8px;
 }
+input[type="file"] {
+  display: none;
+}
+#file_upload {
+  margin-left: 8px;
+}
 </style>
 </head>
 <body>
@@ -418,10 +451,14 @@ a {
         <option value="sawtooth">Sawtooth</option>
         <option value="triangle">Triangle</option>
       </select>
+      <label id="file_upload">
+        <input type="file" accept="audio/*" onchange="onFile(this.files[0])">
+        <a>or choose a file</a>
+      </label>
     </div>
     <div class="menu_row">
       <label for="volume" class="menu_label">Volume:</label>
-      <input type="range" id="volume" min="0" max="1" value="1" step="0.01"
+      <input type="range" id="volume" min="0" max="1" value="0.1" step="0.01"
           onchange="setVolume(this.value)"/>
     </div>
     <div class="menu_row">
