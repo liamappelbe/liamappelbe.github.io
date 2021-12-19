@@ -9,8 +9,10 @@ const kPubMedApiSuffix = [
   'email=liamappelbe@gmail.com',
   'api_key=52cee269b1c8feb878019fa2dccc04a22909',
 ].join('&');
+const kTableOfContentsClass = 'sticky_heading';
 </script>
 <script src="pubmed_abstracts.js"></script>
+<script src="table_of_contents.js"></script>
 <style>
 body {
   background-color: #212121;
@@ -155,6 +157,13 @@ pub-med .pub-med-copy.clicked {
     Hover on an article to see the abstract.<br/>
     Click on the copy buton to copy the citation.<br/>
     <br/>
+
+    Table of contents
+    <br/>
+    <table-of-contents></table-of-contents>
+    <br/>
+
+    <div class="sticky_heading">Heading</div>
     <ol>
       <li><pub-med pmid="30071148" no-abstract></pub-med></li>
       <li><pub-med pmid="22620707"></pub-med></li>
