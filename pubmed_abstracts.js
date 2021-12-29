@@ -236,6 +236,63 @@ function searchUp(node, cls) {
   return null;
 }
 
+function parseMonth(month) {
+  const kMonthNameLen = 3;
+  const kMonthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
+    'Dec'
+  ];
+  if (month == null || month == '') return '';
+  let monthNum = parseInt(month);
+  if (!isNaN(monthNum)) {
+    monthNum -= 1;
+    if (monthNum >= 0 && monthNum < kMonthNames.length) {
+      return kMonthNames[monthNum];
+    }
+  }
+  if (month.length >= kMonthNameLen) return month.slice(0, kMonthNameLen);
+  return '';
+}
+
+function parseDate(date, includeDay = false) {
+  const year = maybePrefix(cleanText(date?.one('Year')?.text));
+  if (year == '') {
+    return maybePrefix(cleanText(date?.one('MedlineDate')?.text));
+  }
+  const month = maybePrefix(parseMonth(date?.one('Month')?.text));
+  if (month == '') return year;
+  const day = includeDay ? maybePrefix(parseMonth(date?.one('Day')?.text)) : '';
+  return `${year}${month}${day}`;
+}
+
+function parseAuthors(article, maxAuthors = 3) {
+  let authors = article?.one('AuthorList')
+                    ?.all('Author')
+                    ?.map(x => {
+                      const lastName = cleanText(x?.one('LastName')?.text);
+                      if (lastName == '') return '';
+                      const initials = cleanText(x?.one('Initials')?.text);
+                      if (initials == '') return lastName;
+                      return `${lastName} ${initials}`;
+                    })
+                    ?.filter(x => x != '') ??
+      [];
+  if (authors.length > maxAuthors) {
+    authors = authors.slice(0, maxAuthors);
+    authors.push('et al');
+  }
+  return authors.join(', ');
+}
+
+function parseDoi(article) {
+  return (article?.all('ELocationID')?.filter(loc => {
+           if (loc?.attr('EIdType') != 'doi') return false;
+           return (loc?.attr('ValidYN') ?? 'Y').toUpperCase() == 'Y';
+         }) ??
+          [])[0]
+      ?.text;
+}
+
 let domPma = null;
 class PubMedImpl {
   constructor(node) {
@@ -268,66 +325,21 @@ class PubMedImpl {
     this.node.classList.add('error');
     this.node.innerText = error + ': ' + this.node.getAttribute('pmid');
   }
-  _parseMonth(month) {
-    const kMonthNameLen = 3;
-    const kMonthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
-      'Nov', 'Dec'
-    ];
-    if (month == null || month == '') return '';
-    let monthNum = parseInt(month);
-    if (!isNaN(monthNum)) {
-      monthNum -= 1;
-      if (monthNum >= 0 && monthNum < kMonthNames.length) {
-        return kMonthNames[monthNum];
-      }
-    }
-    if (month.length >= kMonthNameLen) return month.slice(0, kMonthNameLen);
-    return '';
-  }
-  _parseDate(date) {
-    const year = maybePrefix(cleanText(date?.one('Year')?.text));
-    if (year == '') {
-      return maybePrefix(cleanText(date?.one('MedlineDate')?.text));
-    }
-    const month = maybePrefix(this._parseMonth(date?.one('Month')?.text));
-    return `${year}${month}`;
-  }
   _fill(data) {
     if (domPma == null) domPma = this._setupAbstract();
-    if (data == null) {
-      this._fillError('Bad PMID (C)');
-      return;
-    }
-    const article = data?.one('Article');
+    const article = data.one('Article');
     this.title = cleanText(article?.one('ArticleTitle')?.text, '.');
     this.abstract = article?.one('Abstract')?.all('AbstractText')?.map(x => {
       return [fixCase(cleanText(x.attr('Label'), ':')), cleanText(x.text, '.')];
     }) ??
         [];
-    let authors = article?.one('AuthorList')
-                      ?.all('Author')
-                      ?.map(x => {
-                        const lastName = cleanText(x?.one('LastName')?.text);
-                        if (lastName == '') return '';
-                        const initials = cleanText(x?.one('Initials')?.text);
-                        if (initials == '') return lastName;
-                        return `${lastName} ${initials}`;
-                      })
-                      ?.filter(x => x != '') ??
-        [];
-    const kMaxAuthors = 3;
-    if (authors.length > kMaxAuthors) {
-      authors = authors.slice(0, kMaxAuthors);
-      authors.push('et al');
-    }
-    const authorText = authors.join(', ');
+    const authorText = parseAuthors(article);
     const journal = article?.one('Journal');
     const isoAbbr = cleanText(journal?.one('ISOAbbreviation')?.text, '.');
     const journalIssue = journal?.one('JournalIssue');
     const volume = cleanText(journalIssue?.one('Volume')?.text);
     const issue = cleanText(journalIssue?.one('Issue')?.text);
-    const pubYearMonth = this._parseDate(journalIssue?.one('PubDate'));
+    const pubYearMonth = parseDate(journalIssue?.one('PubDate'));
     const page = cleanText(article?.one('Pagination')?.one('MedlinePgn')?.text);
     this.cite = `${authorText}. ${this.title} ${isoAbbr}${pubYearMonth};` +
         `${volume}(${issue}):${page}`;
@@ -422,4 +434,31 @@ class PubMed extends HTMLElement {
 }
 
 window.addEventListener('load', () => customElements.define('pub-med', PubMed));
+
+if (typeof (module) != 'undefined') {
+  module.exports = {
+    kLink,
+    Cache,
+    Xml,
+    RequestBatcher,
+    asyncPubMedGetArticle_Batcher,
+    asyncPubMedRequest,
+    asyncPubMedGetArticle,
+    cleanText,
+    fixCase,
+    maybePrefix,
+    emptyDiv,
+    newElement,
+    newDiv,
+    newBtn,
+    newLink,
+    searchUp,
+    parseMonth,
+    parseDate,
+    parseAuthors,
+    parseDoi,
+    PubMedImpl,
+    PubMed,
+  };
+}
 })();

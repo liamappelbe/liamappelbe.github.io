@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Template</title>
+<link rel="icon" href="res/favicon.ico">
+<script>
+const kPubMedApiSuffix = [
+  'tool=tiusic.com',
+  'email=liamappelbe@gmail.com',
+].join('&');
+let module = {};
+</script>
+<script src="pubmed_abstracts.js"></script>
+<script type="text/javascript">
+function generate() {
+  const {Xml, newElement, newDiv, newLink, emptyDiv, cleanText, parseDate,
+         parseAuthors, asyncPubMedGetArticle, kLink, parseDoi, maybePrefix} =
+            module.exports;
+  const result = document.getElementById('result');
+  emptyDiv(result);
+  const ul = newElement('ul', result);
+  for (const id of document.getElementById('pmids').value.split(/[^0-9]+/)) {
+    const pmid = parseInt(id);
+    const li = newElement('li', ul, ['loading']);
+    const fillError = error => {
+      emptyDiv(li);
+      li.classList.remove('loading');
+      li.classList.add('error');
+      li.innerText = error + ': ' + id;
+    };
+    if (isNaN(pmid)) {
+      fillError('Bad PMID (C)');
+      return;
+    }
+    const fill = xml => {
+      li.classList.remove('loading');
+      li.classList.add('loaded');
+      const a = newLink(li, [],);
+      const data = Xml.parse(xml);
+      const article = data?.one('Article');
+      const journalIssue = article?.one('Journal')?.one('JournalIssue');
+      const title = cleanText(article?.one('ArticleTitle')?.text);
+      newDiv(li, ['title'], title);
+      newDiv(li, ['authors'], parseAuthors(article));
+      const date = parseDate(journalIssue?.one('PubDate'), true);
+      const cite = newDiv(li, ['cite'], cleanText(date, '. '));
+      const doi = parseDoi(article);
+      newLink(cite, ['doi'], kLink + pmid, maybePrefix(doi, 'doi: '));
+    };
+    asyncPubMedGetArticle(pmid).then(fill, fillError);
+  }
+  const range = document.createRange();
+  range.selectNodeContents(ul);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: stretch;
+}
+.right {
+  flex-grow: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#result {
+  width: 100%;
+  flex-grow: 1;
+  background-color: #FFF;
+  color: black;
+  font-family: sans-serif;
+  font-size: 1em;
+}
+.middle {
+  padding-left: 16px;
+  padding-right: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  min-width: 100px;
+}
+#result a {
+  color: black;
+  font-family: sans-serif;
+}
+.title {
+  font-weight: bold;
+}
+.authors {
+  font-style: italic;
+}
+.cite {
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>PubMed Newsletter Formatter</h1>
+</div>
+<div id="wrap">
+  <div class="left">
+    Input PMIDs:
+    <br/>
+    <textarea id="pmids" rows="30" cols="12"></textarea>
+  </div>
+  <div class="middle">
+    <a onclick="generate()">== GO =></a>
+  </div>
+  <div class="right">
+    Output:
+    <br/>
+    <div id="result"></div>
+  </div>
+</div>
+</body>
+</html>
