@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Magic Star</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+let epoch = 0;
+function go() {
+  const starNum = parseInt(document.getElementById("star_num").value);
+  const starDen = parseInt(document.getElementById("star_den").value);
+  if (isNaN(starNum) || isNaN(starDen)) return;
+  if (starNum <= 0 || starDen <= 0) return;
+
+  const start = Date.now();
+  const myEpoch = ++epoch;
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext('2d');
+  const halfWidth = canvas.width / 2;
+  const halfHeight = canvas.height / 2;
+  ctx.setTransform(halfWidth, 0, 0, -halfHeight, halfWidth, halfHeight);
+  ctx.lineWidth = 1 / (halfWidth + halfHeight);
+
+  const starOther = starNum - starDen;
+  const tau = 2 * Math.PI;
+  const tOut = tau / starNum;
+  const tIn = (tau / 2 - tOut) / 2;
+  const tStar = tau * starDen / starNum;
+  const tStarCut = tau / 2 - Math.atan2(Math.sin(tStar), Math.cos(tStar) - 1);
+  const xSide = 2 * Math.cos(tIn);
+  const xStar = Math.hypot(Math.sin(tStar), Math.cos(tStar) - 1) / 2;
+  const xStarHalf = Math.hypot(Math.sin(tStar / 2), Math.cos(tStar / 2) - 1);
+  const xCirc = starDen / starNum;
+  const xDot = Math.sqrt(xStarHalf * xStarHalf - xStar * xStar) - xCirc;
+
+  const circle = (px, py, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const line = (p, q, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(q[0], q[1]);
+    ctx.stroke();
+  };
+
+  const update = () => {
+    if (epoch != myEpoch) return;
+    const time = (Date.now() - start) / 1000;
+    const mode = Math.floor((time * 0.06) * 3) % 3;
+    const r = 0.3 * time;
+    const r2 = r * (1 - starNum / starDen);
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-1, -1, 2, 2);
+
+    if (mode == 0) {
+      // Star.
+      ctx.strokeStyle = '#111';
+      ctx.beginPath();
+      ctx.moveTo(0, 1);
+      for (let i = 0; i < starNum; ++i) {
+        const t = (i + 1) * tStar + tau / 4;
+        ctx.lineTo(Math.cos(t), Math.sin(t));
+      }
+      ctx.stroke();
+
+      // Curvy star.
+      ctx.strokeStyle = '#333';
+      ctx.beginPath();
+      for (let i = 0; i < starNum; i += 0.001) {
+        const r = (i + 1) * tStar + tau / 4;
+        const r2 = r * (1 - starNum / starDen);
+        const r3 = r + tau / 4;
+        const px = (1 - xCirc) * Math.cos(r3);
+        const py = (1 - xCirc) * Math.sin(r3);
+
+        const t = r2 + tau / 4;
+        const qx = px + xDot * Math.cos(t);
+        const qy = py + xDot * Math.sin(t);
+        ctx.lineTo(qx, qy);
+      }
+      ctx.stroke();
+
+      circle(0, 0, 1, '#FFFFFF08');
+    }
+
+    const points = [];
+    for (let i = 0; i < starOther; ++i) {
+      const r3 = r + i * tau / starOther + tau / 4;
+      const px = (1 - xCirc) * Math.cos(r3);
+      const py = (1 - xCirc) * Math.sin(r3);
+      if (mode == 0) {
+        circle(px, py, xCirc, '#FFF1');
+        circle(px, py, 0.01, '#FFF3');
+      }
+
+      for (let j = 0; j < starDen; ++j) {
+        const t = r2 + j * tau / starDen + tau / 4;
+        const qx = px + xDot * Math.cos(t);
+        const qy = py + xDot * Math.sin(t);
+        points.push([qx, qy]);
+      }
+    }
+
+    for (let i = 0; i < starDen; ++i) {
+      for (let j = 0; j < starOther; ++j) {
+        if (mode == 1) {
+          line(points[i + j * starDen],
+               points[((i + 1) % starDen) + j * starDen], '#0F0');
+        }
+        if (mode == 2) {
+          line(points[i + j * starDen],
+               points[i + ((j + 1) % starOther) * starDen], '#F80');
+        }
+      }
+    }
+
+    for (const p of points) {
+      circle(p[0], p[1], 0.01, '#08F');
+    }
+
+    window.requestAnimationFrame(update);
+  }
+  update();
+}
+window.addEventListener('load', go);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Magic Star</h1>
+</div>
+<div id="wrap">
+  <div>
+    The points trace out a spirograph approximation of a star, with whatever
+    definition you give. Depending on how you connect these points, you can get
+    two sets of regular polygons that spin around each other. Inspired by
+    <a href="https://youtu.be/oEN0o9ZGmOM">this Mathologer video</a>.
+  </div>
+  <div>
+    Star:
+    <textarea id="star_num" rows="1" cols="3">7</textarea>
+    /
+    <textarea id="star_den" rows="1" cols="3">3</textarea>
+    <a onclick="go()">GO</a>
+  </div>
+  <canvas id="view" width="800" height="800"></canvas>
+</div>
+</body>
+</html>
