@@ -10,6 +10,7 @@ function go() {
   const starDen = parseInt(document.getElementById("star_den").value);
   if (isNaN(starNum) || isNaN(starDen)) return;
   if (starNum <= 0 || starDen <= 0) return;
+  if (starNum <= starDen) return;
 
   const start = Date.now();
   const myEpoch = ++epoch;
@@ -176,6 +177,16 @@ a {
   align-items: center;
   text-align: center;
 }
+#input_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+#input_row > * {
+  resize: none;
+  margin-left: 8px;
+  margin-right: 8px;
+}
 </style>
 </head>
 <body>
@@ -187,10 +198,16 @@ a {
   <div>
     The points trace out a spirograph approximation of a star, with whatever
     definition you give. Depending on how you connect these points, you can get
-    two sets of regular polygons that spin around each other. Inspired by
+    two sets of regular polygons that spin around each other.
+    <br>
+    Both numbers must be integers greater than 0, and the first number must be
+    greater than the second. For best results, make sure the two numbers are
+    relatively prime.
+    <br>
+    Inspired by
     <a href="https://youtu.be/oEN0o9ZGmOM">this Mathologer video</a>.
   </div>
-  <div>
+  <div id="input_row">
     Star:
     <textarea id="star_num" rows="1" cols="3">7</textarea>
     /
