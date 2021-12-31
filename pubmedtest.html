@@ -9,6 +9,12 @@ const kPubMedApiSuffix = [
   'email=liamappelbe@gmail.com',
   'api_key=52cee269b1c8feb878019fa2dccc04a22909',
 ].join('&');
+const kAllowedAbstractJournals = [
+  'Am J VET Res ',
+  ' N EnGl J med',
+  'Cereb Cortex',
+  'J Vet Intern Med',
+];
 const kTableOfContentsClass = 'sticky_heading';
 </script>
 <script src="pubmed_abstracts.js"></script>
@@ -154,7 +160,7 @@ pub-med .pub-med-copy.clicked {
 </div>
 <div id="wrap">
   <div id="left">
-    Hover on an article to see the abstract.<br/>
+    Click on an article to see the abstract.<br/>
     Click on the copy buton to copy the citation.<br/>
     <br/>
 

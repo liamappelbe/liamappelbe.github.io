@@ -293,13 +293,23 @@ function parseDoi(article) {
       ?.text;
 }
 
+let allowedAbstractJournals = null;
+function shouldAllowAbstract(isoAbbr) {
+  if (typeof (kAllowedAbstractJournals) == 'undefined') return true;
+  if (allowedAbstractJournals == null) {
+    allowedAbstractJournals =
+        new Set(kAllowedAbstractJournals.map(x => x.trim().toLowerCase()));
+  }
+  return allowedAbstractJournals.has(isoAbbr.trim().toLowerCase());
+}
+
 let domPma = null;
 class PubMedImpl {
   constructor(node) {
     this.node = node;
     this.node.classList.add('loading');
     this.pmid = parseInt(this.node.getAttribute('pmid'));
-    this.allowAbstract = this.node.getAttribute('no-abstract') == null;
+    this.allowAbstract = false;
     this.title = null;
     this.abstract = null;
     this.citation = null;
@@ -335,16 +345,17 @@ class PubMedImpl {
         [];
     const authorText = parseAuthors(article);
     const journal = article?.one('Journal');
-    const isoAbbr = cleanText(journal?.one('ISOAbbreviation')?.text, '.');
+    const isoAbbr = cleanText(journal?.one('ISOAbbreviation')?.text);
     const journalIssue = journal?.one('JournalIssue');
     const volume = cleanText(journalIssue?.one('Volume')?.text);
     const issue = cleanText(journalIssue?.one('Issue')?.text);
     const pubYearMonth = parseDate(journalIssue?.one('PubDate'));
     const page = cleanText(article?.one('Pagination')?.one('MedlinePgn')?.text);
-    this.cite = `${authorText}. ${this.title} ${isoAbbr}${pubYearMonth};` +
-        `${volume}(${issue}):${page}`;
+    this.cite = `${authorText}. ${this.title} ${cleanText(isoAbbr, '.')}` +
+        `${pubYearMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.remove('loading');
+    this.allowAbstract = shouldAllowAbstract(isoAbbr);
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
     const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
     const absBtnFn = () => this._showAbstract();

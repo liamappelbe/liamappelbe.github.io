@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>PubMed Newsletter</title>
+<title>PubMed Formatter</title>
 <link rel="icon" href="res/favicon.ico">
 <script>
 const kPubMedApiSuffix = [
@@ -16,11 +16,14 @@ function generate() {
   const {Xml, newElement, newDiv, newLink, emptyDiv, cleanText, parseDate,
          parseAuthors, asyncPubMedGetArticle, kLink, parseDoi, maybePrefix} =
             module.exports;
-  const result = document.getElementById('result');
-  emptyDiv(result);
-  const ul = newElement('ul', result);
+  const formatted = document.getElementById('formatted');
+  const tags = document.getElementById('tags');
+  emptyDiv(formatted);
+  emptyDiv(tags);
+  const ul = newElement('ul', formatted);
   for (const id of document.getElementById('pmids').value.split(/[^0-9]+/)) {
     const pmid = parseInt(id);
+    tags.innerText += `<li><pub-med pmid="${pmid}"></pub-med></li>\n`;
     const li = newElement('li', ul, ['loading']);
     const fillError = error => {
       emptyDiv(li);
@@ -49,8 +52,11 @@ function generate() {
     };
     asyncPubMedGetArticle(pmid).then(fill, fillError);
   }
+  select('formatted');
+}
+function select(id) {
   const range = document.createRange();
-  range.selectNodeContents(ul);
+  range.selectNodeContents(document.getElementById(id));
   const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
@@ -103,19 +109,35 @@ a {
   justify-content: space-evenly;
   align-items: stretch;
 }
-.right {
+#pmids {
+  resize: none;
+}
+.right1 {
+  min-width: 20%;
+  max-width: 20%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-right: 16px;
+}
+.right2 {
   flex-grow: 1;
   min-height: 100%;
   display: flex;
   flex-direction: column;
 }
-#result {
+#tags, #formatted {
   width: 100%;
   flex-grow: 1;
   background-color: #FFF;
   color: black;
-  font-family: sans-serif;
   font-size: 1em;
+}
+#formatted {
+  font-family: sans-serif;
+}
+#tags {
+  font-size: 0.7em;
 }
 .middle {
   padding-left: 16px;
@@ -126,7 +148,7 @@ a {
   align-items: center;
   min-width: 100px;
 }
-#result a {
+#formatted a {
   color: black;
   font-family: sans-serif;
 }
@@ -143,7 +165,7 @@ a {
 <body>
 <div id="head">
   <a id="index" href="index.html">&lt;</a>
-  <h1>PubMed Newsletter Formatter</h1>
+  <h1>PubMed Formatter</h1>
 </div>
 <div id="wrap">
   <div class="left">
@@ -154,10 +176,13 @@ a {
   <div class="middle">
     <a onclick="generate()">== GO =></a>
   </div>
-  <div class="right">
-    Output:
-    <br/>
-    <div id="result"></div>
+  <div class="right1">
+    <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
+    <div id="tags"></div>
+  </div>
+  <div class="right2">
+    <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
+    <div id="formatted"></div>
   </div>
 </div>
 </body>
