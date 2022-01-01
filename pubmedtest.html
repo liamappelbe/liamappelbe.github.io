@@ -13,7 +13,6 @@ const kAllowedAbstractJournals = [
   'Am J VET Res ',
   ' N EnGl J med',
   'Cereb Cortex',
-  'J Vet Intern Med',
 ];
 const kTableOfContentsClass = 'sticky_heading';
 </script>
@@ -68,10 +67,7 @@ a {
   width: 50%;
 }
 
-pub-med { opacity: 50%; }
-pub-med.loaded {
-  opacity: 100%;
-}
+pub-med.loading { opacity: 50%; }
 pub-med.no-abstract {
   color: #999;
 }
@@ -105,6 +101,14 @@ pub-med .pub-med-copy {
 }
 pub-med .pub-med-copy.clicked {
   animation: bounce 0.15s;
+}
+pub-med[new] .pub-med-title::before {
+  content: 'NEW';
+  margin-right: 8px;
+  background-color: green;
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 4px;
 }
 @keyframes bounce {
   0% {
@@ -171,11 +175,11 @@ pub-med .pub-med-copy.clicked {
 
     <div class="sticky_heading">Heading</div>
     <ol>
-      <li><pub-med pmid="30071148" no-abstract></pub-med></li>
+      <li><pub-med pmid="30071148"></pub-med></li>
       <li><pub-med pmid="22620707"></pub-med></li>
-      <li><pub-med pmid="28792873"></pub-med></li>
-      <li><pub-med pmid="22368089"></pub-med></li>
-      <li><pub-med pmid="34952995"></pub-med></li>
+      <li><pub-med pmid="28792873" new></pub-med></li>
+      <li><pub-med pmid="22368089" no-abstract></pub-med></li>
+      <li><pub-med pmid="34952995" abstract></pub-med></li>
     </ol>
   </div>
   <div id="right">

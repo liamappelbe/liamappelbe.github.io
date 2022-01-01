@@ -309,7 +309,12 @@ class PubMedImpl {
     this.node = node;
     this.node.classList.add('loading');
     this.pmid = parseInt(this.node.getAttribute('pmid'));
-    this.allowAbstract = false;
+    this.allowAbstract = null;
+    if (this.node.getAttribute('no-abstract') != null) {
+      this.allowAbstract = false;
+    } else if (this.node.getAttribute('abstract') != null) {
+      this.allowAbstract = true;
+    }
     this.title = null;
     this.abstract = null;
     this.citation = null;
@@ -355,7 +360,9 @@ class PubMedImpl {
         `${pubYearMonth};${volume}(${issue}):${page}`;
     emptyDiv(this.node);
     this.node.classList.remove('loading');
-    this.allowAbstract = shouldAllowAbstract(isoAbbr);
+    if (this.allowAbstract == null) {
+      this.allowAbstract = shouldAllowAbstract(isoAbbr);
+    }
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
     const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
     const absBtnFn = () => this._showAbstract();
