@@ -19,7 +19,11 @@ class Cache {
     let val = this.storage.getItem(key);
     if (val != null) return val;
     val = await getter();
-    this.storage.setItem(key, val);
+    try {
+      this.storage.setItem(key, val);
+    } catch (e) {
+      // Ignore for now.
+    }
     return val;
   }
 }
