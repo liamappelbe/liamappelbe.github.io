@@ -335,23 +335,24 @@ function parseMonth(month) {
   return '';
 }
 
-function parseDate(date) {
+function parseDate(date, fallbackDate = '') {
   const year = maybePrefix(cleanText(date?.one('Year')?.text));
   if (year == '') {
-    return maybePrefix(cleanText(date?.one('MedlineDate')?.text));
+    const medDate = maybePrefix(cleanText(date?.one('MedlineDate')?.text));
+    return medDate != '' ? medDate : fallbackDate;
   }
   const month = maybePrefix(parseMonth(date?.one('Month')?.text));
-  if (month == '') return year;
+  if (month == '') return fallbackDate != '' ? fallbackDate : year;
   return `${year}${month}`;
 }
 
 function parsePubDates(article) {
-  let pubDate =
-      parseDate(article?.one('Journal')?.one('JournalIssue')?.one('PubDate'));
   let epubDate = parseDate(
       (article?.all('ArticleDate')
            ?.filter(d => d?.attr('DateType') == 'Electronic') ??
        [])[0]);
+  let pubDate = parseDate(
+      article?.one('Journal')?.one('JournalIssue')?.one('PubDate'), epubDate);
   if (pubDate == '') pubDate = epubDate;
   if (epubDate == '') epubDate = pubDate;
   return [pubDate, epubDate];
