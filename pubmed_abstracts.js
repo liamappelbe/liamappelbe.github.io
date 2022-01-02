@@ -346,13 +346,15 @@ function parseDate(date) {
 }
 
 function parsePubDates(article) {
-  const pubDate =
+  let pubDate =
       parseDate(article?.one('Journal')?.one('JournalIssue')?.one('PubDate'));
-  const epubDate = parseDate(
+  let epubDate = parseDate(
       (article?.all('ArticleDate')
            ?.filter(d => d?.attr('DateType') == 'Electronic') ??
        [])[0]);
-  return [pubDate != '' ? pubDate : epubDate, epubDate];
+  if (pubDate == '') pubDate = epubDate;
+  if (epubDate == '') epubDate = pubDate;
+  return [pubDate, epubDate];
 }
 
 function parseAuthors(article, maxAuthors = 3) {
@@ -468,12 +470,10 @@ class PubMedImpl {
         this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
     newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
     if (pubDate != '') {
-      let text = ` -${pubDate}`;
-      if (epubDate != '' && epubDate != pubDate) text += ` (Epub ${epubDate})`;
+      let text = ' -';
+      if (!isPreprint) text += pubDate;
+      if (isPreprint || epubDate != pubDate) text += ` (Epub ${epubDate})`;
       newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, text);
-    }
-    if (isPreprint) {
-      newBtn(this.node, ['pub-med-preprint'], absBtnFn, absBtnTitle);
     }
     newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }

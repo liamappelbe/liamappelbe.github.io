@@ -47,11 +47,9 @@ function generate() {
       newDiv(li, ['title'], title);
       newDiv(li, ['authors'], parseAuthors(article));
       const [pubDate, epubDate] = parsePubDates(article);
-      let dateText = pubDate;
-      if (isPreprint) dateText += ' [PREPRINT]';
-      if (epubDate != '' && epubDate != pubDate) {
-        dateText += ` (Epub ${epubDate})`;
-      }
+      let dateText = '';
+      if (!isPreprint) dateText += pubDate;
+      if (isPreprint || epubDate != pubDate) dateText += ` (Epub ${epubDate})`;
       const cite = newDiv(li, ['cite'], cleanText(dateText, '. '));
       const doi = parseDoi(article);
       newLink(cite, ['doi'], kLink + pmid, maybePrefix(doi, 'doi: '));
