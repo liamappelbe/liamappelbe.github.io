@@ -75,8 +75,18 @@ async function onDrop(e) {
   }
   if (files.length == 0) return;
   const text = await files[0].text();
-  const pmids = [...text.matchAll(/PMID: ([0-9]+)/g)].map(x => x[1]);
-  document.getElementById('pmids').value = pmids.join('\n');
+  const isPmidList = (t) => {
+    const m = t.match(/([0-9]*\n?\r?)*/);
+    if (m == null || m.length == 0) return false;
+    return m[0] == t;
+  };
+  const domPmids = document.getElementById('pmids');
+  if (isPmidList(text)) {
+    domPmids.value = text;
+  } else {
+    const pmids = [...text.matchAll(/PMID: ([0-9]+)/g)].map(x => x[1]);
+    domPmids.value = pmids.join('\n');
+  }
   generate();
 }
 </script>
