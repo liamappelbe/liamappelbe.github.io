@@ -84,7 +84,7 @@ async function onDrop(e) {
   if (isPmidList(text)) {
     domPmids.value = text;
   } else {
-    const pmids = [...text.matchAll(/PMID: ([0-9]+)/g)].map(x => x[1]);
+    const pmids = [...text.matchAll(/PMID:\s*([0-9]+)/g)].map(x => x[1]);
     domPmids.value = pmids.join('\n');
   }
   generate();
