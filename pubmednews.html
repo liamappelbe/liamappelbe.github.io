@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ondrop="onDrop(event)" ondragover="onDragOver(event)">
 <head>
 <title>PubMed Formatter</title>
 <link rel="icon" href="res/favicon.ico">
@@ -60,6 +60,24 @@ function select(id) {
   const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
+}
+function onDragOver(e) { e.preventDefault(); }
+async function onDrop(e) {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  let files = [];
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind == "file") files.push(item.getAsFile());
+    }
+  } else {
+    files = dt.files;
+  }
+  if (files.length == 0) return;
+  const text = await files[0].text();
+  const pmids = [...text.matchAll(/PMID: ([0-9]+)/g)].map(x => x[1]);
+  document.getElementById('pmids').value = pmids.join('\n');
+  generate();
 }
 </script>
 <style>
