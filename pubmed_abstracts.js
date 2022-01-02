@@ -8,26 +8,104 @@ const kRetries = 10;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
 const kBatchDelay = 300;
 const kBatchLimit = 100;
+const kCacheFreshTimeSec = 60 * 60 * 24 * 7;  // 1 week in seconds.
 
 class Cache {
-  constructor(storage) {
+  constructor(storage, namespace, version) {
     this.storage = storage;
+    this.namespace = namespace;
+    this.version = version;
+
+    // Keys we own look like `${namespace}v${version}_${userKey}`.
+    this.versionRegex = new RegExp('^' + this.namespace + 'v([0-9]+)_.*');
+
+    // Values look like `${nowSec()}_${val}`.
+    this.timeRegex = /([0-9]+)_(.*)/;
+
+    this.clean(false);
   }
 
-  async lookup(key, getter) {
+  async lookup(userKey, getter) {
     if (this.storage == null) return await getter();
-    let val = this.storage.getItem(key);
+    const key = `${this.namespace}v${this.version}_${userKey}`;
+    let val = this.getValue(key);
     if (val != null) return val;
     val = await getter();
-    try {
-      this.storage.setItem(key, val);
-    } catch (e) {
-      // Ignore for now.
+    const datedVal = `${this.nowSec()}_${val}`;
+    for (let attempt = 0; attempt < 3; ++attempt) {
+      try {
+        this.storage.setItem(key, datedVal);
+        break;
+      } catch (e) {
+        this.clean(true);
+        break;
+      }
     }
     return val;
   }
+
+  nowSec() {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  isStale(t) {
+    return (this.nowSec() - t) >= kCacheFreshTimeSec;
+  }
+
+  getValueWithTime(key) {
+    const datedVal = this.storage.getItem(key);
+    if (datedVal == null) return [null, null];
+    const m = datedVal.match(this.timeRegex);
+    if (m == null || m.length < 3) return [null, datedVal];
+    return [parseInt(m[1]), m[2]];
+  }
+
+  getValue(key) {
+    const [t, val] = this.getValueWithTime(key);
+    if (t == null || val == null) return null;
+    if (this.isStale(t)) return null;
+    return val;
+  }
+
+  getVersion(key) {
+    const m = key.match(this.versionRegex);
+    if (m == null || m.length < 2) return null;
+    return parseInt(m[1]);
+  }
+
+  clean(evictOldest) {
+    // 1) Evict any keys we own for older versions of the system.
+    // 2) Evict any keys we own that are older than a week.
+    // 3) If evictOldest, and 1 & 2 did nothing, evict the oldest key we own.
+    let oldestKey = null;
+    let oldestKeyTime = null;
+    let toEvict = [];
+    for (let i = 0; i < this.storage.length; ++i) {
+      const key = this.storage.key(i);
+      const version = this.getVersion(key);
+      if (version == null) continue;  // We don't own this key.
+      if (version < this.version) {
+        toEvict.push(key);
+      } else {
+        const [t, val] = this.getValueWithTime(key);
+        if (oldestKeyTime == null || t < oldestKeyTime) {
+          oldestKeyTime = t;
+          oldestKey = key;
+        }
+        if (this.isStale(t)) {
+          toEvict.push(key);
+        }
+      }
+    }
+    if (toEvict.length == 0 && evictOldest && oldestKey != null) {
+      toEvict.push(oldestKey);
+    }
+    for (const key of toEvict) {
+      this.storage.removeItem(key);
+    }
+  }
 }
-const cache = new Cache(window.localStorage);
+const cache = new Cache(window.localStorage, 'PUBMED', 3);
 
 class Xml {
   static parse(xml) {
@@ -176,14 +254,13 @@ const asyncPubMedGetArticle_Batcher = new RequestBatcher(
       for (const article of data?.all('PubmedArticle')) {
         const mc = article?.one('MedlineCitation');
         const id = parseInt(mc?.one('PMID')?.text);
-        if (!isNaN(id)) split.set(id, mc.serialize());
+        if (!isNaN(id)) split.set(id, article.serialize());
       }
       return split;
     },
 );
 async function asyncPubMedGetArticle(id) {
-  return cache.lookup(
-      'PUBMEDv2_getArticle_' + id, () => asyncPubMedGetArticle_Batcher.get(id));
+  return cache.lookup(id, () => asyncPubMedGetArticle_Batcher.get(id));
 }
 
 function cleanText(text, end = null) {
@@ -258,15 +335,24 @@ function parseMonth(month) {
   return '';
 }
 
-function parseDate(date, includeDay = false) {
+function parseDate(date) {
   const year = maybePrefix(cleanText(date?.one('Year')?.text));
   if (year == '') {
     return maybePrefix(cleanText(date?.one('MedlineDate')?.text));
   }
   const month = maybePrefix(parseMonth(date?.one('Month')?.text));
   if (month == '') return year;
-  const day = includeDay ? maybePrefix(parseMonth(date?.one('Day')?.text)) : '';
-  return `${year}${month}${day}`;
+  return `${year}${month}`;
+}
+
+function parsePubDates(article) {
+  const pubDate =
+      parseDate(article?.one('Journal')?.one('JournalIssue')?.one('PubDate'));
+  const epubDate = parseDate(
+      (article?.all('ArticleDate')
+           ?.filter(d => d?.attr('DateType') == 'Electronic') ??
+       [])[0]);
+  return [pubDate != '' ? pubDate : epubDate, epubDate];
 }
 
 function parseAuthors(article, maxAuthors = 3) {
@@ -295,6 +381,11 @@ function parseDoi(article) {
          }) ??
           [])[0]
       ?.text;
+}
+
+function parsePreprintStatus(pmd) {
+  const status = pmd?.one('PublicationStatus')?.text;
+  return status == 'aheadofprint';
 }
 
 let allowedAbstractJournals = null;
@@ -346,22 +437,25 @@ class PubMedImpl {
   }
   _fill(data) {
     if (domPma == null) domPma = this._setupAbstract();
-    const article = data.one('Article');
+    const article = data?.one('MedlineCitation')?.one('Article');
     this.title = cleanText(article?.one('ArticleTitle')?.text, '.');
     this.abstract = article?.one('Abstract')?.all('AbstractText')?.map(x => {
       return [fixCase(cleanText(x.attr('Label'), ':')), cleanText(x.text, '.')];
     }) ??
         [];
+    const isPreprint = parsePreprintStatus(data?.one('PubmedData'));
     const authorText = parseAuthors(article);
+    const [pubDate, epubDate] = parsePubDates(article);
     const journal = article?.one('Journal');
     const isoAbbr = cleanText(journal?.one('ISOAbbreviation')?.text);
     const journalIssue = journal?.one('JournalIssue');
     const volume = cleanText(journalIssue?.one('Volume')?.text);
-    const issue = cleanText(journalIssue?.one('Issue')?.text);
-    const pubYearMonth = parseDate(journalIssue?.one('PubDate'));
+    const issue =
+        maybePrefix(cleanText(journalIssue?.one('Issue')?.text, ')'), '(');
     const page = cleanText(article?.one('Pagination')?.one('MedlinePgn')?.text);
+    const pubIssue = `${volume}${issue}${maybePrefix(page, ':')}`;
     this.cite = `${authorText}. ${this.title} ${cleanText(isoAbbr, '.')}` +
-        `${pubYearMonth};${volume}(${issue}):${page}`;
+        `${isPreprint ? ' Epub' : ''}${pubDate}${maybePrefix(pubIssue, ';')}`;
     emptyDiv(this.node);
     this.node.classList.remove('loading');
     if (this.allowAbstract == null) {
@@ -373,9 +467,13 @@ class PubMedImpl {
     newBtn(
         this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
     newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
-    if (pubYearMonth != '') {
-      const dateText = ` -${pubYearMonth}`;
-      newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, dateText);
+    if (pubDate != '') {
+      let text = ` -${pubDate}`;
+      if (epubDate != '' && epubDate != pubDate) text += ` (Epub ${epubDate})`;
+      newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, text);
+    }
+    if (isPreprint) {
+      newBtn(this.node, ['pub-med-preprint'], absBtnFn, absBtnTitle);
     }
     newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }
@@ -477,8 +575,10 @@ if (typeof (module) != 'undefined') {
     searchUp,
     parseMonth,
     parseDate,
+    parsePubDates,
     parseAuthors,
     parseDoi,
+    parsePreprintStatus,
     PubMedImpl,
     PubMed,
   };

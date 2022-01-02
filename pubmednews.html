@@ -13,9 +13,9 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 function generate() {
-  const {Xml, newElement, newDiv, newLink, emptyDiv, cleanText, parseDate,
-         parseAuthors, asyncPubMedGetArticle, kLink, parseDoi, maybePrefix} =
-            module.exports;
+  const {Xml, newElement, newDiv, newLink, emptyDiv, cleanText, parsePubDates,
+         parseAuthors, asyncPubMedGetArticle, kLink, parseDoi, maybePrefix,
+         parsePreprintStatus} = module.exports;
   const formatted = document.getElementById('formatted');
   const tags = document.getElementById('tags');
   emptyDiv(formatted);
@@ -40,13 +40,19 @@ function generate() {
       li.classList.add('loaded');
       const a = newLink(li, [],);
       const data = Xml.parse(xml);
-      const article = data?.one('Article');
+      const article = data?.one('MedlineCitation')?.one('Article');
+      const isPreprint = parsePreprintStatus(data?.one('PubmedData'));
       const journalIssue = article?.one('Journal')?.one('JournalIssue');
       const title = cleanText(article?.one('ArticleTitle')?.text);
       newDiv(li, ['title'], title);
       newDiv(li, ['authors'], parseAuthors(article));
-      const date = parseDate(journalIssue?.one('PubDate'), true);
-      const cite = newDiv(li, ['cite'], cleanText(date, '. '));
+      const [pubDate, epubDate] = parsePubDates(article);
+      let dateText = pubDate;
+      if (isPreprint) dateText += ' [PREPRINT]';
+      if (epubDate != '' && epubDate != pubDate) {
+        dateText += ` (Epub ${epubDate})`;
+      }
+      const cite = newDiv(li, ['cite'], cleanText(dateText, '. '));
       const doi = parseDoi(article);
       newLink(cite, ['doi'], kLink + pmid, maybePrefix(doi, 'doi: '));
     };

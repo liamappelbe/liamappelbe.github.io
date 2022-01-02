@@ -74,6 +74,7 @@ pub-med.no-abstract {
 pub-med .pub-med-title,
 pub-med .pub-med-authors,
 pub-med .pub-med-date,
+pub-med .pub-med-preprint,
 pub-med .pub-med-copy,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-label,
 #pub-med-abstract .pub-med-abstract-part .pub-med-abstract-text {
@@ -83,11 +84,18 @@ pub-med .pub-med-title {
   font-weight: bold;
   cursor: pointer;
 }
-pub-med .pub-med-authors {
+pub-med .pub-med-authors,
+pub-med .pub-med-date,
+pub-med .pub-med-preprint {
   cursor: pointer;
 }
-pub-med .pub-med-date {
-  cursor: pointer;
+pub-med .pub-med-preprint::before {
+  content: 'PREPRINT';
+  margin-left: 8px;
+  background-color: blue;
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 4px;
 }
 pub-med .pub-med-copy {
   margin-left: 0.5em;
@@ -180,6 +188,7 @@ pub-med[new] .pub-med-title::before {
       <li><pub-med pmid="28792873" new></pub-med></li>
       <li><pub-med pmid="22368089" no-abstract></pub-med></li>
       <li><pub-med pmid="34952995" abstract></pub-med></li>
+      <li><pub-med pmid="34716708"></pub-med></li>
     </ol>
   </div>
   <div id="right">
