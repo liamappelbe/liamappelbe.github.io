@@ -468,16 +468,19 @@ class PubMedImpl {
       this.allowAbstract = shouldAllowAbstract(isoAbbr);
     }
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
-    const absBtnTitle = this.allowAbstract ? 'View abstract' : 'Open on PubMed';
-    const absBtnFn = () => this._showAbstract();
-    newBtn(
-        this.node, ['pub-med-title'], absBtnFn, absBtnTitle, `${this.title} `);
-    newBtn(this.node, ['pub-med-authors'], absBtnFn, absBtnTitle, authorText);
+    const addBtn = (classes, text) => {
+      newBtn(
+          this.node, classes, () => this._showAbstract(),
+          this.allowAbstract ? 'View abstract' : 'Open on PubMed', text);
+    };
+    addBtn(['pub-med-title'], `${this.title} `);
+    addBtn(['pub-med-authors'], authorText);
+    if (isoAbbr != '') addBtn(['pub-med-journal'], ' - ' + isoAbbr);
     if (pubDate != '') {
       let text = ' -';
       if (!isPreprint) text += pubDate;
       if (isPreprint || epubDate != pubDate) text += ` (Epub ${epubDate})`;
-      newBtn(this.node, ['pub-med-date'], absBtnFn, absBtnTitle, text);
+      addBtn(['pub-med-date'], text);
     }
     newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }
