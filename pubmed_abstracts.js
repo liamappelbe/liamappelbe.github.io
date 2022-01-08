@@ -566,13 +566,23 @@ class PubMedImpl {
     }
     row.classList.add('pub-med-abstract-row');
 
+    // The first column in the row should be the one containing the pub med
+    // tags. We use this to detect thin layouts because the abstract column
+    // is laid out differently depending on whether the abstract box is shown,
+    // so it would be brittle to try and write the thin detector using it.
+    const pmCol = row.firstChild;
+    if (pmCol == null || pmCol == col || !pmCol.classList.contains('col')) {
+      console.log('PUBMED', 'Couldn\'t find pub med tag column');
+      return pma;
+    }
+
     // If we found all the elements, we can detect single column layout by
-    // checking whether the column is on the left side of the row, whenever the
-    // row changes size.
+    // checking whether the pub med tag column is (about) as big as the row,
+    // whenever the row changes size.
     const onResize = () => {
-      const rowRect = row.getBoundingClientRect();
-      const colRect = col.getBoundingClientRect();
-      domIsThin = (colRect.left - rowRect.left) < 0.4 * rowRect.width;
+      const rowWidth = row.getBoundingClientRect().width;
+      const colWidth = pmCol.getBoundingClientRect().width;
+      domIsThin = colWidth >= 0.9 * rowRect.width;
       if (domIsThin) {
         row.classList.add('pub-med-abstract-row-thin');
       } else {
