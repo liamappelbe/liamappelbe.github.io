@@ -263,10 +263,13 @@ async function asyncPubMedGetArticle(id) {
   return cache.lookup(id, () => asyncPubMedGetArticle_Batcher.get(id));
 }
 
-function cleanText(text, end = null) {
+function cleanText(text, end = null, otherEnds = null) {
   if (text == null) text = '';
   text = text.trim().replaceAll(/\s+/g, ' ');
-  if (text != '' && end != null && !text.endsWith(end)) text += end;
+  if (text != '' && end != null && !text.endsWith(end) &&
+      (otherEnds == null || text.match(otherEnds) == null)) {
+    text += end;
+  }
   return text;
 }
 
@@ -441,7 +444,7 @@ class PubMedImpl {
   _fill(data) {
     if (domPma == null) domPma = this._setupAbstract();
     const article = data?.one('MedlineCitation')?.one('Article');
-    this.title = cleanText(article?.one('ArticleTitle')?.text, '.');
+    this.title = cleanText(article?.one('ArticleTitle')?.text, '.', /[?!]$/);
     this.abstract = article?.one('Abstract')?.all('AbstractText')?.map(x => {
       return [fixCase(cleanText(x.attr('Label'), ':')), cleanText(x.text, '.')];
     }) ??
@@ -532,16 +535,15 @@ class PubMedImpl {
     // styles on them.
     const codeBlock = searchUp(pma, 'code-block');
     if (codeBlock != null) {
-      codeBlock.style.position = 'sticky';
-      codeBlock.style.top = '0';
+      codeBlock.classList.add('pub-med-abstract-code-block');
+      const col = searchUp(codeBlock, 'col');
+      if (col != null) {
+        col.classList.add('pub-med-abstract-column');
+      } else {
+        console.log('PUBMED', 'Couldn\'t find column');
+      }
     } else {
       console.log('PUBMED', 'Couldn\'t find code-block');
-    }
-    const row = searchUp(pma, 'row');
-    if (row != null) {
-      row.style.display = 'flex';
-    } else {
-      console.log('PUBMED', 'Couldn\'t find row');
     }
     return pma;
   }
