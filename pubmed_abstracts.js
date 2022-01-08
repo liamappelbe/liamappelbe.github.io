@@ -405,6 +405,7 @@ function shouldAllowAbstract(isoAbbr) {
 }
 
 let domPma = null;
+let domIsThin = false;
 class PubMedImpl {
   constructor(node) {
     this.node = node;
@@ -494,6 +495,15 @@ class PubMedImpl {
   _showAbstract() {
     if (domPma == null) return;
     emptyDiv(domPma);
+
+    if (!this.allowAbstract) {
+      this._openPubMed();
+      if (domIsThin) {
+        // Don't show the abstract box if we opened pubmed and we're on mobile.
+        return;
+      }
+    }
+
     const titleRow = newDiv(domPma, ['pub-med-abstract-title-row']);
     newBtn(
         titleRow, ['pub-med-abstract-title'], () => this._openPubMed(),
@@ -507,7 +517,6 @@ class PubMedImpl {
       newDiv(
           part, ['pub-med-abstract-text', 'pub-med-abstract-text-no-abstract'],
           'Abstract opened in a new tab.');
-      this._openPubMed();
     } else if (this.abstract.length == 0) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
       newDiv(
@@ -537,17 +546,43 @@ class PubMedImpl {
     // parents to find the enclosing .code-block and .row, and set some custom
     // styles on them.
     const codeBlock = searchUp(pma, 'code-block');
-    if (codeBlock != null) {
-      codeBlock.classList.add('pub-med-abstract-code-block');
-      const col = searchUp(codeBlock, 'col');
-      if (col != null) {
-        col.classList.add('pub-med-abstract-column');
-      } else {
-        console.log('PUBMED', 'Couldn\'t find column');
-      }
-    } else {
-      console.log('PUBMED', 'Couldn\'t find code-block');
+    if (codeBlock == null) {
+      console.log('PUBMED', 'Couldn\'t find abstract code-block');
+      return pma;
     }
+    codeBlock.classList.add('pub-med-abstract-code-block');
+
+    const col = searchUp(codeBlock, 'col');
+    if (col == null) {
+      console.log('PUBMED', 'Couldn\'t find abstract column');
+      return pma;
+    }
+    col.classList.add('pub-med-abstract-column');
+
+    const row = searchUp(col, 'row');
+    if (row == null) {
+      console.log('PUBMED', 'Couldn\'t find abstract row');
+      return pma;
+    }
+    row.classList.add('pub-med-abstract-row');
+
+    // If we found all the elements, we can detect single column layout by
+    // checking whether the column is on the left side of the row, whenever the
+    // row changes size.
+    const onResize = () => {
+      const rowRect = row.getBoundingClientRect();
+      const colRect = col.getBoundingClientRect();
+      domIsThin = (colRect.left - rowRect.left) < 0.4 * rowRect.width;
+      if (domIsThin) {
+        row.classList.add('pub-med-abstract-row-thin');
+      } else {
+        row.classList.remove('pub-med-abstract-row-thin');
+      }
+    };
+    const observer = new ResizeObserver(onResize);
+    observer.observe(row);
+    onResize();
+
     return pma;
   }
 }
