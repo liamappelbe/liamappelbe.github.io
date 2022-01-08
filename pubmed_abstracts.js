@@ -582,7 +582,7 @@ class PubMedImpl {
     const onResize = () => {
       const rowWidth = row.getBoundingClientRect().width;
       const colWidth = pmCol.getBoundingClientRect().width;
-      domIsThin = colWidth >= 0.9 * rowRect.width;
+      domIsThin = colWidth >= 0.9 * rowWidth;
       if (domIsThin) {
         row.classList.add('pub-med-abstract-row-thin');
       } else {
