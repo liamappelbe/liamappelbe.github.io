@@ -504,13 +504,12 @@ class PubMedImpl {
       }
     }
 
-    const titleRow = newDiv(domPma, ['pub-med-abstract-title-row']);
     newBtn(
-        titleRow, ['pub-med-abstract-title'], () => this._openPubMed(),
-        'Open on PubMed', this.title);
-    newBtn(
-        titleRow, ['pub-med-abstract-close'], () => this._hideAbstract(),
+        domPma, ['pub-med-abstract-close'], () => this._hideAbstract(),
         'Close');
+    newBtn(
+        domPma, ['pub-med-abstract-title'], () => this._openPubMed(),
+        'Open on PubMed', this.title);
     newDiv(domPma, ['pub-med-abstract-citation'], this.cite);
     if (!this.allowAbstract) {
       const part = newDiv(domPma, ['pub-med-abstract-part']);
@@ -570,8 +569,9 @@ class PubMedImpl {
     // tags. We use this to detect thin layouts because the abstract column
     // is laid out differently depending on whether the abstract box is shown,
     // so it would be brittle to try and write the thin detector using it.
-    const pmCol = row.firstChild;
-    if (pmCol == null || pmCol == col || !pmCol.classList.contains('col')) {
+    const pmCol = row.children[0];
+    if (pmCol == null || pmCol == col || pmCol.classList == null ||
+        !pmCol.classList.contains('col')) {
       console.log('PUBMED', 'Couldn\'t find pub med tag column');
       return pma;
     }

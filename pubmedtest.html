@@ -93,7 +93,7 @@ pub-med .pub-med-copy {
   margin-left: 0.5em;
   padding-left: 0.8em;
   cursor: pointer;
-  background-image: url(res/cite.png);
+  background-image: url(vetupdates/cite%20icon.svg);
   background-size: contain;
   background-repeat: no-repeat;
   position: relative;
@@ -123,6 +123,10 @@ pub-med[new] .pub-med-title::before {
     top: 0;
   }
 }
+#pub-med-abstract {
+  max-height: 50vh;
+  overflow-y: scroll;
+}
 #pub-med-abstract .pub-med-abstract-title-row {
   padding-bottom: 0.5em;
   display: flex;
@@ -137,13 +141,17 @@ pub-med[new] .pub-med-title::before {
 }
 #pub-med-abstract .pub-med-abstract-close {
   font-size: 1.5em;
-  color: #ff5722;
+  margin-left: auto;
+  margin-right: 0.5em;
+  margin-bottom: -1em;
+  max-width: 1em;
+  min-height: 1em;
   cursor: pointer;
-  height: fit-content;
-  margin-right: 1em;
-}
-#pub-med-abstract .pub-med-abstract-close::before {
-  content: 'x';
+  background-image: url(res/close.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: sticky;
+  top: 0;
 }
 #pub-med-abstract .pub-med-abstract-citation {
   font-size: 0.8em;
@@ -163,7 +171,7 @@ pub-med[new] .pub-med-title::before {
   <h1>PubMed API Test</h1>
 </div>
 <div id="wrap" class="row">
-  <div id="left">
+  <div id="left" class="col">
     Click on an article to see the abstract.<br/>
     Click on the copy buton to copy the citation.<br/>
     <br/>
