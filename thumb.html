@@ -140,10 +140,6 @@ function protoToBlob(seq) {
 function downloadFile() {
   if (outputNotes == null) return;
   const seq = new proto.Sequence();
-  const seqSettings = new proto.SequenceSettings();
-  for (const inst of new Set(outputNotes.map(n => n[3]))) {
-    seqSettings.getInstrumentsMap().set(inst, new proto.InstrumentSettings());
-  }
   for (const n of outputNotes) {
     const noteType =
         Object.keys(proto.NoteType).indexOf(n[0].replace('#', 'S'));
@@ -156,7 +152,10 @@ function downloadFile() {
     np.setVolume(0);
     seq.addNotes(np);
   }
-  saveBlob('thumbnail.sequence', protoToBlob(seq), 'application/octet-stream');
+  const blob = protoToBlob(seq);
+  if (blob != null) {
+    saveBlob('thumbnail.sequence', [blob], 'application/octet-stream');
+  }
 }
 
 function setChannelWeightLabels(space) {
