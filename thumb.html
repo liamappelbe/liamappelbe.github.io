@@ -193,7 +193,7 @@ function runThumbnailGenerator(img) {
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
-  const outputNotes = [];
+  outputNotes = [];
   const result = generateThumbnail(img, options, (type, t, len, inst) => {
     outputNotes.push([type, t, len, inst]);
   });
