@@ -3,6 +3,14 @@
 <head>
 <title>OS Thumbnail Generator</title>
 <link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">const exports={};</script>
+<script src="https://onlinesequencer.net/resources/google-protobuf.js"></script>
+<script src="https://onlinesequencer.net/proto/js/instrumentsettings.js"></script>
+<script src="https://onlinesequencer.net/proto/js/marker.js"></script>
+<script src="https://onlinesequencer.net/proto/js/note.js"></script>
+<script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
+<script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
 <script src="thumb.js"></script>
 <script>
 let domImage = null;
@@ -25,7 +33,7 @@ let domOutputView = null;
 let ctxInput = null;
 let ctxOutput = null;
 let inputImage = null;
-let outputNotes = null;
+let outputNotes = null;  // [[type, t, len, inst], ...]
 
 function onLoad() {
   domImage = document.getElementById("image");
@@ -96,7 +104,59 @@ function setInputFileFromDataTransfer(dt) {
 }
 
 function copyNotes() {
-  if (outputNotes != null) navigator.clipboard.writeText(outputNotes);
+  if (outputNotes == null) return;
+  const noteStr = outputNotes.map(n => `${n[1]} ${n[0]} ${n[2]} ${n[3]} 0`);
+  navigator.clipboard.writeText(`Online Sequencer:0:${noteStr.join(';')};:`);
+}
+
+function saveBlob(filename, data, type) {
+  var file = new Blob(data, {type: type});
+  if (window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(file, filename);
+  } else {
+    var a = document.createElement('a');
+    var url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 0);
+  }
+}
+
+function protoToBlob(seq) {
+  try {
+    return seq.serializeBinary();
+  } catch (e) {
+    console.log('Serializing sequence failed', e);
+    console.log(seq.toObject());
+    return null;
+  }
+}
+
+function downloadFile() {
+  if (outputNotes == null) return;
+  const seq = new proto.Sequence();
+  const seqSettings = new proto.SequenceSettings();
+  for (const inst of new Set(outputNotes.map(n => n[3]))) {
+    seqSettings.getInstrumentsMap().set(inst, new proto.InstrumentSettings());
+  }
+  for (const n of outputNotes) {
+    const noteType =
+        Object.keys(proto.NoteType).indexOf(n[0].replace('#', 'S'));
+    if (noteType == null) continue;
+    const np = new proto.Note();
+    np.setType(noteType);
+    np.setTime(n[1]);
+    np.setLength(n[2]);
+    np.setInstrument(n[3]);
+    np.setVolume(0);
+    seq.addNotes(np);
+  }
+  saveBlob('thumbnail.sequence', protoToBlob(seq), 'application/octet-stream');
 }
 
 function setChannelWeightLabels(space) {
@@ -135,6 +195,7 @@ function runThumbnailGenerator(img) {
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
   const notes = [];
   const result = generateThumbnail(img, options, (type, t, len, inst) => {
+    notes.push([type, t, len, inst]);
     notes.push(`${t} ${type} ${len} ${inst} 0`);
   });
   ctxOutput.drawImage(
@@ -221,7 +282,8 @@ canvas {
   <div id="wrap">
     <span class="warning">WARNING:</span>
     Don't spam thumbnail sequences on OS, or I'll lock this page with a password
-    again. This tool is for adding thumbnail art to your sequences, not memes.
+    again. This tool is for adding thumbnail art to your sequences, not for
+    making memes or spamming in chat.
     <br/>
     <label id="image_label">
       <input type="file" id="image" accept="image/*" onchange="onFile()">
@@ -288,7 +350,8 @@ canvas {
       </span>
     </div>
     <br/><br/>
-    <a onclick="copyNotes()">Copy to clipboard</a>
+    <a onclick="copyNotes()">Copy the notes to the clipboard</a> or
+    <a onclick="downloadFile()">download the sequence file</a>
   </div>
 </div>
 </body>
