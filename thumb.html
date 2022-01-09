@@ -193,14 +193,12 @@ function runThumbnailGenerator(img) {
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
-  const notes = [];
+  const outputNotes = [];
   const result = generateThumbnail(img, options, (type, t, len, inst) => {
-    notes.push([type, t, len, inst]);
-    notes.push(`${t} ${type} ${len} ${inst} 0`);
+    outputNotes.push([type, t, len, inst]);
   });
   ctxOutput.drawImage(
       result, 0, 0, domOutputView.width, domOutputView.height);
-  outputNotes = 'Online Sequencer:0:' + notes.join(';') + ';:';
 }
 </script>
 <style>
