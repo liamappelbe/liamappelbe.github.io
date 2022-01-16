@@ -611,7 +611,7 @@ class PubMedImpl {
     row.classList.add('pub-med-abstract-row');
 
     // Add the print button at the top of this row.
-    newBtn(row, ['print-button'], () => window.print());
+    newBtn(row, ['print-button'], () => window.print(), 'Print');
 
     // The first column in the row should be the one containing the pub med
     // tags. We use this to detect thin layouts because the abstract column
