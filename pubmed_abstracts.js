@@ -448,6 +448,7 @@ let domPma = null;
 let domIsThin = false;
 class PubMedImpl {
   constructor(node) {
+    if (domPma == null) domPma = this._setupAbstract();
     this.node = node;
     this.node.classList.add('loading');
     this.pmid = parseInt(this.node.getAttribute('pmid'));
@@ -483,7 +484,6 @@ class PubMedImpl {
     this.node.innerText = error + ': ' + this.node.getAttribute('pmid');
   }
   _fill(data) {
-    if (domPma == null) domPma = this._setupAbstract();
     const article = data?.one('MedlineCitation')?.one('Article');
     this.title = cleanText(article?.one('ArticleTitle')?.text, '.', /[?!]$/);
     this.abstract = article?.one('Abstract')?.all('AbstractText')?.map(x => {
@@ -609,6 +609,9 @@ class PubMedImpl {
       return pma;
     }
     row.classList.add('pub-med-abstract-row');
+
+    // Add the print button at the top of this row.
+    newBtn(row, ['print-button'], () => window.print());
 
     // The first column in the row should be the one containing the pub med
     // tags. We use this to detect thin layouts because the abstract column
