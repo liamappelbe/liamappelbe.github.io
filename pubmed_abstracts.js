@@ -314,7 +314,14 @@ function setTooltip(n, text) {
       domTooltip.innerText = text;
       domTooltip.classList.add('shown');
       if (reposition) {
-        domTooltip.style.left = (e.pageX + 10) + 'px';
+        const pageWidth = document.body.getBoundingClientRect().width;
+        if (e.pageX < 0.8 * pageWidth) {
+          domTooltip.style.left = (e.pageX + 10) + 'px';
+          domTooltip.style.right = null;
+        } else {
+          domTooltip.style.right = (pageWidth - e.pageX + 10) + 'px';
+          domTooltip.style.left = null;
+        }
         domTooltip.style.top = e.pageY + 'px';
       }
     }, kTooltipShowTimeout);
