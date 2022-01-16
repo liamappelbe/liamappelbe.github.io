@@ -123,6 +123,18 @@ pub-med[new] .pub-med-title::before {
     top: 0;
   }
 }
+.pub-med-tooltip {
+  display: none;
+  pointer-events: none;
+  position: fixed;
+  background-color: black;
+  color: white;
+  padding: 4px;
+  border-radius: 4px;
+}
+.pub-med-tooltip.shown {
+  display: block;
+}
 #pub-med-abstract {
   max-height: 50vh;
   overflow-y: scroll;

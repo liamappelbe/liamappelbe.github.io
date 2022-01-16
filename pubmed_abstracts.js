@@ -278,7 +278,7 @@ function fixCase(text) {
 }
 
 function maybePrefix(text, pre = ' ') {
-  return text == '' ? '' : pre + text;
+  return text == null || text == '' ? '' : pre + text;
 }
 
 function emptyDiv(n) {
@@ -297,11 +297,41 @@ function newDiv(parent, classes = [], text = null) {
   return newElement('div', parent, classes, text);
 }
 
+let domTooltip = null;
+let domTooltipTimeout = null;
+const kTooltipShowTimeout = 0;
+const kTooltipHideTimeout = 0;
+function setTooltip(n, text) {
+  if (domTooltip == null) {
+    domTooltip = newDiv(document.body, ['pub-med-tooltip']);
+  }
+  n.addEventListener('mouseenter', e => {
+    // Only reposition the tooltip if it's currently hidden or the text changed.
+    const reposition =
+        !domTooltip.classList.contains('shown') || domTooltip.innerText != text;
+    if (domTooltipTimeout != null) window.clearTimeout(domTooltipTimeout);
+    domTooltipTimeout = window.setTimeout(() => {
+      domTooltip.innerText = text;
+      domTooltip.classList.add('shown');
+      if (reposition) {
+        domTooltip.style.left = (e.pageX + 10) + 'px';
+        domTooltip.style.top = e.pageY + 'px';
+      }
+    }, kTooltipShowTimeout);
+  });
+  n.addEventListener('mouseleave', () => {
+    if (domTooltipTimeout != null) window.clearTimeout(domTooltipTimeout);
+    domTooltipTimeout = window.setTimeout(() => {
+      domTooltip.classList.remove('shown');
+    }, kTooltipHideTimeout);
+  });
+}
+
 function newBtn(
-    parent, classes = [], onclick = null, title = null, text = null) {
+    parent, classes = [], onclick = null, tooltip = null, text = null) {
   const btn = newDiv(parent, classes, text);
   if (onclick != null) btn.addEventListener('click', onclick);
-  if (title != null) btn.title = title;
+  if (tooltip != null) setTooltip(btn, tooltip);
   return btn;
 }
 
@@ -338,7 +368,7 @@ function parseMonth(month) {
   return '';
 }
 
-function parseDate(date, fallbackDate = '') {
+function parseDate(date, includeDay = false, fallbackDate = '') {
   const year = maybePrefix(cleanText(date?.one('Year')?.text));
   if (year == '') {
     const medDate = maybePrefix(cleanText(date?.one('MedlineDate')?.text));
@@ -346,16 +376,19 @@ function parseDate(date, fallbackDate = '') {
   }
   const month = maybePrefix(parseMonth(date?.one('Month')?.text));
   if (month == '') return fallbackDate != '' ? fallbackDate : year;
-  return `${year}${month}`;
+  const day = includeDay ? maybePrefix(date?.one('Day')?.text) : '';
+  return `${year}${month}${day}`;
 }
 
 function parsePubDates(article) {
   let epubDate = parseDate(
       (article?.all('ArticleDate')
            ?.filter(d => d?.attr('DateType') == 'Electronic') ??
-       [])[0]);
+       [])[0],
+      true);
   let pubDate = parseDate(
-      article?.one('Journal')?.one('JournalIssue')?.one('PubDate'), epubDate);
+      article?.one('Journal')?.one('JournalIssue')?.one('PubDate'), true,
+      epubDate);
   if (pubDate == '') pubDate = epubDate;
   if (epubDate == '') epubDate = pubDate;
   return [pubDate, epubDate];
@@ -373,7 +406,7 @@ function parseAuthors(article, maxAuthors = 3) {
                     })
                     ?.filter(x => x != '') ??
       [];
-  if (authors.length > maxAuthors) {
+  if (maxAuthors != null && authors.length > maxAuthors) {
     authors = authors.slice(0, maxAuthors);
     authors.push('et al');
   }
@@ -402,6 +435,13 @@ function shouldAllowAbstract(isoAbbr) {
         new Set(kAllowedAbstractJournals.map(x => x.trim().toLowerCase()));
   }
   return allowedAbstractJournals.has(isoAbbr.trim().toLowerCase());
+}
+
+function formatEpubInfo(isPreprint, pubDate, epubDate) {
+  if (isPreprint) return 'Epub ahead of print';
+  if (pubDate == '') return '';
+  if (pubDate == epubDate) return '';
+  return `Epub ${epubDate}`;
 }
 
 let domPma = null;
@@ -452,6 +492,7 @@ class PubMedImpl {
         [];
     const isPreprint = parsePreprintStatus(data?.one('PubmedData'));
     const authorText = parseAuthors(article);
+    const fullAuthorText = parseAuthors(article, null);
     const [pubDate, epubDate] = parsePubDates(article);
     const journal = article?.one('Journal');
     const isoAbbr = cleanText(journal?.one('ISOAbbreviation')?.text);
@@ -461,8 +502,12 @@ class PubMedImpl {
         maybePrefix(cleanText(journalIssue?.one('Issue')?.text, ')'), '(');
     const page = cleanText(article?.one('Pagination')?.one('MedlinePgn')?.text);
     const pubIssue = `${volume}${issue}${maybePrefix(page, ':')}`;
-    this.cite = `${authorText}. ${this.title} ${cleanText(isoAbbr, '.')}` +
-        `${isPreprint ? ' Epub' : ''}${pubDate}${maybePrefix(pubIssue, ';')}`;
+    const doi = parseDoi(article);
+    const epubInfo = formatEpubInfo(isPreprint, pubDate, epubDate);
+    this.cite = `${fullAuthorText}. ${this.title} ${cleanText(isoAbbr, '. ')}` +
+        cleanText(`${pubDate}${maybePrefix(pubIssue, ';')}`, '. ') +
+        `${cleanText(maybePrefix(doi, 'doi: '), '. ')}` +
+        `${cleanText(epubInfo, '. ')}PMID: ${this.pmid}.`;
     emptyDiv(this.node);
     this.node.classList.remove('loading');
     if (this.allowAbstract == null) {
