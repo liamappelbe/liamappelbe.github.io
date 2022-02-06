@@ -33,6 +33,7 @@ function setUniqueDomId(node) {
 class TableOfContentsImpl {
   constructor(node) {
     this.node = node;
+    this.topBtn = null;
     window.setTimeout(() => {
       emptyDiv(this.node);
       const ol = newElement('ol', this.node, ['contents_list']);
@@ -41,6 +42,17 @@ class TableOfContentsImpl {
         const li = newElement('li', ol, ['contents_list_item']);
         newLink(li, ['contents_link'], `#${id}`, h.innerText);
       }
+      this.topBtn = newElement('div', document.body, ['scroll_to_top_button']);
+      this.topBtn.onclick = () => {
+        document.body.scrollTop = document.documentElement.scrollTop = 0;
+      };
+      window.addEventListener('scroll', () => {
+        if (this.node.getBoundingClientRect().bottom < 0) {
+          this.topBtn.classList.add('enabled');
+        } else {
+          this.topBtn.classList.remove('enabled');
+        }
+      });
     }, 0);
   }
 }
