@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Vortex</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+function fclamp(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x; }
+function fmod(x, y = 1) {
+  const z = x / y;
+  return (z - Math.floor(z)) * y;
+}
+function rgba(r, g, b, a) {
+  return `rgba(${fclamp(r) * 255},${fclamp(g) * 255},${fclamp(b) * 255},${fclamp(a)})`;
+}
+function hue(h, a = 1) {
+  h = fmod(h) * 6;
+  const x = 1 - Math.abs(fmod(h, 2) - 1);
+  if (h < 1) return rgba(1, x, 0, a);
+  if (h < 2) return rgba(x, 1, 0, a);
+  if (h < 3) return rgba(0, 1, x, a);
+  if (h < 4) return rgba(0, x, 1, a);
+  if (h < 5) return rgba(x, 0, 1, a);
+  return rgba(1, 0, x, a);
+}
+function dist(u, v) {
+  const x = u[0] - v[0];
+  const y = u[1] - v[1];
+  return Math.sqrt(x * x + y * y);
+}
+let epoch = 0;
+function go() {
+  const mul = parseInt(document.getElementById("vortex_mul").value);
+  const mod = parseInt(document.getElementById("vortex_mod").value);
+  if (isNaN(mul) || isNaN(mod)) return;
+  if (mul <= 0 || mod <= 0) return;
+  if (mul >= mod) return;
+
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext('2d');
+  const zoom = 0.9;
+  const halfWidth = canvas.width / 2;
+  const halfHeight = canvas.height / 2;
+  ctx.setTransform(zoom * halfWidth, 0, 0, -zoom * halfHeight, halfWidth, halfHeight);
+  ctx.lineWidth = 1.5 / (halfWidth + halfHeight);
+
+  const start = Date.now();
+  const myEpoch = ++epoch;
+  const tau = 2 * Math.PI;
+  const opacity = 10 / (1 + 0.5 * Math.sqrt(mod));
+
+  const circle = (px, py, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const line = (p, q, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(q[0], q[1]);
+    ctx.stroke();
+  };
+
+  const linert = (p, r, t, clr) => {
+    line(p, [p[0] + r * Math.cos(t), p[1] + r * Math.sin(t)], clr);
+  };
+
+  const points = [];
+  for (let i = 0; i < mod; ++i) {
+    const t = i * tau / mod + tau / 4;
+    points.push([Math.cos(t), Math.sin(t)]);
+  }
+
+  const lines = [];
+  for (let i = 0; i < mod; ++i) {
+    const j = (i * mul) % mod;
+    lines.push([dist(points[i], points[j]), i, j, -1]);
+  }
+
+  // Identify loops.
+  let loops = 0;
+  for (const l of lines) {
+    if (l[3] == -1) {
+      // Walk around the loop.
+      const walk = [];
+      let j = l[1];
+      let hitOld = false;
+      while (true) {
+        const m = lines[j];
+        if (m[3] != -1) {
+          if (m[3] != loops) {
+            // Edge case: we've hit an older loop, so reuse its id.
+            hitOld = true;
+            for (const n of walk) n[3] = m[3];
+          }
+          break;
+        }
+        walk.push(m);
+        m[3] = loops;
+        j = m[2];
+      }
+      if (!hitOld) ++loops;
+    }
+  }
+  lines.sort((p, q) => q[0] - p[0]);
+
+  const update = () => {
+    if (epoch != myEpoch) return;
+    const time = (Date.now() - start) / 1000;
+    const loop = Math.floor(time / 3) % (loops + 1) - 1;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-10, -10, 20, 20);
+
+    circle(0, 0, 1.005, '#FFFFFF08');
+    circle(0, 0, 0.995, '#000');
+    for (const l of lines) {
+      const hilite = l[1] != 0 && l[3] == loop;
+      const clr = hilite ? '#FFF' : hue(0.7 + l[0] / 2, opacity);
+      const p = points[l[1]];
+      const q = points[l[2]];
+      line(p, q, clr);
+      if (hilite) {
+        const t = Math.atan2(q[1] - p[1], q[0] - p[0]);
+        linert(q, 0.05, t + tau * 0.4, '#FFF');
+        linert(q, 0.05, t - tau * 0.4, '#FFF');
+      }
+    }
+
+    for (const p of points) {
+      circle(p[0], p[1], 0.005, '#FFF');
+    }
+
+    window.requestAnimationFrame(update);
+  };
+  update();
+}
+window.addEventListener('load', go);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+#input_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+#input_row > * {
+  resize: none;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Vortex</h1>
+</div>
+<div id="wrap">
+  <div>
+    Given a multipler X and a modulus Y, space Y points evenly around a circle,
+    and connect point A to point B if B = A * X mod Y.
+    <br>
+    The connected groups of links are highlighted one by one, with arrows
+    showing the direction of the link. Interestingly, these groups don't form
+    loops (multiple points can link to a single destination point), and many of
+    them are surprisingly asymmetrical.
+    <br>
+    Both the multiplier and the modulus must be integers greater than 0, and the
+    multiplier must be less than the modulus.
+    <br>
+    Inspired by
+    <a href="https://youtu.be/6ZrO90AI0c8">this Mathologer video</a>.
+  </div>
+  <div id="input_row">
+    Multiplier:
+    <textarea id="vortex_mul" rows="1" cols="3">2</textarea>
+    Modulus:
+    <textarea id="vortex_mod" rows="1" cols="3">9</textarea>
+    <a onclick="go()">GO</a>
+  </div>
+  <canvas id="view" width="800" height="800"></canvas>
+</div>
+</body>
+</html>
