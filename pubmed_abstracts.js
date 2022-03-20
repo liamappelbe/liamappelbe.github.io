@@ -457,6 +457,7 @@ class PubMedImpl {
   constructor(node) {
     if (domPma == null) domPma = this._setupAbstract();
     this.node = node;
+    emptyDiv(this.node);
     this.node.classList.add('loading');
     this.pmid = parseInt(this.node.getAttribute('pmid'));
     this.allowAbstract = null;
