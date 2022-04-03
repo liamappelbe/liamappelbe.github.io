@@ -23,6 +23,11 @@ let mouseRawX = 0;
 let mouseRawY = 0;
 let mouseX = 0;
 let mouseY = 0;
+let click = false;
+let pclick = false;
+let clickAng = 0;
+let clickRot = 0;
+let clickOutLine = false;
 let rot = 0;
 let outLine = 0;
 
@@ -72,6 +77,20 @@ function numCChange() {
   fillNums();
 }
 
+function setOutLine(t) {
+  outLine = t;
+  numC = Math.pow(10, arcMod(t) / tau);
+  numB = numC * numA;
+  fillNums();
+}
+
+function setRot(t) {
+  rot = t;
+  numA = Math.pow(10, arcMod(t) / tau);
+  numB = numC * numA;
+  fillNums();
+}
+
 function onScroll(e) {
   const oldZoom = zoomTarg;
   zoomTarg *= Math.pow(zoomRate, e.deltaY / -100);
@@ -93,6 +112,14 @@ function onMouseMove(e) {
   updateMouse();
 }
 
+function onMouseDown(e) {
+  click = true;
+}
+
+function onMouseUp(e) {
+  click = false;
+}
+
 function updateMouse() {
   mouseX = posXTarg - mouseRawX / zoomTarg;
   mouseY = posYTarg + mouseRawY / zoomTarg;
@@ -105,6 +132,10 @@ function onLoad() {
   domNumC = document.getElementById("num_c");
   numAChange();
 
+  domCanvas.addEventListener('mousedown', onMouseDown);
+  domCanvas.addEventListener('mouseup', onMouseUp);
+  domCanvas.addEventListener('mouseout', onMouseUp);
+
   const ctx = domCanvas.getContext('2d');
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -115,15 +146,15 @@ function onLoad() {
   const drawCircle = (px, py, r, clr) => {
     ctx.fillStyle = clr;
     ctx.beginPath();
-    ctx.ellipse(py, -px, r, r, 0, 0, tau);
+    ctx.ellipse(py * zoom, -px * zoom, r * zoom, r * zoom, 0, 0, tau);
     ctx.fill();
   };
 
   const drawLine = (px, py, qx, qy, clr) => {
     ctx.strokeStyle = clr;
     ctx.beginPath();
-    ctx.moveTo(py, -px);
-    ctx.lineTo(qy, -qx);
+    ctx.moveTo(py * zoom, -px * zoom);
+    ctx.lineTo(qy * zoom, -qx * zoom);
     ctx.stroke();
   };
 
@@ -135,7 +166,35 @@ function onLoad() {
 
   const drawText = (x, y, str, clr) => {
     ctx.fillStyle = clr;
-    ctx.fillText(str, y, -x);
+    ctx.fillText(str, y * zoom, -x * zoom);
+  };
+
+  const drawNum = (x, y, num, size, clr) => {
+    ctx.strokeStyle = clr;
+    x -= 0.5 * size * num.length;
+    const gs = size * 0.8;
+    const gsh = 0.5 * gs;
+    const draw = (k) => {
+      ctx.beginPath();
+      switch(k) {
+        case 0:
+          ctx.moveTo(x - gsh, y - gs);
+          ctx.lineTo(x + gsh, y - gs);
+          ctx.lineTo(x + gsh, y + gs);
+          ctx.lineTo(x - gsh, y + gs);
+          break;
+        case 1:
+          ctx.moveTo(x, y - gs);
+          ctx.lineTo(x, y + gs);
+          break;
+      }
+      ctx.stroke();
+      x += size;
+    };
+    for (let i = 0; i < num.length; ++i) {
+      draw(num[i]);
+      if (i == 0) draw(-1);
+    }
   };
 
   const viewIn = (viewAng, viewArc, from, to) => {
@@ -144,25 +203,29 @@ function onLoad() {
     return lo < viewArc && hi > -viewArc;
   }
 
-  const logs = [];
-  for (let i = 1; i < 10; ++i) logs.push(Math.log10(i));
-  let totalScales = 0;
-  const drawScale = (from, to, r0, textOff, levels, viewAng, viewArc, clr) => {
-    ++totalScales;
-    const delta = to - from;
-    const rt = r0 - textOff;
-    let pt = to;
-    for (let i = 9; i >= 0; --i) {
-      const t = logs[i] * delta + from;
-      const x = Math.cos(t);
-      const y = Math.sin(t);
-      drawLine(r0 * x, r0 * y, x, y, clr);
-      drawText(rt * x, rt * y, i + 1, clr);
-      if (levels > 0 && viewIn(viewAng, viewArc, pt, t)) {
-        drawScale(pt, t, 1 - (1 - r0) * 0.1, textOff,
-                  levels - 1, viewAng, viewArc, clr);
-      }
-      pt = t;
+  const drawScale = (a, b, rot, r, textSize, viewAng, viewArc, limit, clr,
+      showNum = true, str = '') => {
+    if (str == '') str += a;
+    const t = tau * Math.log10(a) - rot;
+    const bt = tau * Math.log10(b) - rot;
+    if (str.length > 3 && !viewIn(viewAng, viewArc, t, bt)) return;
+    const x = Math.cos(t);
+    const y = Math.sin(t);
+    drawLine(r * x, r * y, x, y, clr);
+    if (Math.abs(arcMod(bt - t)) < limit) return;
+    const rt = r - textSize;
+    if (showNum) drawText(rt * x, rt * y, str, clr);
+    if (str.length == 1) str += '.';
+    const d = 0.1 * (b - a);
+    let aa = a;
+    const rr = 1 - (1 - r) * 0.1;
+    for (let i = 0; i < 10;) {
+      const str2 = str + i;
+      ++i;
+      const bb = i * d + a;
+      drawScale(
+          aa, bb, rot, rr, textSize, viewAng, viewArc, limit, clr, i > 1, str2);
+      aa = bb;
     }
   };
 
@@ -170,14 +233,29 @@ function onLoad() {
     zoom += zoomSmooth * (zoomTarg - zoom);
     posX += zoomSmooth * (posXTarg - posX);
     posY += zoomSmooth * (posYTarg - posY);
+    updateMouse();
+
+    if (click) {
+      const mouseAng = Math.atan2(mouseY, mouseX);
+      if (!pclick) {
+        clickAng = mouseAng;
+        clickRot = rot;
+        clickOutLine = Math.abs(arcMod(clickAng - outLine)) < 0.05 / zoom;
+      }
+      if (clickOutLine) {
+        setOutLine(mouseAng);
+      } else {
+        setRot(clickRot - mouseAng + clickAng);
+      }
+    }
 
     ctx.setTransform(
-        zoom * halfWidth, 0, 0, zoom * halfHeight,
+        halfWidth, 0, 0, halfHeight,
         halfWidth * (1 - zoom * posY), halfHeight * (1 + zoom * posX));
     const scale = 1 / ((halfWidth + halfHeight) * zoom);
-    ctx.lineWidth = 2 * scale;
-    ctx.font = (5 * scale) + 'em sans-serif';
-    const textOff = 50 * scale;
+    ctx.lineWidth = 0.005;
+    const textSize = 50 * scale;
+    ctx.font = '0.07px sans-serif';
     const viewAng = Math.atan2(posY, posX);
     let viewArc = 0;
     const arcs = [];
@@ -187,36 +265,30 @@ function onLoad() {
             viewAng - Math.atan2(posY + cy / zoom, posX + cx / zoom))));
       }
     }
-    console.log(viewArc);
 
-    ctx.fillStyle = '#212121';
-    ctx.fillRect(-10, -10, 20, 20);
-
+    drawCircle(0, 0, 3, '#212121');
     drawCircle(0, 0, 1.3, '#FFFFFF20');
     drawCircle(0, 0, 1, '#FFFFFF10');
-    drawCircle(posX, posY, 0.1 / zoom, '#0F0');
-    drawCircle(mouseX, mouseY, 0.1 / zoom, '#0F0');
-    for (let cx = -1; cx < 2; cx += 2) {
-      for (let cy = -1; cy < 2; cy += 2) {
-        drawCircle(posX + cx/zoom, posY + cy/zoom, 0.1 / zoom, '#0F0');
-      }
-    }
-    drawRadialLine(0, 1, viewAng, '#0F0');
-    drawRadialLine(0, 1, viewAng + viewArc, '#0F0');
-    drawRadialLine(0, 1, viewAng - viewArc, '#0F0');
 
-    ctx.lineWidth = 10 * scale;
+    ctx.lineWidth = 0.01;
     drawRadialLine(0, 1.3, 0, '#FF0000');
     drawRadialLine(0, 1.3, outLine, '#0000FF');
 
-    ctx.lineWidth = 3 * scale;
-    const levels = 1 + Math.log10(zoomTarg / zoomMin);
-    totalScales = 0;
-    drawScale(0, tau, 1.1, -textOff, levels, viewAng, viewArc, '#FFF');
-    console.log(totalScales);
-    drawScale(-rot, tau + -rot, 0.8, textOff, levels, viewAng, viewArc, '#FFF');
+    // drawCircle(mouseX, mouseY, 0.01, '#0F0');
+    // drawCircle(posX, posY, 0.01, '#0F0');
+
+    ctx.lineWidth = 0.005;
+    const zoomedOnCenter = (posX * posX + posY * posY) < 0.3 && zoom > 5;
+    if (!zoomedOnCenter) {
+      const limit = viewArc * 0.11;
+      for (let i = 1; i < 10; ++i) {
+        drawScale(i, i + 1, 0, 1.1, -textSize, viewAng, viewArc, limit, '#FFF');
+        drawScale(i, i + 1, rot, 0.8, textSize, viewAng, viewArc, limit, '#FFF');
+      }
+    }
 
     drawCircle(0, 0, 0.05, '#FFF');
+    pclick = click;
 
     window.requestAnimationFrame(update);
   };
