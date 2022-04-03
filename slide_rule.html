@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Circular Slide Rule</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+const tau = 2 * Math.PI;
+const zoomRate = 1.1;
+const zoomSmooth = 0.2;
+const zoomMin = 0.7;
+
+let numA = 2;
+let numB = 6;
+let numC = 3;
+let zoom = 0.7;
+let zoomTarg = 0.7;
+let posX = 0;
+let posY = 0;
+let posXTarg = 0;
+let posYTarg = 0;
+let mouseRawX = 0;
+let mouseRawY = 0;
+let mouseX = 0;
+let mouseY = 0;
+let rot = 0;
+let outLine = 0;
+
+let domCanvas = null;
+let domNumA = null;
+let domNumB = null;
+let domNumC = null;
+
+function fmod(x, y = 1) {
+  const z = x / y;
+  return (z - Math.floor(z)) * y;
+}
+
+function arcMod(t) {
+  return fmod(t + Math.PI, tau) - Math.PI;
+}
+
+function safeGet(node, defaultVal) {
+  const x = parseFloat(node.value);
+  if (isNaN(x) || x <= 0) return defaultVal;
+  return x;
+}
+
+function fillNums() {
+  rot = tau * Math.log10(numA);
+  outLine = tau * Math.log10(numC);
+  domNumA.value = numA;
+  domNumB.value = numB;
+  domNumC.value = numC;
+}
+
+function numAChange() {
+  numA = safeGet(domNumA, numA);
+  numB = numC * numA;
+  fillNums();
+}
+
+function numBChange() {
+  numB = safeGet(domNumB, numB);
+  numA = numB / numC;
+  fillNums();
+}
+
+function numCChange() {
+  numC = safeGet(domNumC, numC);
+  numB = numC * numA;
+  fillNums();
+}
+
+function onScroll(e) {
+  const oldZoom = zoomTarg;
+  zoomTarg *= Math.pow(zoomRate, e.deltaY / -100);
+  if (zoomTarg <= zoomMin) {
+    zoomTarg = zoomMin;
+    posXTarg = 0;
+    posYTarg = 0;
+  } else {
+    const dz = oldZoom / zoomTarg;
+    posXTarg = mouseX + dz * (posXTarg - mouseX);
+    posYTarg = mouseY + dz * (posYTarg - mouseY);
+  }
+  updateMouse();
+}
+
+function onMouseMove(e) {
+  mouseRawX = (2 * e.offsetY / domCanvas.height) - 1;
+  mouseRawY = (2 * e.offsetX / domCanvas.width) - 1;
+  updateMouse();
+}
+
+function updateMouse() {
+  mouseX = posXTarg - mouseRawX / zoomTarg;
+  mouseY = posYTarg + mouseRawY / zoomTarg;
+}
+
+function onLoad() {
+  domCanvas = document.getElementById("view");
+  domNumA = document.getElementById("num_a");
+  domNumB = document.getElementById("num_b");
+  domNumC = document.getElementById("num_c");
+  numAChange();
+
+  const ctx = domCanvas.getContext('2d');
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const halfWidth = domCanvas.width / 2;
+  const halfHeight = domCanvas.height / 2;
+
+  const drawCircle = (px, py, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(py, -px, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const drawLine = (px, py, qx, qy, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(py, -px);
+    ctx.lineTo(qy, -qx);
+    ctx.stroke();
+  };
+
+  const drawRadialLine = (r0, r1, t, clr) => {
+    const x = Math.cos(t);
+    const y = Math.sin(t);
+    drawLine(r0 * x, r0 * y, r1 * x, r1 * y, clr);
+  };
+
+  const drawText = (x, y, str, clr) => {
+    ctx.fillStyle = clr;
+    ctx.fillText(str, y, -x);
+  };
+
+  const viewIn = (viewAng, viewArc, from, to) => {
+    const lo = arcMod(from - viewAng);
+    const hi = arcMod(to - viewAng);
+    return lo < viewArc && hi > -viewArc;
+  }
+
+  const logs = [];
+  for (let i = 1; i < 10; ++i) logs.push(Math.log10(i));
+  let totalScales = 0;
+  const drawScale = (from, to, r0, textOff, levels, viewAng, viewArc, clr) => {
+    ++totalScales;
+    const delta = to - from;
+    const rt = r0 - textOff;
+    let pt = to;
+    for (let i = 9; i >= 0; --i) {
+      const t = logs[i] * delta + from;
+      const x = Math.cos(t);
+      const y = Math.sin(t);
+      drawLine(r0 * x, r0 * y, x, y, clr);
+      drawText(rt * x, rt * y, i + 1, clr);
+      if (levels > 0 && viewIn(viewAng, viewArc, pt, t)) {
+        drawScale(pt, t, 1 - (1 - r0) * 0.1, textOff,
+                  levels - 1, viewAng, viewArc, clr);
+      }
+      pt = t;
+    }
+  };
+
+  const update = () => {
+    zoom += zoomSmooth * (zoomTarg - zoom);
+    posX += zoomSmooth * (posXTarg - posX);
+    posY += zoomSmooth * (posYTarg - posY);
+
+    ctx.setTransform(
+        zoom * halfWidth, 0, 0, zoom * halfHeight,
+        halfWidth * (1 - zoom * posY), halfHeight * (1 + zoom * posX));
+    const scale = 1 / ((halfWidth + halfHeight) * zoom);
+    ctx.lineWidth = 2 * scale;
+    ctx.font = (5 * scale) + 'em sans-serif';
+    const textOff = 50 * scale;
+    const viewAng = Math.atan2(posY, posX);
+    let viewArc = 0;
+    const arcs = [];
+    for (let cx = -1; cx < 2; cx += 2) {
+      for (let cy = -1; cy < 2; cy += 2) {
+        viewArc = Math.max(viewArc, Math.abs(arcMod(
+            viewAng - Math.atan2(posY + cy / zoom, posX + cx / zoom))));
+      }
+    }
+    console.log(viewArc);
+
+    ctx.fillStyle = '#212121';
+    ctx.fillRect(-10, -10, 20, 20);
+
+    drawCircle(0, 0, 1.3, '#FFFFFF20');
+    drawCircle(0, 0, 1, '#FFFFFF10');
+    drawCircle(posX, posY, 0.1 / zoom, '#0F0');
+    drawCircle(mouseX, mouseY, 0.1 / zoom, '#0F0');
+    for (let cx = -1; cx < 2; cx += 2) {
+      for (let cy = -1; cy < 2; cy += 2) {
+        drawCircle(posX + cx/zoom, posY + cy/zoom, 0.1 / zoom, '#0F0');
+      }
+    }
+    drawRadialLine(0, 1, viewAng, '#0F0');
+    drawRadialLine(0, 1, viewAng + viewArc, '#0F0');
+    drawRadialLine(0, 1, viewAng - viewArc, '#0F0');
+
+    ctx.lineWidth = 10 * scale;
+    drawRadialLine(0, 1.3, 0, '#FF0000');
+    drawRadialLine(0, 1.3, outLine, '#0000FF');
+
+    ctx.lineWidth = 3 * scale;
+    const levels = 1 + Math.log10(zoomTarg / zoomMin);
+    totalScales = 0;
+    drawScale(0, tau, 1.1, -textOff, levels, viewAng, viewArc, '#FFF');
+    console.log(totalScales);
+    drawScale(-rot, tau + -rot, 0.8, textOff, levels, viewAng, viewArc, '#FFF');
+
+    drawCircle(0, 0, 0.05, '#FFF');
+
+    window.requestAnimationFrame(update);
+  };
+  update();
+}
+window.addEventListener('load', onLoad);
+document.addEventListener('wheel', onScroll);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+#input_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+#input_row > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#input_row > div > * {
+  resize: none;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+#input_row > div > hr {
+  width: 60%;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Circular Slide Rule</h1>
+</div>
+<div id="wrap">
+  <div>
+    A circular version of a slide rule. Drag the inner wheel and blue line.
+    Scroll to zoom in/out. Inspired by
+    <a href="https://youtu.be/ZIQQvxSXLhI">this Mathologer video</a>.
+    <br>
+    <br>
+  </div>
+  <div id="input_row">
+    <div>
+      <input type="text" id="num_a" rows="1" cols="20" onchange="numAChange()">
+      <hr/>
+      <div>1</div>
+    </div>
+    <div>
+      =
+    </div>
+    <div>
+      <input type="text" id="num_b" rows="1" cols="20" onchange="numBChange()">
+      <hr/>
+      <input type="text" id="num_c" rows="1" cols="20" onchange="numCChange()">
+    </div>
+  </div>
+  <canvas id="view" width="800" height="800", onmousemove="onMouseMove(event)">
+  </canvas>
+</div>
+</body>
+</html>
