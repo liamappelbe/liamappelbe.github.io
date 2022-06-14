@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Quasi Crystals</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+function safeGet(node, defaultValue) {
+  const value = parseFloat(node.value);
+  if (isNaN(value)) return defaultValue;
+  return value;
+}
+
+function onLoad() {
+  const inGrad = document.getElementById('in_grad');
+  const inOff = document.getElementById('in_off');
+  const canvas = document.getElementById('view');
+
+  const ctx = canvas.getContext('2d');
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const tau = 2 * Math.PI;
+  const halfWidth = canvas.width / 2;
+  const halfHeight = canvas.height / 2;
+  const viewSize = 10;
+  const posX = 0.5 * viewSize;
+  const posY = 0.5 * viewSize;
+  ctx.setTransform(
+      0, -2 * halfWidth / viewSize, 2 * halfHeight / viewSize, 0,
+      halfWidth * (1 - 2 * posX / viewSize), halfHeight * (1 + 2 * posY / viewSize));
+  ctx.lineWidth = viewSize / (halfWidth + halfHeight);
+
+  const circle = (px, py, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const line = (px, py, qx, qy, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(qx, qy);
+    ctx.stroke();
+  };
+
+  const ray = (px, py, g, clr) => {
+    line(px, py, px + viewSize, py + g * viewSize, clr);
+  };
+
+  let grad = 0;
+  let off = 0;
+  const update = () => {
+    const dotSize = 0.003 * viewSize;
+    grad = safeGet(inGrad, grad);
+    off = safeGet(inOff, off);
+    gx = 1 / Math.sqrt(1 + grad * grad);
+    gy = gx * grad;
+    hitRad = 0.5 * Math.sqrt(1 + grad);  // TODO.
+    hitGx = gy;
+    hitGy = -gx;
+    hitSx = hitGx * hitRad;
+    hitSy = hitGy * hitRad;
+    hitOx = hitGx * off;
+    hitOy = hitGy * off;
+
+    // Clear to black.
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-1000, -1000, 2000, 2000);
+
+    // Draw dots.
+    for (let i = 0; i <= viewSize; ++i) {
+      for (let j = 0; j <= viewSize; ++j) {
+        circle(i, j, dotSize, '#FFFFFF22');
+      }
+    }
+
+    // Draw hit lines.
+    for (let i = 0; i <= viewSize; ++i) {
+      for (let j = 0; j <= viewSize; ++j) {
+        line(i - hitSx, j - hitSy, i + hitSx, j + hitSy, '#0088FF22');
+      }
+    }
+
+    // Draw ray.
+    ray(hitOx, hitOy, grad, '#FFF');
+
+    // Draw hit dots. TODO: Maybe make this more efficient?
+    for (let i = 0; i <= viewSize; ++i) {
+      for (let j = 0; j <= viewSize; ++j) {
+        const k = gx * (i - hitOx) + gy * (j - hitOy);
+        const ux = hitOx + k * gx;
+        const uy = hitOy + k * gy;
+        const dx = i - ux;
+        const dy = j - uy;
+        if ((dx * dx + dy * dy) <= hitRad * hitRad) {
+          line(i, j, ux, uy, '#08F');
+          circle(ux, uy, 2 * dotSize, '#F00');
+          circle(i, j, dotSize, '#08F');
+        }
+      }
+    }
+
+    window.requestAnimationFrame(update);
+  };
+  update();
+}
+window.addEventListener('load', onLoad);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+#layout {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+#left {
+}
+#right {
+  margin-left: 16px;
+  flex-grow: 1;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Quasi Crystals (Prototype)</h1>
+</div>
+<div id="wrap">
+  <div id="layout">
+    <div id="left">
+      <canvas id="view" width="800" height="800"></canvas>
+    </div>
+    <div id="right">
+      Gradient: <input type="text" id="in_grad" value="1.618033988749894"/><br/>
+      Offset: <input type="text" id="in_off" value="0"/><br/>
+      <div id="sequence"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
