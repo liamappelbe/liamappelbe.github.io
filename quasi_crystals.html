@@ -4,16 +4,123 @@
 <title>Quasi Crystals</title>
 <link rel="icon" href="res/favicon.ico">
 <script type="text/javascript">
-function safeGet(node, defaultValue) {
+
+// Config
+const viewSize = 10;
+const contFracTerms = 10;  // Max is around 30 before float errors.
+const visibleContFracTerms = 6;
+const epsilon = 1e-6;
+const alwaysRedraw = false;
+
+function getContFracTerms(x, maxTerms) {
+  const terms = [];
+  for (let i = 0; i < maxTerms; ++i) {
+    const c = Math.floor(x);
+    terms.push(c);
+    const r = x - c;
+    if (r < epsilon) break;
+    x = 1 / r;
+  }
+  return terms;
+}
+
+function repeatStr(s, n) {
+  let t = '';
+  while (n > 0) {
+    t += t;
+    if (n & 1) t += s;
+    n >>>= 1;
+  }
+  return t;
+}
+
+function wordFromContFracTerms(terms) {
+  let w = '';
+  let w1 = 'S';
+  let w2 = 'L';
+  for (let i = 0; i < terms.length; ++i) {
+    if (i % 2 == 0) {
+      w = repeatStr(w1, terms[i]) + w2;
+    } else {
+      w = w2 + repeatStr(w1, terms[i]);
+    }
+    w2 = w1;
+    w1 = w;
+  }
+  return w;
+}
+
+function safeGet(node, defaultValue, isValid = (x => true)) {
   const value = parseFloat(node.value);
-  if (isNaN(value)) return defaultValue;
+  if (isNaN(value) || !isValid(value)) return defaultValue;
   return value;
 }
 
+function newElement(type, parent, classes = [], text = null) {
+  const n = document.createElement(type);
+  if (text != null) n.innerText = text;
+  for (const cls of classes) n.classList.add(cls);
+  if (parent != null) parent.appendChild(n);
+  return n;
+}
+
+function newDiv(parent, classes = [], text = null) {
+  return newElement('div', parent, classes, text);
+}
+
+function emptyDiv(n) {
+  while (n.hasChildNodes()) n.removeChild(n.lastChild);
+}
+
+function fillContFracDom(node, terms) {
+  emptyDiv(node);
+  let n = terms.length;
+  const trunc = n > visibleContFracTerms;
+  if (trunc) n = visibleContFracTerms;
+  --n;
+  for (let i = 0; i < n; ++i) {
+    if (!(i == 0 && terms[i] == 0)) {
+      newDiv(node, ['cont-frac-term-inner'], `${terms[i]} + `);
+    }
+    const frac = newDiv(node, ['cont-frac-frac']);
+    newDiv(frac, ['cont-frac-num'], '1');
+    node = newDiv(frac, ['cont-frac-den']);
+  }
+  newDiv(node, ['cont-frac-term'], `${terms[n]}${trunc ? ' ...' : ''}`);
+}
+
+function runUnitTests() {
+  let anyFails = false;
+  const testWord = (terms, expectedWord) => {
+    const word = wordFromContFracTerms(terms);
+    if (word != expectedWord) {
+      console.error(`wordFromContFracTerms([${terms}]) produced ${word} instead of ${expectedWord}`);
+      anyFails = true;
+    }
+  };
+
+  testWord([], '');
+  testWord([1], 'SL');
+  testWord([1, 1], 'SSL');
+  testWord([1, 1, 1], 'SSLSL');
+  testWord([1, 1, 1, 1], 'SSLSSLSL');
+  testWord([1, 1, 1, 1, 1], 'SSLSSLSLSSLSL');
+  testWord([1, 1, 1, 1, 1, 1], 'SSLSSLSLSSLSSLSLSSLSL');
+  testWord([1, 6, 2, 3, 1, 2], 'SSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSL');
+
+  if (!anyFails) {
+    console.log('All tests passed :)');
+  }
+}
+
 function onLoad() {
+  runUnitTests();
+
   const inGrad = document.getElementById('in_grad');
   const inOff = document.getElementById('in_off');
   const canvas = document.getElementById('view');
+  const domFraction = document.getElementById('fraction');
+  const domWord = document.getElementById('word');
 
   const ctx = canvas.getContext('2d');
   ctx.textAlign = 'center';
@@ -22,7 +129,7 @@ function onLoad() {
   const tau = 2 * Math.PI;
   const halfWidth = canvas.width / 2;
   const halfHeight = canvas.height / 2;
-  const viewSize = 10;
+  const dotSize = 0.003 * viewSize;
   const posX = 0.5 * viewSize;
   const posY = 0.5 * viewSize;
   ctx.setTransform(
@@ -45,61 +152,70 @@ function onLoad() {
     ctx.stroke();
   };
 
-  const ray = (px, py, g, clr) => {
-    line(px, py, px + viewSize, py + g * viewSize, clr);
-  };
-
   let grad = 0;
   let off = 0;
   const update = () => {
-    const dotSize = 0.003 * viewSize;
-    grad = safeGet(inGrad, grad);
+    const oldGrad = grad;
+    const oldOff = off;
+    grad = safeGet(inGrad, grad, x => x >= 0);
     off = safeGet(inOff, off);
-    gx = 1 / Math.sqrt(1 + grad * grad);
-    gy = gx * grad;
-    hitRad = 0.5 * Math.sqrt(1 + grad);  // TODO.
-    hitGx = gy;
-    hitGy = -gx;
-    hitSx = hitGx * hitRad;
-    hitSy = hitGy * hitRad;
-    hitOx = hitGx * off;
-    hitOy = hitGy * off;
+    const needsRedraw = alwaysRedraw || oldGrad != grad || oldOff != off;
 
-    // Clear to black.
-    ctx.fillStyle = '#000';
-    ctx.fillRect(-1000, -1000, 2000, 2000);
+    if (needsRedraw) {
+      gy = 1 / Math.sqrt(1 + grad * grad);
+      gx = gy * grad;
+      hitRad = 0.5 * (1 + grad) / Math.sqrt(1 + grad * grad);
+      hitGx = gy;
+      hitGy = -gx;
+      hitSx = hitGx * hitRad;
+      hitSy = hitGy * hitRad;
+      hitOx = hitGx * off;
+      hitOy = hitGy * off;
 
-    // Draw dots.
-    for (let i = 0; i <= viewSize; ++i) {
-      for (let j = 0; j <= viewSize; ++j) {
-        circle(i, j, dotSize, '#FFFFFF22');
-      }
-    }
+      // Clear to black.
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
 
-    // Draw hit lines.
-    for (let i = 0; i <= viewSize; ++i) {
-      for (let j = 0; j <= viewSize; ++j) {
-        line(i - hitSx, j - hitSy, i + hitSx, j + hitSy, '#0088FF22');
-      }
-    }
-
-    // Draw ray.
-    ray(hitOx, hitOy, grad, '#FFF');
-
-    // Draw hit dots. TODO: Maybe make this more efficient?
-    for (let i = 0; i <= viewSize; ++i) {
-      for (let j = 0; j <= viewSize; ++j) {
-        const k = gx * (i - hitOx) + gy * (j - hitOy);
-        const ux = hitOx + k * gx;
-        const uy = hitOy + k * gy;
-        const dx = i - ux;
-        const dy = j - uy;
-        if ((dx * dx + dy * dy) <= hitRad * hitRad) {
-          line(i, j, ux, uy, '#08F');
-          circle(ux, uy, 2 * dotSize, '#F00');
-          circle(i, j, dotSize, '#08F');
+      // Draw dots.
+      for (let i = 0; i <= viewSize; ++i) {
+        for (let j = 0; j <= viewSize; ++j) {
+          circle(i, j, dotSize, '#FFFFFF22');
         }
       }
+
+      // Draw hit lines.
+      for (let i = 0; i <= viewSize; ++i) {
+        for (let j = 0; j <= viewSize; ++j) {
+          line(i - hitSx, j - hitSy, i + hitSx, j + hitSy, '#0088FF22');
+        }
+      }
+
+      // Draw ray.
+      line(hitOx, hitOy, 2 * viewSize * gx, 2 * viewSize * gy, '#FFF');
+
+      // Draw hit dots. TODO: Maybe make this more efficient?
+      for (let i = 0; i <= viewSize; ++i) {
+        for (let j = 0; j <= viewSize; ++j) {
+          const k = gx * (i - hitOx) + gy * (j - hitOy);
+          const ux = hitOx + k * gx;
+          const uy = hitOy + k * gy;
+          const dx = i - ux;
+          const dy = j - uy;
+          if ((dx * dx + dy * dy) <= hitRad * hitRad) {
+            line(i, j, ux, uy, '#08F');
+            circle(ux, uy, 2 * dotSize, '#F00');
+            circle(i, j, dotSize, '#08F');
+          }
+        }
+      }
+
+      // Fill continued fraction.
+      const terms = getContFracTerms(grad, contFracTerms);
+      fillContFracDom(domFraction, terms);
+
+      // Fill word.
+      const word = wordFromContFracTerms(terms);
+      domWord.innerText = word;
     }
 
     window.requestAnimationFrame(update);
@@ -161,6 +277,34 @@ a {
 #right {
   margin-left: 16px;
   flex-grow: 1;
+  flex-shrink: 1;
+  display: flex;
+  flex-direction: column;
+}
+#word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 250px;
+}
+.cont-frac-term-inner {
+  padding-top: 0.5em;
+  padding-right: 0.7em;
+}
+.cont-frac-frac {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.cont-frac-num {
+  text-align: center;
+}
+#fraction, .cont-frac-den {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.cont-frac-den {
+  border-top: 2px solid #f5f5f5;
 }
 </style>
 </head>
@@ -175,9 +319,14 @@ a {
       <canvas id="view" width="800" height="800"></canvas>
     </div>
     <div id="right">
-      Gradient: <input type="text" id="in_grad" value="1.618033988749894"/><br/>
+      Gradient: <input type="text" id="in_grad" value="0.618033988749894"/><br/>
       Offset: <input type="text" id="in_off" value="0"/><br/>
-      <div id="sequence"></div>
+      <br/>
+      Continued Fraction:<br/>
+      <div id="fraction"></div>
+      <br/>
+      Sequence:<br/>
+      <div id="word"></div>
     </div>
   </div>
 </div>
