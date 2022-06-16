@@ -11,6 +11,7 @@ const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
 const epsilon = 1e-6;
 const alwaysRedraw = false;
+const maxSeqLength = 1000;  // Way more than what we display.
 
 function getContFracTerms(x, maxTerms) {
   const terms = [];
@@ -24,12 +25,13 @@ function getContFracTerms(x, maxTerms) {
   return terms;
 }
 
-function repeatStr(s, n) {
+function repeatStr(s, n, max) {
   let t = '';
   while (n > 0) {
-    t += t;
     if (n & 1) t += s;
+    s += s;
     n >>>= 1;
+    if (t.length >= max) break;
   }
   return t;
 }
@@ -39,11 +41,9 @@ function wordFromContFracTerms(terms) {
   let w1 = 'S';
   let w2 = 'L';
   for (let i = 0; i < terms.length; ++i) {
-    if (i % 2 == 0) {
-      w = repeatStr(w1, terms[i]) + w2;
-    } else {
-      w = w2 + repeatStr(w1, terms[i]);
-    }
+    const wr = repeatStr(w1, terms[i], maxSeqLength);
+    w = (i % 2 == 0) ? wr + w2 : w2 + wr;
+    if (w.length >= maxSeqLength) return w.substr(0, maxSeqLength);
     w2 = w1;
     w1 = w;
   }
@@ -106,7 +106,8 @@ function runUnitTests() {
   testWord([1, 1, 1, 1], 'SSLSSLSL');
   testWord([1, 1, 1, 1, 1], 'SSLSSLSLSSLSL');
   testWord([1, 1, 1, 1, 1, 1], 'SSLSSLSLSSLSSLSLSSLSL');
-  testWord([1, 6, 2, 3, 1, 2], 'SSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSLSSLSLSLSL');
+  testWord([1, 6, 2, 3, 1, 2], 'SSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSL');
+  testWord([0, 2, 2], 'SLLSLLL');
 
   if (!anyFails) {
     console.log('All tests passed :)');
@@ -201,7 +202,7 @@ function onLoad() {
           const uy = hitOy + k * gy;
           const dx = i - ux;
           const dy = j - uy;
-          if ((dx * dx + dy * dy) <= hitRad * hitRad) {
+          if ((dx * dx + dy * dy) < hitRad * hitRad) {
             line(i, j, ux, uy, '#08F');
             circle(ux, uy, 2 * dotSize, '#F00');
             circle(i, j, dotSize, '#08F');
@@ -322,11 +323,11 @@ a {
       Gradient: <input type="text" id="in_grad" value="0.618033988749894"/><br/>
       Offset: <input type="text" id="in_off" value="0"/><br/>
       <br/>
-      Continued Fraction:<br/>
-      <div id="fraction"></div>
-      <br/>
       Sequence:<br/>
       <div id="word"></div>
+      <br/>
+      Continued Fraction:<br/>
+      <div id="fraction"></div>
     </div>
   </div>
 </div>
