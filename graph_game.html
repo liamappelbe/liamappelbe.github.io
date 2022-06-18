@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Graph Game</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+// Config
+const kLinkFactor = 0.5;
+const kRepelForce = -0.0001;
+const kAttractForce = 0.01;
+const kDamping = 0.15;
+const kFreezeThreshold = 1e-6;
+
+function randInt(n) {
+  return Math.floor(n * Math.random());
+}
+
+function randFloat() {
+  return 2 * Math.random() - 1;
+}
+
+function newElement(type, parent, classes = [], text = null) {
+  const n = document.createElement(type);
+  if (text != null) n.innerText = text;
+  for (const cls of classes) n.classList.add(cls);
+  if (parent != null) parent.appendChild(n);
+  return n;
+}
+
+function newDiv(parent, classes = [], text = null) {
+  return newElement('div', parent, classes, text);
+}
+
+function newSelect(parent, classes = [], options = []) {
+  const sel = newElement('select', parent, classes);
+  for (const opt of options) {
+    newElement('option', sel, [], opt).setAttribute('value', opt);
+  }
+  return sel;
+}
+
+function newSlider(parent, classes = [], min = 0, max = 100, step = 1) {
+  const slider = newElement('input', parent, classes);
+  slider.setAttribute('type', 'range');
+  slider.setAttribute('min', min);
+  slider.setAttribute('max', max);
+  slider.setAttribute('step', step);
+  slider.setAttribute('value', min);
+  return slider;
+}
+
+function newCanvas(parent, classes = [], width = 100, height = 100) {
+  const slider = newElement('canvas', parent, classes);
+  slider.setAttribute('width', width);
+  slider.setAttribute('height', height);
+  return slider;
+}
+
+function newBtn(
+    parent, classes = [], text = null, onclick = null) {
+  const btn = newDiv(parent, classes, text);
+  if (onclick != null) btn.addEventListener('click', onclick);
+  return btn;
+}
+
+function emptyDiv(n) {
+  while (n.hasChildNodes()) n.removeChild(n.lastChild);
+}
+
+let game = null;
+function onLoad() {
+  game = new Game(document.getElementById('game'));
+  game.transitionToSetup();
+}
+window.addEventListener('load', onLoad);
+
+// TODO: Create game UI
+// TODO: Create graph
+// TODO: Create AI/Human controllers
+// TODO: Create human interface
+// TODO: Create state and control flow
+// TODO: Create victory conditions and win screen
+
+class HumanCtrl {
+  constructor(div) {
+  }
+}
+
+class AiCtrl {
+  constructor(div, isPhil) {
+  }
+}
+
+class GraphNode {
+  constructor(id) {
+    this.id = id;
+    this.px = Math.random();
+    this.py = Math.random();
+    this.vx = 0;
+    this.vy = 0;
+    this.color = '#222';
+    this.links = new Set();
+  }
+
+  link(other) {
+    if (this.links.has(other)) return false;
+    this.links.add(other);
+    other.links.add(this);
+    return true;
+  }
+}
+
+class Graph {
+  constructor(ctx, size) {
+    this.nodes = [];
+    this.zoom = 1;
+    this.frozen = false;
+
+    for (let i = 0; i < size; ++i) this.nodes.push(new GraphNode(i));
+    const minLinks = size - 1;
+    const maxLinks = size * (size - 1) / 2;
+    let remainingLinks = kLinkFactor * (maxLinks - minLinks) + minLinks;
+    const randLink = from => {
+      let to = from;
+      while (to == from) to = randInt(size);
+      if (this.nodes[from].link(this.nodes[to])) {
+        --remainingLinks;
+      }
+    };
+    for (let i = 0; i < size; ++i) randLink(i);
+    while (remainingLinks > 0) randLink(randInt(size));
+    // TODO: Check if we have disconnected components, and link them.
+  }
+
+  update() {
+    // Skip updating if we've reached equilibrium.
+    if (this.frozen) return;
+
+    // Calculate the forces.
+    this.frozen = true;
+    const size = this.nodes.length;
+    for (let i = 0; i < size; ++i) {
+      const n = this.nodes[i];
+      for (let j = 0; j < size; ++j) {
+        if (i == j) continue;
+        const m = this.nodes[j];
+        const dx = m.px - n.px;
+        const dy = m.py - n.py;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ux = dx / dist;
+        const uy = dy / dist;
+
+        // Push the nodes apart, as if they're same pole magnets.
+        const fr = kRepelForce / (dist * dist);
+        n.vx += fr * ux;
+        n.vy += fr * uy;
+
+        if (n.links.has(m)) {
+          // Pull the nodes together, as if they're joined by springs.
+          const fa = kAttractForce * dist;
+          n.vx += fa * ux;
+          n.vy += fa * uy;
+        }
+      }
+
+      // Damping.
+      n.vx *= 1 - kDamping;
+      n.vy *= 1 - kDamping;
+
+      // Check if we've reached equilibrium.
+      if (n.vx > kFreezeThreshold || n.vy > kFreezeThreshold) {
+        this.frozen = false;
+      }
+    }
+    if (this.frozen) console.log('FREEZE!');
+
+    // Apply the forces, and find the center of the graph.
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < size; ++i) {
+      const n = this.nodes[i];
+      cx += n.px += n.vx;
+      cy += n.py += n.vy;
+    }
+    cx /= size;
+    cy /= size;
+
+    // Recenter the graph, and calculate the zoom factor.
+    this.zoom = 0;
+    for (let i = 0; i < size; ++i) {
+      const n = this.nodes[i];
+      n.px -= cx;
+      n.py -= cy;
+      this.zoom = Math.max(this.zoom, Math.max(Math.abs(n.px), Math.abs(n.py)));
+    }
+  }
+
+  draw(drawLink, drawNode) {
+    // Draw all the links.
+    const z = this.zoom;
+    const size = this.nodes.length;
+    for (let i = 1; i < size; ++i) {
+      const n = this.nodes[i];
+      for (let j = 0; j < i; ++j) {
+        const m = this.nodes[j];
+        if (n.links.has(m)) {
+          drawLink(n.px / z, n.py / z, m.px / z, m.py / z, '#FFFFFF22');
+        }
+      }
+    }
+
+    // Draw all the nodes.
+    for (let i = 0; i < size; ++i) {
+      const n = this.nodes[i];
+      drawNode(n.px / z, n.py / z, n.color);
+    }
+  }
+}
+
+class Game {
+  constructor(div) {
+    this.div = div;
+    this.graph = null;
+    this.philCtrl = null;
+    this.emmyCtrl = null;
+  }
+
+  transitionToSetup() {
+    emptyDiv(this.div);
+    newDiv(this.div, ['game-heading'], 'New Game');
+    const makeRow = name => {
+      const row = newDiv(this.div, ['game-setup-row']);
+      newDiv(row, ['game-setup-name'], name);
+      return row;
+    };
+    const makePlayerSelect = name =>
+        newSelect(makeRow(name), ['game-setup-player-select'], ['Human', 'AI']);
+    const phil = makePlayerSelect('Phil');
+    const emmy = makePlayerSelect('Emmy');
+    const makeSlider = (name, min, max) => {
+      const row = makeRow(name);
+      const number = newDiv(row, ['game-setup-slider-number']);
+      const slider = newSlider(row, ['game-setup-slider'], min, max);
+      number.innerText = slider.value;
+      slider.addEventListener('change', () => number.innerText = slider.value);
+      return slider;
+    };
+    const size = makeSlider('Nodes', 4, 10);
+    newBtn(this.div, ['game-setup-play-button'], 'PLAY', () =>
+      this.transitionToGame(phil.value, emmy.value, parseInt(size.value)));
+  }
+
+  makeCtrl(div, kind, isPhil) {
+    return kind == 'AI' ? new AiCtrl(div, isPhil) : new HumanCtrl(div);
+  }
+
+  transitionToGame(phil, emmy, size) {
+    emptyDiv(this.div);
+    const wrap = newDiv(this.div, ['game-wrapper']);
+    const ui = newDiv(wrap, ['game-ui']);
+    const status = newDiv(ui, ['game-status']);
+    const controls = newDiv(ui, ['game-controls']);
+    const view = newDiv(wrap, ['game-view']);
+    const canvas = newCanvas(view, [], 800, 800);
+    const ctx = canvas.getContext('2d');
+
+    this.graph = new Graph(ctx, size);
+    this.philCtrl = this.makeCtrl(controls, phil, true);
+    this.emmyCtrl = this.makeCtrl(controls, emmy, false);
+
+    const tau = 2 * Math.PI;
+    const halfWidth = canvas.width / 2;
+    const halfHeight = canvas.height / 2;
+    const viewSize = 2.5;
+    const nodeSize = 0.03 * viewSize;
+    const posX = 0;
+    const posY = 0;
+    ctx.setTransform(
+        0, -2 * halfWidth / viewSize, 2 * halfHeight / viewSize, 0,
+        halfWidth * (1 - 2 * posX / viewSize),
+        halfHeight * (1 + 2 * posY / viewSize));
+    ctx.lineWidth = viewSize / (halfWidth + halfHeight);
+
+    const drawCircle = (px, py, r, clr) => {
+      ctx.fillStyle = clr;
+      ctx.beginPath();
+      ctx.ellipse(px, py, r, r, 0, 0, tau);
+      ctx.fill();
+    };
+
+    const drawNode = (px, py, clr) => drawCircle(px, py, nodeSize, clr);
+
+    const drawLine = (px, py, qx, qy, clr) => {
+      ctx.strokeStyle = clr;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(qx, qy);
+      ctx.stroke();
+    };
+
+    const update = () => {
+      this.graph.update();
+
+      // Clear to black.
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
+
+      this.graph.draw(drawLine, drawNode);
+      window.requestAnimationFrame(update);
+    }
+    update();
+  }
+}
+
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+#game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.game-setup-row {
+  display: flex;
+  flex-direction: row;
+  margin-top: 16px;
+}
+.game-heading {
+  font-size: 24px;
+  color: #ffc107;
+}
+.game-setup-name {
+  margin-right: 16px;
+}
+.game-setup-slider-number {
+  margin-right: 8px;
+}
+.game-setup-play-button {
+  margin-top: 16px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #ff5722;
+}
+.game-wrapper {
+  display: flex;
+  flex-direction: row;
+}
+.game-ui {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Graph Coloring Game (Prototype)</h1>
+</div>
+<div id="wrap">
+  Two players, Phil and Emmy, take turns coloring nodes of a graph. Connected
+  nodes must always be different colors. The game continues until no more nodes
+  can be colored. Phil wins if all the nodes are filled, and Emmy wins if some
+  of the nodes are empty.
+  <br/><br/>
+  <div id="game"></div>
+</div>
+</body>
+</html>
