@@ -7,17 +7,77 @@
 
 // Config
 const kLinkFactor = 0.5;
-const kRepelForce = -0.0001;
-const kAttractForce = 0.01;
-const kDamping = 0.15;
-const kFreezeThreshold = 1e-6;
+const kFastFreeze = true;
+const kRepelForce = kFastFreeze ? -0.001 : -0.0001;
+const kAttractForce = kFastFreeze ? 0.1 : 0.01;
+const kDamping = kFastFreeze ? 0.5 : 0.2;
+const kUpdateItrs = kFastFreeze ? 10 : 1;
+const kFreezeThreshold = kFastFreeze ? 1e-4 : 1e-6;
+
+const tau = 2 * Math.PI;
 
 function randInt(n) {
   return Math.floor(n * Math.random());
 }
 
-function randFloat() {
+function randPos() {
   return 2 * Math.random() - 1;
+}
+
+function swap(a, i, j) {
+  const x = a[i];
+  a[i] = a[j];
+  a[j] = x;
+}
+
+function randPermutation(n) {
+  const a = [];
+  for (let i = 0; i < n; ++i) a.push(i);
+  for (let i = 0; i < n; ++i) {
+    swap(a, i, randInt(n - i) + i);
+  }
+  return a;
+}
+
+function fclamp(x, hi = 1, lo = 0) {
+  return x <= lo ? lo : x >= hi ? hi : x;
+}
+
+function fmod(x, y = 1) {
+  const z = x / y;
+  return (z - Math.floor(z)) * y;
+}
+
+function popSwap(a, i) {
+  const x = a[i];
+  const y = a.pop();
+  if (i < a.length) a[i] = y;
+  return x;
+}
+
+function rgb2str(r, g, b) {
+  const ch = x => {
+    const s = Math.floor(fclamp(x * 256, 255)).toString(16);
+    if (s.length > 2) return 'ff';
+    if (s.length == 0) return '00';
+    if (s.length == 1) return '0' + s;
+    return s;
+  }
+  return `#${ch(r)}${ch(g)}${ch(b)}ff`;
+}
+
+function hsv2rgb(h, s = 1, v = 1) {
+  const i = fmod(h) * 6.0;
+  const c = v * s;
+  const m = v - c;
+  const x = c * (1 - Math.abs(fmod(i, 2) - 1)) + m;
+  const d = c + m;
+  if (i < 1) return rgb2str(d, x, m);
+  if (i < 2) return rgb2str(x, d, m);
+  if (i < 3) return rgb2str(m, d, x);
+  if (i < 4) return rgb2str(m, x, d);
+  if (i < 5) return rgb2str(x, m, d);
+  return rgb2str(d, m, x);
 }
 
 function newElement(type, parent, classes = [], text = null) {
@@ -93,17 +153,25 @@ class AiCtrl {
 }
 
 class GraphNode {
-  constructor(id) {
+  constructor(id, total) {
     this.id = id;
-    this.px = Math.random();
-    this.py = Math.random();
+    this.color = -1;
+    this.links = new Set();
+    this.resetPos(total);
+  }
+
+  resetPos(total) {
+    const t = tau * this.id / total;
+    this.px = Math.cos(t);
+    this.py = Math.sin(t);
+    // this.px = randPos();
+    // this.py = randPos();
     this.vx = 0;
     this.vy = 0;
-    this.color = '#222';
-    this.links = new Set();
   }
 
   link(other) {
+    if (this == other) return false;
     if (this.links.has(other)) return false;
     this.links.add(other);
     other.links.add(this);
@@ -113,35 +181,171 @@ class GraphNode {
 
 class Graph {
   constructor(ctx, size) {
-    this.nodes = [];
     this.zoom = 1;
-    this.frozen = false;
+    this.camx = 0;
+    this.camy = 0;
 
-    for (let i = 0; i < size; ++i) this.nodes.push(new GraphNode(i));
-    const minLinks = size - 1;
-    const maxLinks = size * (size - 1) / 2;
-    let remainingLinks = kLinkFactor * (maxLinks - minLinks) + minLinks;
-    const randLink = from => {
-      let to = from;
-      while (to == from) to = randInt(size);
-      if (this.nodes[from].link(this.nodes[to])) {
-        --remainingLinks;
+    // Generate graph.
+    this.newPlanarGraph(size);
+  }
+
+  newGraph(size) {
+    // Straigtforward random graph generator.
+    while (true) {
+      // Create nodes.
+      this.nodes = [];
+      for (let i = 0; i < size; ++i) this.nodes.push(new GraphNode(i, size));
+
+      // Calculate number of links to create.
+      const minLinks = size - 1;
+      const maxLinks = size * (size - 1) / 2;
+      let remainingLinks = kLinkFactor * (maxLinks - minLinks) + minLinks;
+
+      const randLink = from => {
+        let to = from;
+        while (to == from) to = randInt(size);
+        if (this.nodes[from].link(this.nodes[to])) {
+          --remainingLinks;
+        }
+      };
+
+      // Start by creating one link from each node.
+      for (let i = 0; i < size; ++i) randLink(i);
+
+      // Then continue generating random links until we've made the right number.
+      while (remainingLinks > 0) randLink(randInt(size));
+
+      // If we have any disconnected components, start over.
+      const visited = new Set();
+      this.dfs(this.nodes[0], visited);
+      if (visited.size == this.nodes.length) break;
+    }
+
+    // Calculate the number of colors we want.
+    let maxLinksPerNode = 0;
+    for (const n of this.nodes) {
+      maxLinksPerNode = Math.max(maxLinksPerNode, n.links.size);
+    }
+    // TODO: Tune this heuristic. It's probably an overestimate at higher sizes.
+    const numColors = maxLinksPerNode + 1;
+    this.colors = [];
+    const offset = Math.random();
+    for (let i = 0; i < numColors; ++i) {
+      this.colors.push(hsv2rgb(offset + i / numColors));
+    }
+    this.frozen = false;
+  }
+
+  newPlanarGraph(size) {
+    // A region is defined by the ordered list of points that bound it. The
+    // order of the list matters because the edges that bound the region are
+    // between each adjacent node in the list, and the first and last node too.
+    // Start with a single point.
+    const regions = [[0]];
+    // const nodePos = [[1, 0]];
+
+    // Create new nodes by subdividing the regions.
+    for (let i = 1; i < size; ++i) {
+      // Pick a random region, and pull it out of the list.
+      const r = popSwap(regions, randInt(regions.length));
+
+      // Place the new node in the center of the region.
+      /*if (i <= 2) {
+        nodePos.push([-0.5, i == 1 ? 0.707 : -0.707]);
+      } else {
+        // Find the center.
+        let cx = 1e-6 * randPos();
+        let cy = 1e-6 * randPos();
+        for (const i of r) {
+          cx += nodePos[i][0];
+          cy += nodePos[i][1];
+        }
+        nodePos.push([cx / r.length, cy / r.length]);
+      }*/
+
+      // We're going to add a node inside this region, and connect it to a
+      // random number of the surrounding nodes (at least 1).
+      const p = randPermutation(r.length);
+      p.length = 1 + randInt(r.length);
+      p.sort();
+      for (let j = 0; j < p.length; ++j) {
+        const k0 = p[j];
+        const k1 = p[(j + 1) % p.length];
+
+        // Cut r from r[k0] to r[k1].
+        const s = [r[k1], i, r[k0]];
+        let k = k0;
+        while (true) {
+          k = (k + 1) % r.length;
+          s.push(r[k]);
+          if (k == k1) break;
+        }
+        regions.push(s);
       }
-    };
-    for (let i = 0; i < size; ++i) randLink(i);
-    while (remainingLinks > 0) randLink(randInt(size));
-    // TODO: Check if we have disconnected components, and link them.
+    }
+
+    // Create nodes.
+    this.nodes = [];
+    for (let i = 0; i < size; ++i) {
+      this.nodes.push(new GraphNode(i, size));
+      // this.nodes[i].px = nodePos[i][0];
+      // this.nodes[i].py = nodePos[i][1];
+    }
+
+    // Turn the region set into links.
+    for (const r of regions) {
+      for (let i = 0; i < r.length; ++i) {
+        const k0 = r[i];
+        const k1 = r[(i + 1) % r.length];
+        this.nodes[k0].link(this.nodes[k1]);
+      }
+    }
+
+    // Define colors.
+    const numColors = 4;
+    this.colors = [];
+    const offset = Math.random();
+    for (let i = 0; i < numColors; ++i) {
+      this.colors.push(hsv2rgb(offset + i / numColors));
+    }
+    this.frozen = false;
+  }
+
+  dfs(node, visited, fn = null) {
+    if (visited.has(node)) return;
+    visited.add(node);
+    if (fn) fn(node);
+    for (const m of node.links) this.dfs(m, visited);
+  }
+
+  resetPos() {
+    this.frozen = false;
+    for (const n of this.nodes) n.resetPos(this.nodes.length);
   }
 
   update() {
-    // Skip updating if we've reached equilibrium.
-    if (this.frozen) return;
+    for (let i = 0; i < kUpdateItrs; ++i) {
+      // Stop updating if we've reached equilibrium.
+      if (this.frozen) return;
+      this.updateImpl();
+    }
+  }
 
+  updateImpl() {
     // Calculate the forces.
     this.frozen = true;
     const size = this.nodes.length;
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
+
+      // Apply a weak spring force towards the origin.
+      const dist = Math.sqrt(n.px * n.px + n.py * n.py);
+      const ux = n.px / dist;
+      const uy = n.py / dist;
+      const fa = -kAttractForce * Math.sqrt(dist);
+      n.vx += fa * ux;
+      n.vy += fa * uy;
+
       for (let j = 0; j < size; ++j) {
         if (i == j) continue;
         const m = this.nodes[j];
@@ -173,39 +377,41 @@ class Graph {
         this.frozen = false;
       }
     }
-    if (this.frozen) console.log('FREEZE!');
 
-    // Apply the forces, and find the center of the graph.
-    let cx = 0;
-    let cy = 0;
+    // Apply the forces, and calculate the bounding box.
+    let minx = Infinity;
+    let maxx = -Infinity;
+    let miny = Infinity;
+    let maxy = -Infinity;
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
-      cx += n.px += n.vx;
-      cy += n.py += n.vy;
+      n.px += n.vx;
+      n.py += n.vy;
+      minx = Math.min(minx, n.px);
+      maxx = Math.max(maxx, n.px);
+      miny = Math.min(miny, n.py);
+      maxy = Math.max(maxy, n.py);
     }
-    cx /= size;
-    cy /= size;
 
-    // Recenter the graph, and calculate the zoom factor.
-    this.zoom = 0;
-    for (let i = 0; i < size; ++i) {
-      const n = this.nodes[i];
-      n.px -= cx;
-      n.py -= cy;
-      this.zoom = Math.max(this.zoom, Math.max(Math.abs(n.px), Math.abs(n.py)));
-    }
+    // Zoom and center.
+    this.zoom = 0.52 * Math.max(maxx - minx, maxy - miny);
+    this.camx = 0.5 * (minx + maxx);
+    this.camy = 0.5 * (miny + maxy);
+
+    if (this.frozen) console.log('FREEZE!', this.zoom);
   }
 
   draw(drawLink, drawNode) {
     // Draw all the links.
-    const z = this.zoom;
+    const tx = x => (x - this.camx) / this.zoom;
+    const ty = y => (y - this.camy) / this.zoom;
     const size = this.nodes.length;
     for (let i = 1; i < size; ++i) {
       const n = this.nodes[i];
       for (let j = 0; j < i; ++j) {
         const m = this.nodes[j];
         if (n.links.has(m)) {
-          drawLink(n.px / z, n.py / z, m.px / z, m.py / z, '#FFFFFF22');
+          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), '#222');
         }
       }
     }
@@ -213,7 +419,8 @@ class Graph {
     // Draw all the nodes.
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
-      drawNode(n.px / z, n.py / z, n.color);
+      const c = (n.color == -1) ? '#222' : this.colors[n.color];
+      drawNode(tx(n.px), ty(n.py), c);
     }
   }
 }
@@ -246,7 +453,7 @@ class Game {
       slider.addEventListener('change', () => number.innerText = slider.value);
       return slider;
     };
-    const size = makeSlider('Nodes', 4, 10);
+    const size = makeSlider('Nodes', 4, 20);
     newBtn(this.div, ['game-setup-play-button'], 'PLAY', () =>
       this.transitionToGame(phil.value, emmy.value, parseInt(size.value)));
   }
@@ -269,7 +476,6 @@ class Game {
     this.philCtrl = this.makeCtrl(controls, phil, true);
     this.emmyCtrl = this.makeCtrl(controls, emmy, false);
 
-    const tau = 2 * Math.PI;
     const halfWidth = canvas.width / 2;
     const halfHeight = canvas.height / 2;
     const viewSize = 2.5;
