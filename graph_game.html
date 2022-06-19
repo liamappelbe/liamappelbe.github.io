@@ -135,20 +135,59 @@ function onLoad() {
 }
 window.addEventListener('load', onLoad);
 
-// TODO: Create game UI
-// TODO: Create graph
-// TODO: Create AI/Human controllers
-// TODO: Create human interface
-// TODO: Create state and control flow
-// TODO: Create victory conditions and win screen
+class Move {
+  constructor(nodeId, color) {
+    this.nodeId = nodeId;
+    this.color = color;
+  }
+}
 
 class HumanCtrl {
-  constructor(div) {
+  constructor(graph, isPhil, ui, onMove) {
+    newDiv(ui, ['game-status'], `It's ${isPhil ? 'Phil' : 'Emmy'}'s turn`);
+    newDiv(ui, [], '1) Choose a color ⮟');
+    const clrRow = newDiv(ui, ['game-ctrl-clr-row']);
+    const clrBtns = [];
+    let selectedClr = null;
+    const setClr = i => {
+      for (const btn of clrBtns) btn.classList.remove('selected');
+      selectedClr = (selectedClr == i) ? null : i;
+      if (selectedClr != null) clrBtns[selectedClr].classList.add('selected');
+    };
+    for (let i = 0; i < graph.colors.length; ++i) {
+      const btn = newBtn(clrRow, ['game-ctrl-clr'], null, () => setClr(i));
+      btn.style.backgroundColor = graph.colors[i];
+      clrBtns.push(btn);
+    }
+    newDiv(ui, [], '2) Choose an empty node ⮞');
+    const applyRow = newDiv(ui, ['game-ctrl-row']);
+    newDiv(applyRow, [], '3)');
+    let error = null;
+    const fillBtn = newBtn(applyRow, ['game-ctrl-fill'], '[FILL NODE]', () => {
+      error.innerText = '';
+      if (selectedClr == null) {
+        error.innerText = 'You have to choose a color first.';
+      } else if (graph.selectedNode == null) {
+        error.innerText = 'You have to choose a node first.';
+      } else {
+        const move = new Move(graph.selectedNode, selectedClr);
+        if (!graph.isValidMove(move)) {
+          error.innerText =
+              'The node must be a different color to all its neighbors.';
+        } else {
+          setClr(null);
+          onMove(move);
+        }
+      }
+    });
+    error = newDiv(ui, ['game-ctrl-error']);
   }
 }
 
 class AiCtrl {
-  constructor(div, isPhil) {
+  constructor(graph, isPhil, ui, onMove) {
+    newDiv(ui, ['game-status'], `${isPhil ? 'Phil' : 'Emmy'} is thinking...`);
+    // TODO: Implement AI.
   }
 }
 
@@ -184,6 +223,7 @@ class Graph {
     this.zoom = 1;
     this.camx = 0;
     this.camy = 0;
+    this.selectedNode = null;
 
     // Generate graph.
     this.newPlanarGraph(size);
@@ -411,7 +451,9 @@ class Graph {
       for (let j = 0; j < i; ++j) {
         const m = this.nodes[j];
         if (n.links.has(m)) {
-          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), '#222');
+          const clr = (this.selectedNode == i || this.selectedNode == j) ?
+              '#FFF' : '#222';
+          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), clr);
         }
       }
     }
@@ -419,9 +461,42 @@ class Graph {
     // Draw all the nodes.
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
-      const c = (n.color == -1) ? '#222' : this.colors[n.color];
+      const c = (this.selectedNode == i) ? '#FFF' :
+          (n.color == -1) ? '#222' : this.colors[n.color];
       drawNode(tx(n.px), ty(n.py), c);
     }
+  }
+
+  onClick(rawx, rawy, hitrad) {
+    const px = this.camx + rawx * this.zoom;
+    const py = this.camy + rawy * this.zoom;
+    let minr = Infinity;
+    let mini = -1;
+    for (let i = 0; i < this.nodes.length; ++i) {
+      const n = this.nodes[i];
+      if (n.color != -1) continue;
+      const dx = px - n.px;
+      const dy = py - n.py;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minr) {
+        minr = dist;
+        mini = i;
+      }
+    }
+    this.selectedNode = (minr < hitrad * this.zoom) ? mini : null;
+  }
+
+  isValidMove(move) {
+    // TODO.
+    return true;
+  }
+
+  doMove(move) {
+    console.log(move, this.selectedNode);
+    this.selectedNode = null;
+    this.nodes[move.nodeId].color = move.color;
+    // TODO: check victory.
+    return -1;
   }
 }
 
@@ -449,33 +524,30 @@ class Game {
       const row = makeRow(name);
       const number = newDiv(row, ['game-setup-slider-number']);
       const slider = newSlider(row, ['game-setup-slider'], min, max);
-      number.innerText = slider.value;
+      number.innerText = slider.value = 7;
       slider.addEventListener('change', () => number.innerText = slider.value);
       return slider;
     };
     const size = makeSlider('Nodes', 4, 20);
-    newBtn(this.div, ['game-setup-play-button'], 'PLAY', () =>
+    newBtn(this.div, ['game-setup-play-button'], '[PLAY]', () =>
       this.transitionToGame(phil.value, emmy.value, parseInt(size.value)));
   }
 
-  makeCtrl(div, kind, isPhil) {
-    return kind == 'AI' ? new AiCtrl(div, isPhil) : new HumanCtrl(div);
+  makeCtrl(kind, isPhil, ui, onMove) {
+    return kind == 'AI' ? new AiCtrl(this.graph, isPhil, ui, onMove) :
+                          new HumanCtrl(this.graph, isPhil, ui, onMove);
   }
 
   transitionToGame(phil, emmy, size) {
     emptyDiv(this.div);
     const wrap = newDiv(this.div, ['game-wrapper']);
     const ui = newDiv(wrap, ['game-ui']);
-    const status = newDiv(ui, ['game-status']);
-    const controls = newDiv(ui, ['game-controls']);
+    const philUi = newDiv(ui, []);
+    const emmyUi = newDiv(ui, ['hidden']);
     const view = newDiv(wrap, ['game-view']);
+
     const canvas = newCanvas(view, [], 800, 800);
     const ctx = canvas.getContext('2d');
-
-    this.graph = new Graph(ctx, size);
-    this.philCtrl = this.makeCtrl(controls, phil, true);
-    this.emmyCtrl = this.makeCtrl(controls, emmy, false);
-
     const halfWidth = canvas.width / 2;
     const halfHeight = canvas.height / 2;
     const viewSize = 2.5;
@@ -483,10 +555,18 @@ class Game {
     const posX = 0;
     const posY = 0;
     ctx.setTransform(
-        0, -2 * halfWidth / viewSize, 2 * halfHeight / viewSize, 0,
-        halfWidth * (1 - 2 * posX / viewSize),
+        2 * halfWidth / viewSize, 0, 0, 2 * halfHeight / viewSize,
+        halfWidth * (1 + 2 * posX / viewSize),
         halfHeight * (1 + 2 * posY / viewSize));
     ctx.lineWidth = viewSize / (halfWidth + halfHeight);
+
+    this.graph = new Graph(ctx, size);
+    canvas.addEventListener('click', e => {
+      this.graph.onClick(
+          (e.offsetX / canvas.width - 0.5) * viewSize,
+          (e.offsetY / canvas.height - 0.5) * viewSize,
+          nodeSize);
+    });
 
     const drawCircle = (px, py, r, clr) => {
       ctx.fillStyle = clr;
@@ -506,6 +586,11 @@ class Game {
     };
 
     const update = () => {
+      if (this.graph == null) {
+        // Game is over.
+        return;
+      }
+
       this.graph.update();
 
       // Clear to black.
@@ -516,6 +601,22 @@ class Game {
       window.requestAnimationFrame(update);
     }
     update();
+
+    const maybeDoEndTransition = status => {
+      if (status == -1) return false;
+      console.log('TODO: Implement game over', status);
+      this.graph = null;
+      this.transitionToSetup();
+      return true;
+    };
+
+    const onMove = (move) => {
+      philUi.classList.toggle('hidden');
+      emmyUi.classList.toggle('hidden');
+      maybeDoEndTransition(this.graph.doMove(move));
+    };
+    this.philCtrl = this.makeCtrl(phil, true, philUi, onMove);
+    this.emmyCtrl = this.makeCtrl(emmy, false, emmyUi, onMove);
   }
 }
 
@@ -597,6 +698,46 @@ a {
   width: 300px;
   display: flex;
   flex-direction: column;
+}
+.game-status {
+  color: #ffc107;
+  font-size: 20px;
+}
+.game-ctrl-clr-row {
+  margin: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.game-ctrl-clr {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.game-ctrl-clr.selected {
+  width: 24px;
+  height: 24px;
+  border: 4px solid white;
+}
+.game-ctrl-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.game-ctrl-fill {
+  color: #f44336;
+}
+.game-ctrl-fill {
+  cursor: pointer;
+  color: #ff5722;
+}
+.game-ctrl-error {
+  color: #f44336;
+}
+.hidden {
+  display: none;
 }
 </style>
 </head>
