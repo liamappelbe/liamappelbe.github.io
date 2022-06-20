@@ -165,7 +165,7 @@ function onLoad() {
     if (needsRedraw) {
       gy = 1 / Math.sqrt(1 + grad * grad);
       gx = gy * grad;
-      hitRad = 0.5 * (1 + grad) / Math.sqrt(1 + grad * grad);
+      hitRad = (1 + grad) / Math.sqrt(1 + grad * grad);
       hitGx = gy;
       hitGy = -gx;
       hitSx = hitGx * hitRad;
@@ -187,7 +187,7 @@ function onLoad() {
       // Draw hit lines.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          line(i - hitSx, j - hitSy, i + hitSx, j + hitSy, '#0088FF22');
+          line(i, j, i + hitSx, j + hitSy, '#0088FF22');
         }
       }
 
@@ -202,7 +202,7 @@ function onLoad() {
           const uy = hitOy + k * gy;
           const dx = i - ux;
           const dy = j - uy;
-          if ((dx * dx + dy * dy) < hitRad * hitRad) {
+          if (((dx - dy) >= 0) && ((dx * dx + dy * dy) < hitRad * hitRad)) {
             line(i, j, ux, uy, '#08F');
             circle(ux, uy, 2 * dotSize, '#F00');
             circle(i, j, dotSize, '#08F');
