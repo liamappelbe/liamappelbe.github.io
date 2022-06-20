@@ -486,7 +486,7 @@ class Graph {
     }
     if (minr < hitrad * this.zoom) {
       this.heldNode = mini;
-      this.selectedNode = (this.nodes[mini].color != -1) ? mini : null;
+      this.selectedNode = (this.nodes[mini].color == -1) ? mini : null;
     } else {
       this.heldNode = null;
       this.selectedNode = null;
