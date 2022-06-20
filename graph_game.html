@@ -187,6 +187,7 @@ class HumanCtrl {
 class AiCtrl {
   constructor(graph, isPhil, ui, onMove) {
     newDiv(ui, ['game-status'], `${isPhil ? 'Phil' : 'Emmy'} is thinking...`);
+    newDiv(ui, [], 'AI is not implemented yet :P');
     // TODO: Implement AI.
   }
 }
@@ -223,6 +224,7 @@ class Graph {
     this.zoom = 1;
     this.camx = 0;
     this.camy = 0;
+    this.heldNode = null;
     this.selectedNode = null;
 
     // Generate graph.
@@ -467,14 +469,13 @@ class Graph {
     }
   }
 
-  onClick(rawx, rawy, hitrad) {
+  onClickDown(rawx, rawy, hitrad) {
     const px = this.camx + rawx * this.zoom;
     const py = this.camy + rawy * this.zoom;
     let minr = Infinity;
     let mini = -1;
     for (let i = 0; i < this.nodes.length; ++i) {
       const n = this.nodes[i];
-      if (n.color != -1) continue;
       const dx = px - n.px;
       const dy = py - n.py;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -483,19 +484,65 @@ class Graph {
         mini = i;
       }
     }
-    this.selectedNode = (minr < hitrad * this.zoom) ? mini : null;
+    if (minr < hitrad * this.zoom) {
+      this.heldNode = mini;
+      this.selectedNode = (this.nodes[mini].color != -1) ? mini : null;
+    } else {
+      this.heldNode = null;
+      this.selectedNode = null;
+    }
+  }
+
+  onClickMove(rawx, rawy) {
+    if (this.heldNode == null) return;
+    const px = this.camx + rawx * this.zoom;
+    const py = this.camy + rawy * this.zoom;
+    this.nodes[this.heldNode].px = px;
+    this.nodes[this.heldNode].py = py;
+  }
+
+  onClickUp() {
+    this.heldNode = null;
   }
 
   isValidMove(move) {
-    // TODO.
+    // Move is valid if the target node is empty and all its neighbors have a
+    // different color to the target color.
+    const n = this.nodes[move.nodeId];
+    if (n.color != -1) return false;
+    for (const m of n.links) {
+      if (m.color == move.color) return false;
+    }
     return true;
   }
 
+  // Returns -1 if game is not over, 0 if Emmy won, and 1 if Phil won.
   doMove(move) {
     console.log(move, this.selectedNode);
     this.selectedNode = null;
     this.nodes[move.nodeId].color = move.color;
-    // TODO: check victory.
+
+    // If all nodes are filled, Phil has won. Otherwise, if there are no valid
+    // moves left, Emmy has won.
+    let anyEmpty = false;
+    let anyMoves = false;
+    for (const n of this.nodes) {
+      if (n.color == -1) {
+        anyEmpty = true;
+
+        // Are there any colors not used by the neighbors?
+        const usedColors = new Set();
+        for (const m of n.links) {
+          if (m.color != -1) usedColors.add(m.color);
+        }
+        if (usedColors.size < this.colors.length) {
+          anyMoves = true;
+          break;
+        }
+      }
+    }
+    if (!anyEmpty) return 1;
+    if (!anyMoves) return 0;
     return -1;
   }
 }
@@ -561,12 +608,19 @@ class Game {
     ctx.lineWidth = viewSize / (halfWidth + halfHeight);
 
     this.graph = new Graph(ctx, size);
-    canvas.addEventListener('click', e => {
-      this.graph.onClick(
+    canvas.addEventListener('mousedown', e => {
+      this.graph.onClickDown(
           (e.offsetX / canvas.width - 0.5) * viewSize,
           (e.offsetY / canvas.height - 0.5) * viewSize,
           nodeSize);
     });
+    canvas.addEventListener('mousemove', e => {
+      this.graph.onClickMove(
+          (e.offsetX / canvas.width - 0.5) * viewSize,
+          (e.offsetY / canvas.height - 0.5) * viewSize);
+    });
+    canvas.addEventListener('mouseout', e => this.graph.onClickUp());
+    canvas.addEventListener('mouseup', e => this.graph.onClickUp());
 
     const drawCircle = (px, py, r, clr) => {
       ctx.fillStyle = clr;
@@ -693,6 +747,7 @@ a {
 .game-wrapper {
   display: flex;
   flex-direction: row;
+  gap: 16px;
 }
 .game-ui {
   width: 300px;
