@@ -9,6 +9,7 @@
 const viewSize = 10;
 const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
+const approxContFracTerms = 7;
 const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
@@ -23,6 +24,17 @@ function getContFracTerms(x, maxTerms) {
     x = 1 / r;
   }
   return terms;
+}
+
+function getApproxFrac(terms, maxTerms) {
+  const first = Math.min(terms.length, maxTerms) - 1;
+  const frac = [1, 0];
+  for (let i = first; i >= 0; --i) {
+    const x = frac[0];
+    frac[0] = terms[i] * x + frac[1];
+    frac[1] = x;
+  }
+  return frac;
 }
 
 function repeatStr(s, n, max) {
@@ -89,6 +101,12 @@ function fillContFracDom(node, terms) {
   newDiv(node, ['cont-frac-term'], `${terms[n]}${trunc ? ' ...' : ''}`);
 }
 
+function fillApproxFracDom(node, terms) {
+  emptyDiv(node);
+  newDiv(node, ['approx-frac-num'], terms[0]);
+  newDiv(node, ['approx-frac-den'], terms[1]);
+}
+
 function runUnitTests() {
   let anyFails = false;
   const testWord = (terms, expectedWord) => {
@@ -120,7 +138,8 @@ function onLoad() {
   const inGrad = document.getElementById('in_grad');
   const inOff = document.getElementById('in_off');
   const canvas = document.getElementById('view');
-  const domFraction = document.getElementById('fraction');
+  const domContFrac = document.getElementById('cont_frac');
+  const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
 
   const ctx = canvas.getContext('2d');
@@ -187,7 +206,7 @@ function onLoad() {
       // Draw hit lines.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          line(i, j, i + hitSx, j + hitSy, '#0088FF22');
+          line(i - hitSx, j - hitSy, i, j, '#0088FF22');
         }
       }
 
@@ -210,9 +229,11 @@ function onLoad() {
         }
       }
 
-      // Fill continued fraction.
+      // Fill continued fraction and approx fraction.
       const terms = getContFracTerms(grad, contFracTerms);
-      fillContFracDom(domFraction, terms);
+      fillContFracDom(domContFrac, terms);
+      fillApproxFracDom(
+          domApproxFrac, getApproxFrac(terms, approxContFracTerms));
 
       // Fill word.
       const word = wordFromContFracTerms(terms);
@@ -272,15 +293,17 @@ a {
   display: flex;
   flex-direction: row;
   width: 100%;
+  gap: 16px;
 }
 #left {
+  flex-grow: 1;
+}
+#middle {
 }
 #right {
-  margin-left: 16px;
-  flex-grow: 1;
-  flex-shrink: 1;
   display: flex;
   flex-direction: column;
+  width: 400px;
 }
 #word {
   overflow: hidden;
@@ -296,16 +319,33 @@ a {
   flex-direction: column;
   justify-content: center;
 }
-.cont-frac-num {
+.cont-frac-num, .approx-frac-num {
   text-align: center;
 }
-#fraction, .cont-frac-den {
+#cont_frac, .cont-frac-den {
   display: flex;
   flex-direction: row;
   justify-content: center;
 }
-.cont-frac-den {
+.cont-frac-den, .approx-frac-den {
   border-top: 2px solid #f5f5f5;
+  text-align: center;
+}
+.frac-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+#approx_equal {
+  font-size: 32px;
+}
+#approx_frac {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 </style>
 </head>
@@ -317,6 +357,9 @@ a {
 <div id="wrap">
   <div id="layout">
     <div id="left">
+      Blog stuff goes here.
+    </div>
+    <div id="middle">
       <canvas id="view" width="800" height="800"></canvas>
     </div>
     <div id="right">
@@ -327,7 +370,11 @@ a {
       <div id="word"></div>
       <br/>
       Continued Fraction:<br/>
-      <div id="fraction"></div>
+      <div class="frac-row">
+        <div id="cont_frac"></div>
+        <div id="approx_equal">≈</div>
+        <div id="approx_frac"></div>
+      </div>
     </div>
   </div>
 </div>
