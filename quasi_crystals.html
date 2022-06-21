@@ -13,7 +13,7 @@ const approxContFracTerms = 7;
 const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
-const genSeqLength = 30;
+const genSeqLength = 100;
 
 function fmod(x, y = 1) {
   const z = x / y;
@@ -85,7 +85,7 @@ function sequenceFromGrad(x, o, len) {
   let n = 1;
   const a = [];
   for (let i = 0; i < len; ++i) {
-    if (n * x >= m) {
+    if (n * x > m) {
       ++m;
       a.push(true);
     } else {
@@ -294,6 +294,9 @@ function onLoad() {
       hitOx = 0;
       hitOy = -off;
 
+      const terms = getContFracTerms(grad, contFracTerms);
+      const sequence = sequenceFromGrad(grad, off, genSeqLength);
+
       // Clear to black.
       ctx.fillStyle = '#000';
       ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
@@ -315,44 +318,34 @@ function onLoad() {
       // Draw ray.
       ray(hitOx, hitOy, gx, gy, '#FFF');
 
-      // Draw hit dots. TODO: Maybe make this more efficient?
-      for (let i = 0; i <= viewSize; ++i) {
-        for (let j = 0; j <= viewSize; ++j) {
-          const k = gx * (i - hitOx) + gy * (j - hitOy);
-          const ux = hitOx + k * gx;
-          const uy = hitOy + k * gy;
-          const dx = i - ux;
-          const dy = j - uy;
-          if (((dy - dx) >= 0) && ((dx * dx + dy * dy) < hitRad * hitRad)) {
-            line(i, j, ux, uy, '#08F');
-            circle(i, j, dotSize, '#08F');
-            circle(ux, uy, 2 * dotSize, '#F20');
-          }
-        }
+      // Iterate through the sequence.
+      let px = 0;
+      let py = 0;
+      for (const goUp of sequence) {
+        const x = px + (goUp ? 0 : 1);
+        const y = py + (goUp ? 1 : 0);
+        const k = gx * (x - hitOx) + gy * (y - hitOy);
+        const ux = hitOx + k * gx;
+        const uy = hitOy + k * gy;
+
+        // Draw hit dots.
+        line(x, y, ux, uy, '#08F');
+        circle(x, y, dotSize, '#08F');
+        circle(ux, uy, 2 * dotSize, '#F20');
+
+        // Draw steps.
+        if (flagShowSteps.value) line(px, py, x, y, '#0F0C');
+
+        px = x;
+        py = y;
       }
 
       // Fill continued fraction and approx fraction.
-      const terms = getContFracTerms(grad, contFracTerms);
-      const sequence = sequenceFromGrad(grad, off, genSeqLength);
       fillContFracDom(domContFrac, terms);
       fillApproxFracDom(
           domApproxFrac, getApproxFrac(terms, approxContFracTerms));
 
-      // Draw steps.
-      if (flagShowSteps.value) {
-        let px = 0;
-        let py = 0;
-        for (const goUp of sequence) {
-          const nx = px + (goUp ? 0 : 1);
-          const ny = py + (goUp ? 1 : 0);
-          line(px, py, nx, ny, '#0F0C');
-          px = nx;
-          py = ny;
-        }
-      }
-
       // Fill word.
-      // const word = wordFromContFracTerms(terms);
       const word = sequence.map(x => x ? 'S' : 'L').join('');
       domWord.innerText = word;
     }
@@ -425,7 +418,7 @@ a {
 #word {
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 250px;
+  width: 350px;
 }
 .cont-frac-term-inner {
   padding-top: 0.5em;
