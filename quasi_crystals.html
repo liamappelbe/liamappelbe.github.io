@@ -170,6 +170,8 @@ function onLoad() {
   runUnitTests();
 
   let forceRedraw = true;
+  let grad = 0;
+  let off = 0;
 
   const inGrad = document.getElementById('in_grad');
   const inOff = document.getElementById('in_off');
@@ -177,6 +179,13 @@ function onLoad() {
   const domContFrac = document.getElementById('cont_frac');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
+
+  const setGrad = x => {
+    inGrad.value = x;
+  };
+  const setOff = x => {
+    inOff.value = x;
+  };
 
   const domAdvancedOptions = document.getElementById('advanced_options');
   const domFlagAdvanced = document.getElementById('flag_advanced');
@@ -209,15 +218,42 @@ function onLoad() {
   ctx.textBaseline = 'middle';
 
   const tau = 2 * Math.PI;
-  const halfWidth = canvas.width / 2;
-  const halfHeight = canvas.height / 2;
   const dotSize = 0.003 * viewSize;
-  const posX = 0.5 * viewSize;
-  const posY = 0.5 * viewSize;
   ctx.setTransform(
-      2 * halfWidth / viewSize, 0, 0, -2 * halfHeight / viewSize,
-      0, halfHeight * (1 + 2 * posY / viewSize));
-  ctx.lineWidth = viewSize / (halfWidth + halfHeight);
+      canvas.width / viewSize, 0,
+      0, -canvas.height / viewSize,
+      0, canvas.height);
+  ctx.lineWidth = 2 * viewSize / (canvas.width + canvas.height);
+
+  let mouseClicked = false;
+  const onMouse = (e, click) => {
+    let x = viewSize * e.offsetX / canvas.width;
+    let y = viewSize * (1 - e.offsetY / canvas.height);
+    if (!click) {
+      x = Math.floor(x + 0.5);
+      y = Math.floor(y + 0.5);
+    }
+    y += off;
+    if (x <= 0) {
+      setGrad(1e3);
+    } else if (y <= 0) {
+      setGrad(0);
+    } else {
+      setGrad(y / x);
+    }
+  };
+  canvas.addEventListener('mousedown', e => {
+    onMouse(e, mouseClicked = true);
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (mouseClicked) onMouse(e, mouseClicked);
+  });
+  canvas.addEventListener('mouseout', e => {
+    if (mouseClicked) onMouse(e, mouseClicked = false);
+  });
+  canvas.addEventListener('mouseup', e => {
+    if (mouseClicked) onMouse(e, mouseClicked = false);
+  });
 
   const circle = (px, py, r, clr) => {
     ctx.fillStyle = clr;
@@ -238,8 +274,6 @@ function onLoad() {
     line(px, py, px + 2 * viewSize * dx, py + 2 * viewSize * dy, clr);
   };
 
-  let grad = 0;
-  let off = 0;
   const update = () => {
     const oldGrad = grad;
     const oldOff = off;
