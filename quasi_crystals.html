@@ -13,6 +13,24 @@ const approxContFracTerms = 7;
 const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
+const genSeqLength = 30;
+
+function fmod(x, y = 1) {
+  const z = x / y;
+  return (z - Math.floor(z)) * y;
+}
+
+function newElement(type, parent, classes = [], text = null) {
+  const n = document.createElement(type);
+  if (text != null) n.innerText = text;
+  for (const cls of classes) n.classList.add(cls);
+  if (parent != null) parent.appendChild(n);
+  return n;
+}
+
+function newDiv(parent, classes = [], text = null) {
+  return newElement('div', parent, classes, text);
+}
 
 function getContFracTerms(x, maxTerms) {
   const terms = [];
@@ -60,6 +78,22 @@ function wordFromContFracTerms(terms) {
     w1 = w;
   }
   return w;
+}
+
+function sequenceFromGrad(x, o, len) {
+  let m = o;
+  let n = 1;
+  const a = [];
+  for (let i = 0; i < len; ++i) {
+    if (n * x >= m) {
+      ++m;
+      a.push(true);
+    } else {
+      ++n;
+      a.push(false);
+    }
+  }
+  return a;
 }
 
 function safeGet(node, defaultValue, isValid = (x => true)) {
@@ -135,12 +169,40 @@ function runUnitTests() {
 function onLoad() {
   runUnitTests();
 
+  let forceRedraw = true;
+
   const inGrad = document.getElementById('in_grad');
   const inOff = document.getElementById('in_off');
   const canvas = document.getElementById('view');
   const domContFrac = document.getElementById('cont_frac');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
+
+  const domAdvancedOptions = document.getElementById('advanced_options');
+  const domFlagAdvanced = document.getElementById('flag_advanced');
+  domFlagAdvanced.addEventListener('change', () => {
+    if (domFlagAdvanced.checked) {
+      domAdvancedOptions.classList.remove('hidden');
+    } else {
+      domAdvancedOptions.classList.add('hidden');
+    }
+  });
+
+  const makeFlag = (name, initValue = false) => {
+    const flag = { value: initValue };
+    const div = newDiv(domAdvancedOptions, ['flag']);
+    const check = newElement('input', div);
+    check.setAttribute('type', 'checkbox');
+    if (initValue) check.setAttribute('checked', true);
+    check.addEventListener('change', () => {
+      forceRedraw = true;
+      flag.value = check.checked;
+    });
+    const label = newElement('span', div, [], name);
+    return flag;
+  };
+
+  const flagShowSteps = makeFlag('Show steps');
 
   const ctx = canvas.getContext('2d');
   ctx.textAlign = 'center';
@@ -153,8 +215,8 @@ function onLoad() {
   const posX = 0.5 * viewSize;
   const posY = 0.5 * viewSize;
   ctx.setTransform(
-      0, -2 * halfWidth / viewSize, 2 * halfHeight / viewSize, 0,
-      halfWidth * (1 - 2 * posX / viewSize), halfHeight * (1 + 2 * posY / viewSize));
+      2 * halfWidth / viewSize, 0, 0, -2 * halfHeight / viewSize,
+      0, halfHeight * (1 + 2 * posY / viewSize));
   ctx.lineWidth = viewSize / (halfWidth + halfHeight);
 
   const circle = (px, py, r, clr) => {
@@ -172,25 +234,31 @@ function onLoad() {
     ctx.stroke();
   };
 
+  const ray = (px, py, dx, dy, clr) => {
+    line(px, py, px + 2 * viewSize * dx, py + 2 * viewSize * dy, clr);
+  };
+
   let grad = 0;
   let off = 0;
   const update = () => {
     const oldGrad = grad;
     const oldOff = off;
     grad = safeGet(inGrad, grad, x => x >= 0);
-    off = safeGet(inOff, off);
-    const needsRedraw = alwaysRedraw || oldGrad != grad || oldOff != off;
+    off = fmod(safeGet(inOff, off));
+    const needsRedraw =
+        alwaysRedraw || forceRedraw || oldGrad != grad || oldOff != off;
 
     if (needsRedraw) {
-      gy = 1 / Math.sqrt(1 + grad * grad);
-      gx = gy * grad;
+      forceRedraw = false;
+      gx = 1 / Math.sqrt(1 + grad * grad);
+      gy = gx * grad;
       hitRad = (1 + grad) / Math.sqrt(1 + grad * grad);
       hitGx = gy;
       hitGy = -gx;
       hitSx = hitGx * hitRad;
       hitSy = hitGy * hitRad;
-      hitOx = hitGx * off;
-      hitOy = hitGy * off;
+      hitOx = 0;
+      hitOy = -off;
 
       // Clear to black.
       ctx.fillStyle = '#000';
@@ -199,19 +267,19 @@ function onLoad() {
       // Draw dots.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          circle(i, j, dotSize, '#FFFFFF22');
+          circle(i, j, dotSize, '#FFF2');
         }
       }
 
-      // Draw hit lines.
+      // Draw kernel lines.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          line(i - hitSx, j - hitSy, i, j, '#0088FF22');
+          line(i, j, i + hitSx, j + hitSy, '#FFF1');
         }
       }
 
       // Draw ray.
-      line(hitOx, hitOy, 2 * viewSize * gx, 2 * viewSize * gy, '#FFF');
+      ray(hitOx, hitOy, gx, gy, '#FFF');
 
       // Draw hit dots. TODO: Maybe make this more efficient?
       for (let i = 0; i <= viewSize; ++i) {
@@ -221,22 +289,37 @@ function onLoad() {
           const uy = hitOy + k * gy;
           const dx = i - ux;
           const dy = j - uy;
-          if (((dx - dy) >= 0) && ((dx * dx + dy * dy) < hitRad * hitRad)) {
+          if (((dy - dx) >= 0) && ((dx * dx + dy * dy) < hitRad * hitRad)) {
             line(i, j, ux, uy, '#08F');
-            circle(ux, uy, 2 * dotSize, '#F00');
             circle(i, j, dotSize, '#08F');
+            circle(ux, uy, 2 * dotSize, '#F20');
           }
         }
       }
 
       // Fill continued fraction and approx fraction.
       const terms = getContFracTerms(grad, contFracTerms);
+      const sequence = sequenceFromGrad(grad, off, genSeqLength);
       fillContFracDom(domContFrac, terms);
       fillApproxFracDom(
           domApproxFrac, getApproxFrac(terms, approxContFracTerms));
 
+      // Draw steps.
+      if (flagShowSteps.value) {
+        let px = 0;
+        let py = 0;
+        for (const goUp of sequence) {
+          const nx = px + (goUp ? 0 : 1);
+          const ny = py + (goUp ? 1 : 0);
+          line(px, py, nx, ny, '#0F0C');
+          px = nx;
+          py = ny;
+        }
+      }
+
       // Fill word.
-      const word = wordFromContFracTerms(terms);
+      // const word = wordFromContFracTerms(terms);
+      const word = sequence.map(x => x ? 'S' : 'L').join('');
       domWord.innerText = word;
     }
 
@@ -347,6 +430,19 @@ a {
   flex-direction: column;
   justify-content: center;
 }
+.hidden {
+  display: none;
+}
+#advanced_options {
+  background-color: #FFF1;
+}
+.flag {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 8px;
+  justify-content: flex-start;
+}
 </style>
 </head>
 <body>
@@ -374,6 +470,13 @@ a {
         <div id="cont_frac"></div>
         <div id="approx_equal">≈</div>
         <div id="approx_frac"></div>
+      </div>
+      <br/>
+      <div class="flag">
+        <input type="checkbox" id="flag_advanced"/>
+        <span>Advanced options</span>
+      </div>
+      <div id="advanced_options" class="hidden">
       </div>
     </div>
   </div>
