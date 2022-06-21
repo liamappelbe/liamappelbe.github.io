@@ -3,6 +3,7 @@
 <head>
 <title>Quasi Crystals</title>
 <link rel="icon" href="res/favicon.ico">
+<script src="slide_show.js"></script>
 <script type="text/javascript">
 
 // Config
@@ -470,6 +471,45 @@ a {
   gap: 8px;
   justify-content: flex-start;
 }
+slide-show {
+  display: none;
+}
+slide-show.loaded {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.slide-show-slide-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.slide-show-dot-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.slide-show-dot {
+  cursor: pointer;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: #FFF2;
+}
+.slide-show-dot.active {
+  background-color: #FFF;
+}
+.slide-show-button {
+  cursor: pointer;
+  user-select: none;
+}
 </style>
 </head>
 <body>
@@ -480,7 +520,14 @@ a {
 <div id="wrap">
   <div id="layout">
     <div id="left">
-      Blog stuff goes here.
+      <slide-show button-layout="low">
+        <span>Blog stuff goes here.</span>
+        <span>More text.</span>
+        <div>
+          YouTube embed:<br/>
+          <iframe width="560" height="315" src="https://www.youtube.com/embed/AaQD-cyXH2A" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </slide-show>
     </div>
     <div id="middle">
       <canvas id="view" width="800" height="800"></canvas>
