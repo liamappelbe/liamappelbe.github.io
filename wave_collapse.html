@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html ondrop="onDrop(event)" ondragover="onDragOver(event)"
+    onpaste="onPaste(event)">
+<head>
+<title>Wave Function Collapse</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+let domImage = null;
+let domInputView = null;
+let domOutputView = null;
+let domBufferView = null;
+let ctxInput = null;
+let ctxOutput = null;
+let ctxBuffer = null;
+let inputImage = null;
+let tileWidth = 3;
+let tileHeight = 3;
+let outWidth = 10;
+let outHeight = 10;
+
+function onLoad() {
+  domImage = document.getElementById("image");
+  domInputView = document.getElementById("input_view");
+  domOutputView = document.getElementById("output_view");
+  domBufferView = document.createElement('canvas');
+  ctxInput = domInputView.getContext("2d");
+  ctxOutput = domOutputView.getContext("2d");
+  ctxBuffer = domBufferView.getContext('2d');
+  ctxInput.imageSmoothingEnabled = false;
+  ctxOutput.imageSmoothingEnabled = false;
+}
+window.addEventListener('load', onLoad);
+
+function setImage(url) {
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.onload = () => {
+    inputImage = img;
+    onChange();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+function setInputFile(files) {
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      setImage(URL.createObjectURL(file));
+      break;
+    }
+  }
+}
+function onFile() { setInputFile(domImage.files); }
+function onDragOver(e) { e.preventDefault(); }
+function onDrop(e) {
+  e.preventDefault();
+  setInputFileFromDataTransfer(e.dataTransfer);
+}
+function onPaste(e) {
+  e.preventDefault();
+  setInputFileFromDataTransfer(e.clipboardData);
+}
+function setInputFileFromDataTransfer(dt) {
+  let files = [];
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind == "file") files.push(item.getAsFile());
+    }
+  } else {
+    files = dt.files;
+  }
+  setInputFile(files);
+}
+function onChange() {
+  if (inputImage == null) return;
+  ctxInput.drawImage(inputImage, 0, 0, domInputView.width, domInputView.height);
+  const rules = generateRules();
+  generateOutput(rules);
+}
+
+function hash(buf) {
+  const prime = 0x1000193;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < buf.length; ++i) {
+    h = (h * prime) ^ buf[i];
+  }
+  return h;
+}
+
+function getTile(buf, x, y, w, h, bw) {
+  const a = new Uint8Array(w * h * 3);
+  const s = 4 * (bw - w);
+  let u = 4 * (x + y * bw);
+  let v = 0;
+  for (let i = 0; i < w; ++i) {
+    for (let j = 0; j < h; ++j) {
+      for (let k = 0; k < 3; ++k) {
+        a[v] = buf[u];
+        ++u;
+        ++v;
+      }
+      ++u;
+    }
+    u += s;
+  }
+  return a;
+}
+
+const kTileDirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+class Tile {
+  constructor(id, x, y, pixels) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    this.pixels = pixels;
+    this.dirs = [[], [], [], []];
+  }
+}
+
+class Rules {
+  constructor(tiles) {
+    this.tiles = tiles;
+  }
+}
+
+function generateRules() {
+  const w = inputImage.width;
+  const h = inputImage.height;
+  domBufferView.width = w;
+  domBufferView.height = h;
+  ctxBuffer.drawImage(inputImage, 0, 0, w, h);
+  const imgData = ctxBuffer.getImageData(0, 0, w, h);
+  // const tile = getTile(imgData.data, 3, 6, 3, 3, imgData.width);
+  // const testImgData = new ImageData(3, 3);
+  // for (let i = 0; i < 3; ++i) {
+  //   for (let j = 0; j < 3; ++j) {
+  //     for (let k = 0; k < 3; ++k) {
+  //       testImgData.data[k + 4 * (i + 3 * j)] = tile[k + 3 * (i + 3 * j)];
+  //     }
+  //     testImgData.data[3 + 4 * (i + 3 * j)] = 255;
+  //   }
+  // }
+  // domOutputView.width = 3;
+  // domOutputView.height = 3;
+  // ctxOutput.putImageData(testImgData, 0, 0);
+  // console.log(imgData);
+  const tileSet = new Map();  // Map<Hash, Tile>
+  const tiles = [];  // Array<Id, Tile>
+  const atlas = [];  // Array<X, Array<Y, Tile>>
+  for (let i = 0; i <= w - tileWidth; i += tileWidth) {
+    const atlasCol = [];
+    atlas.push(atlasCol);
+    for (let j = 0; j <= h - tileHeight; j += tileHeight) {
+      const pixels = getTile(imgData.data, i, j, tileWidth, tileHeight, w);
+      const h = hash(pixels);
+      if (!tileSet.has(h)) {
+        const tile = new Tile(
+            tiles.length, i / tileWidth, j / tileHeight, pixels);
+        tileSet.set(h, tile);
+        tiles.push(tile);
+      }
+      atlasCol.push(tileSet.get(h));
+    }
+  }
+  const dirSet = [[], [], [], []]; // Array<Dir, Array<Id, Set<Id>>>
+  for (let i = 0; i < atlas.length; ++i) {
+    for (let j = 0; j < atlas[i].length; ++j) {
+      for (let k = 0; k < 4; ++k) {
+        const pi = i + kTileDirs[k][0];
+        const pj = j + kTileDirs[k][1];
+        if (pi < 0 || pi >= atlas.length) continue;
+        if (pj < 0 || pj >= atlas[pi].length) continue;
+        const ijid = atlas[i][j].id;
+        const dd = dirSet[k];
+        if (dd[ijid] == null) dd[ijid] = new Set();
+        dd[ijid].add(atlas[pi][pj].id);
+      }
+    }
+  }
+  for (let id = 0; id < tiles.length; ++id) {
+    for (let k = 0; k < 4; ++k) {
+      const dd = dirSet[k][id];
+      if (dd == null) continue;
+      for (const t of dd) {
+        tiles[id].dirs[k].push(t);
+      }
+    }
+  }
+  console.log(tiles);
+  return new Rules(tiles);
+}
+
+function generateOutput(rules) {
+}
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: stretch;
+}
+.left {
+  width: 30%;
+}
+.right {
+  flex-grow: 1;
+  min-height: 100%;
+  margin-left: 16px;
+}
+#image_label, button {
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 24px;
+}
+input[type="file"] {
+  display: none;
+}
+canvas {
+  border: 1px solid #f5f5f5;
+  width: 300px;
+  height: 300px;
+}
+.view_label {
+  width: 100%;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Wave Function Collapse</h1>
+</div>
+<div id="wrap">
+  <div id="left">
+    <span>
+      <div class="view_label">Input</div>
+      <canvas id="input_view"></canvas>
+    </span>
+    <br/>
+    <label id="image_label">
+      <input type="file" id="image" accept="image/*" onchange="onFile()">
+      <a>Choose a file</a>
+    </label>
+    or drag and drop it.
+  </div>
+  <div id="right">
+    <span>
+      <div class="view_label">Output</div>
+      <canvas id="output_view"></canvas>
+    </span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PubMed Synthetic Links</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+function select(id) {
+  const range = document.createRange();
+  range.selectNodeContents(document.getElementById(id));
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+function generate() {
+  // class no-abstract
+  // is new
+  // is review
+}
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: stretch;
+}
+.left {
+  width: 30%;
+}
+.left input {
+  width: 100%;
+}
+.right {
+  flex-grow: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-left: 16px;
+}
+#output {
+  width: 100%;
+  flex-grow: 1;
+  background-color: #FFF;
+  color: black;
+  font-size: 0.7em;
+}
+.title {
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>PubMed Synthetic Links</h1>
+</div>
+<div id="wrap">
+  <div class="left">
+    Title:<br/>
+    <input type="text" id="input_title">
+    <br/>
+    Authors:<br/>
+    <input type="text" id="input_authors">
+    <br/>
+    Journal:<br/>
+    <input type="text" id="input_journal">
+    <br/>
+    Date:<br/>
+    <input type="text" id="input_date">
+    <br/>
+    Journal:<br/>
+    <input type="text" id="input_journal">
+    <br/>
+    <br/>
+    <a onclick="generate()">== GO =></a>
+  </div>
+  <div class="right">
+    <span>Tags: <a onclick="select('output')">[SELECT]</a></span>
+    <div id="output"></div>
+  </div>
+</div>
+</body>
+</html>
