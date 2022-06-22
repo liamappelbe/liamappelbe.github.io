@@ -171,22 +171,64 @@ function onLoad() {
   runUnitTests();
 
   let forceRedraw = true;
-  let grad = 0;
-  let off = 0;
+  const onFrameCallbacks = [];
 
-  const inGrad = document.getElementById('in_grad');
-  const inOff = document.getElementById('in_off');
+  const liveValue = (ids, init = 0, validate = x => x) => {
+    // Does a few things:
+    // - Maintains the invariant that each dom element has the same value.
+    // - Whenever the value changes, sets forceRedraw to true.
+    // - Uses validate to sanitize, a function from float to nullable float.
+    // - Returns an object with a value field that is kept up to date.
+    // - Changes to that field are also reflected on the elements.
+    const elements = ids.map(id => document.getElementById(id));
+    const oldValues = [];  // One for each element, and one for obj.value.
+    for (const e of elements) {
+      e.value = init;
+      oldValues.push(e.value);
+    }
+    const obj = { value: init };
+    oldValues.push(obj.value);
+    onFrameCallbacks.push(() => {
+      let anyChange = obj.value != oldValues[elements.length];
+      let cause = null;
+      if (!anyChange) {
+        for (let i = 0; i < elements.length; ++i) {
+          const e = elements[i];
+          if (e.value != oldValues[i]) {
+            const px = parseFloat(e.value);
+            const x = isNaN(px) ? null : validate(px);
+            if (x != null) {
+              anyChange = true;
+              obj.value = x;
+              cause = i;
+              break;
+            }
+          }
+        }
+      }
+      if (anyChange) {
+        forceRedraw = true;
+        oldValues[elements.length] = obj.value;
+        for (let i = 0; i < elements.length; ++i) {
+          const e = elements[i];
+          if (i != cause) {
+            e.value = obj.value;
+          }
+          oldValues[i] = e.value;
+        }
+      }
+    });
+    return obj;
+  };
+
+  const grad = liveValue(
+      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0);
+  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
+
   const canvas = document.getElementById('view');
   const domContFrac = document.getElementById('cont_frac');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
-
-  const setGrad = x => {
-    inGrad.value = x;
-  };
-  const setOff = x => {
-    inOff.value = x;
-  };
 
   const domAdvancedOptions = document.getElementById('advanced_options');
   const domFlagAdvanced = document.getElementById('flag_advanced');
@@ -234,13 +276,13 @@ function onLoad() {
       x = Math.floor(x + 0.5);
       y = Math.floor(y + 0.5);
     }
-    y += off;
+    y += off.value;
     if (x <= 0) {
-      setGrad(1e3);
+      grad.value = 1e3;
     } else if (y <= 0) {
-      setGrad(0);
+      grad.value = 0;
     } else {
-      setGrad(y / x);
+      grad.value = y / x;
     }
   };
   canvas.addEventListener('mousedown', e => {
@@ -276,27 +318,26 @@ function onLoad() {
   };
 
   const update = () => {
-    const oldGrad = grad;
-    const oldOff = off;
-    grad = safeGet(inGrad, grad, x => x >= 0);
-    off = fmod(safeGet(inOff, off));
-    const needsRedraw =
-        alwaysRedraw || forceRedraw || oldGrad != grad || oldOff != off;
+    for (const fn of onFrameCallbacks) fn();
+
+    const needsRedraw = alwaysRedraw || forceRedraw;
 
     if (needsRedraw) {
       forceRedraw = false;
-      gx = 1 / Math.sqrt(1 + grad * grad);
-      gy = gx * grad;
-      hitRad = (1 + grad) / Math.sqrt(1 + grad * grad);
-      hitGx = gy;
-      hitGy = -gx;
-      hitSx = hitGx * hitRad;
-      hitSy = hitGy * hitRad;
-      hitOx = 0;
-      hitOy = -off;
+      const g = grad.value;
+      const o = off.value;
+      const gx = 1 / Math.sqrt(1 + g * g);
+      const gy = gx * g;
+      const hitRad = (1 + g) / Math.sqrt(1 + g * g);
+      const hitGx = gy;
+      const hitGy = -gx;
+      const hitSx = hitGx * hitRad;
+      const hitSy = hitGy * hitRad;
+      const hitOx = 0;
+      const hitOy = -o;
 
-      const terms = getContFracTerms(grad, contFracTerms);
-      const sequence = sequenceFromGrad(grad, off, genSeqLength);
+      const terms = getContFracTerms(g, contFracTerms);
+      const sequence = sequenceFromGrad(g, o, genSeqLength);
 
       // Clear to black.
       ctx.fillStyle = '#000';
@@ -533,8 +574,10 @@ slide-show.loaded {
       <canvas id="view" width="800" height="800"></canvas>
     </div>
     <div id="right">
-      Gradient: <input type="text" id="in_grad" value="0.618033988749894"/><br/>
-      Offset: <input type="text" id="in_off" value="0"/><br/>
+      Gradient: <input type="text" id="in_grad"/>
+      <input type="range" id="ins_grad" min="0" max="1" step="0.001"/><br/>
+      Offset: <input type="text" id="in_off"/>
+      <input type="range" id="ins_off" min="0" max="0.999" step="0.001"/><br/>
       <br/>
       Sequence:<br/>
       <div id="word"></div>
