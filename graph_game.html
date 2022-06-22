@@ -454,7 +454,7 @@ class Graph {
         const m = this.nodes[j];
         if (n.links.has(m)) {
           const clr = (this.selectedNode == i || this.selectedNode == j) ?
-              '#FFF' : '#222';
+              '#FFF' : '#444';
           drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), clr);
         }
       }
@@ -464,7 +464,7 @@ class Graph {
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
       const c = (this.selectedNode == i) ? '#FFF' :
-          (n.color == -1) ? '#222' : this.colors[n.color];
+          (n.color == -1) ? '#444' : this.colors[n.color];
       drawNode(tx(n.px), ty(n.py), c);
     }
   }
@@ -606,6 +606,8 @@ class Game {
         halfWidth * (1 + 2 * posX / viewSize),
         halfHeight * (1 + 2 * posY / viewSize));
     ctx.lineWidth = viewSize / (halfWidth + halfHeight);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
     this.graph = new Graph(ctx, size);
     canvas.addEventListener('mousedown', e => {
@@ -658,9 +660,15 @@ class Game {
 
     const maybeDoEndTransition = status => {
       if (status == -1) return false;
-      console.log('TODO: Implement game over', status);
-      this.graph = null;
-      this.transitionToSetup();
+      update();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = '50px monospace';
+      ctx.fillStyle = '#FFF';
+      ctx.fillText(`${status == 1 ? 'Phil' : 'Emmy'} wins!!!`, 400, 400);
+      window.setTimeout(() => {
+        this.graph = null;
+        this.transitionToSetup();
+      }, 5000);
       return true;
     };
 
