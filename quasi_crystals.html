@@ -16,6 +16,8 @@ const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
 const genSeqLength = 100;
 
+const tau = 2 * Math.PI;
+
 function fmod(x, y = 1) {
   const z = x / y;
   return (z - Math.floor(z)) * y;
@@ -167,6 +169,16 @@ function runUnitTests() {
   }
 }
 
+function setupCanvas(canvas, viewWidth) {
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(
+      canvas.width / viewWidth, 0,
+      0, -canvas.width / viewWidth,
+      0, canvas.height);
+  ctx.lineWidth = viewWidth / canvas.width;
+  return ctx;
+}
+
 function onLoad() {
   runUnitTests();
 
@@ -226,6 +238,7 @@ function onLoad() {
   const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
 
   const canvas = document.getElementById('view');
+  const crystalCanvas = document.getElementById('crystal_view');
   const domContFrac = document.getElementById('cont_frac');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
@@ -255,18 +268,12 @@ function onLoad() {
   };
 
   const flagShowSteps = makeFlag('Show steps');
+  const flagShowCrystal = makeFlag('Show crystal');
 
-  const ctx = canvas.getContext('2d');
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  const ctx = setupCanvas(canvas, viewSize);
+  const crystalCtx = setupCanvas(crystalCanvas, viewSize);
 
-  const tau = 2 * Math.PI;
   const dotSize = 0.003 * viewSize;
-  ctx.setTransform(
-      canvas.width / viewSize, 0,
-      0, -canvas.height / viewSize,
-      0, canvas.height);
-  ctx.lineWidth = 2 * viewSize / (canvas.width + canvas.height);
 
   let mouseClicked = false;
   const onMouse = (e, click) => {
@@ -298,31 +305,29 @@ function onLoad() {
     if (mouseClicked) onMouse(e, mouseClicked = false);
   });
 
-  const circle = (px, py, r, clr) => {
-    ctx.fillStyle = clr;
-    ctx.beginPath();
-    ctx.ellipse(px, py, r, r, 0, 0, tau);
-    ctx.fill();
+  const circle = (cc, px, py, r, clr) => {
+    cc.fillStyle = clr;
+    cc.beginPath();
+    cc.ellipse(px, py, r, r, 0, 0, tau);
+    cc.fill();
   };
 
-  const line = (px, py, qx, qy, clr) => {
-    ctx.strokeStyle = clr;
-    ctx.beginPath();
-    ctx.moveTo(px, py);
-    ctx.lineTo(qx, qy);
-    ctx.stroke();
+  const line = (cc, px, py, qx, qy, clr) => {
+    cc.strokeStyle = clr;
+    cc.beginPath();
+    cc.moveTo(px, py);
+    cc.lineTo(qx, qy);
+    cc.stroke();
   };
 
-  const ray = (px, py, dx, dy, clr) => {
-    line(px, py, px + 2 * viewSize * dx, py + 2 * viewSize * dy, clr);
+  const ray = (cc, px, py, dx, dy, clr) => {
+    line(cc, px, py, px + 2 * viewSize * dx, py + 2 * viewSize * dy, clr);
   };
 
   const update = () => {
     for (const fn of onFrameCallbacks) fn();
 
-    const needsRedraw = alwaysRedraw || forceRedraw;
-
-    if (needsRedraw) {
+    if (alwaysRedraw || forceRedraw) {
       forceRedraw = false;
       const g = grad.value;
       const o = off.value;
@@ -346,23 +351,24 @@ function onLoad() {
       // Draw dots.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          circle(i, j, dotSize, '#FFF2');
+          circle(ctx, i, j, dotSize, '#444');
         }
       }
 
       // Draw kernel lines.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          line(i, j, i + hitSx, j + hitSy, '#FFF1');
+          line(ctx, i, j, i + hitSx, j + hitSy, '#222');
         }
       }
 
       // Draw ray.
-      ray(hitOx, hitOy, gx, gy, '#FFF');
+      ray(ctx, hitOx, hitOy, gx, gy, '#FFF');
 
       // Iterate through the sequence.
       let px = 0;
       let py = 0;
+      const hits = [];
       for (const goUp of sequence) {
         const x = px + (goUp ? 0 : 1);
         const y = py + (goUp ? 1 : 0);
@@ -371,15 +377,16 @@ function onLoad() {
         const uy = hitOy + k * gy;
 
         // Draw hit dots.
-        line(x, y, ux, uy, '#08F');
-        circle(x, y, dotSize, '#08F');
-        circle(ux, uy, 2 * dotSize, '#F20');
+        line(ctx, x, y, ux, uy, '#08F');
+        circle(ctx, x, y, dotSize, '#08F');
+        circle(ctx, ux, uy, 2 * dotSize, '#F20');
 
         // Draw steps.
-        if (flagShowSteps.value) line(px, py, x, y, '#0F0C');
+        if (flagShowSteps.value) line(ctx, px, py, x, y, '#0F0C');
 
         px = x;
         py = y;
+        hits.push(k);
       }
 
       // Fill continued fraction and approx fraction.
@@ -390,6 +397,21 @@ function onLoad() {
       // Fill word.
       const word = sequence.map(x => x ? 'S' : 'L').join('');
       domWord.innerText = word;
+
+      // Draw the crystal, if enabled.
+      if (flagShowCrystal.value) {
+        crystalCanvas.classList.remove('hidden');
+        crystalCtx.fillStyle = '#000';
+        crystalCtx.fillRect(
+          -2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
+        const midy = 0.25;
+        line(crystalCtx, 0, midy, viewSize, midy, '#FFF');
+        for (const x of hits) {
+          circle(crystalCtx, x, midy, 2 * dotSize, '#F20');
+        }
+      } else {
+        crystalCanvas.classList.add('hidden');
+      }
     }
 
     window.requestAnimationFrame(update);
@@ -451,6 +473,8 @@ a {
   flex-grow: 1;
 }
 #middle {
+  display: flex;
+  flex-direction: column;
 }
 #right {
   display: flex;
@@ -572,6 +596,7 @@ slide-show.loaded {
     </div>
     <div id="middle">
       <canvas id="view" width="800" height="800"></canvas>
+      <canvas id="crystal_view" width="800" height="40" class="hidden"></canvas>
     </div>
     <div id="right">
       Gradient: <input type="text" id="in_grad"/>
