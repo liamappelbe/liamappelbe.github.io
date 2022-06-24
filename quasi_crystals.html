@@ -185,7 +185,7 @@ function onLoad() {
   let forceRedraw = true;
   const onFrameCallbacks = [];
 
-  const liveValue = (ids, init = 0, validate = x => x) => {
+  const liveValue = (ids, init = 0, validate = x => x, onchange = () => {}) => {
     // Does a few things:
     // - Maintains the invariant that each dom element has the same value.
     // - Whenever the value changes, sets forceRedraw to true.
@@ -228,13 +228,24 @@ function onLoad() {
           }
           oldValues[i] = e.value;
         }
+        onchange();
       }
     });
     return obj;
   };
 
+  let targKeep = false;
+  let targX = null;
+  let targY = null;
   const grad = liveValue(
-      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0);
+      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0, () => {
+    if (targKeep) {
+      targKeep = false;
+    } else {
+      targX = null;
+      targY = null;
+    }
+  });
   const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
 
   const canvas = document.getElementById('view');
@@ -280,11 +291,11 @@ function onLoad() {
   const onMouse = (e, click) => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const mx = e.pageX - rect.x;
-    const my = e.pageY - rect.y;
+    console.log(e.clientY, rect.y);
+    const mx = e.clientX - rect.x;
+    const my = e.clientY - rect.y;
     let x = viewSize * mx / canvas.width;
     let y = viewSize * (1 - my / canvas.height);
-    console.log(x, y);
     if (!click) {
       const px = Math.floor(x + 0.5);
       const py = Math.floor(y + 0.5);
@@ -305,6 +316,9 @@ function onLoad() {
     } else {
       grad.value = y / x;
     }
+    targX = x;
+    targY = y;
+    targKeep = true;
   };
   canvas.addEventListener('mousedown', e => {
     onMouse(e, mouseClicked = true);
@@ -359,17 +373,17 @@ function onLoad() {
       ctx.fillStyle = '#000';
       ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
 
-      // Draw dots.
-      for (let i = 0; i <= viewSize; ++i) {
-        for (let j = 0; j <= viewSize; ++j) {
-          circle(ctx, i, j, dotSize, '#444');
-        }
-      }
-
       // Draw kernel lines.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
           line(ctx, i, j, i + hitSx, j + hitSy, '#222');
+        }
+      }
+
+      // Draw dots.
+      for (let i = 0; i <= viewSize; ++i) {
+        for (let j = 0; j <= viewSize; ++j) {
+          circle(ctx, i, j, dotSize, '#444');
         }
       }
 
@@ -402,10 +416,15 @@ function onLoad() {
 
       // Draw convergents, if enabled.
       if (flagShowConvergents.value) {
-        for (let i = 1; i < terms.length; ++i) {
+        for (let i = 1; i <= terms.length; ++i) {
           const [y, x] = getApproxFrac(terms, i);
           circle(ctx, x, y, 2 * dotSize, '#FF0');
         }
+      }
+
+      // Draw target point, if it exists.
+      if (targX != null && targY != null) {
+        circle(ctx, targX, targY, 2 * dotSize, '#FFF');
       }
 
       // Fill continued fraction and approx fraction.
