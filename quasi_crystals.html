@@ -51,9 +51,9 @@ function getApproxFrac(terms, maxTerms) {
   const first = Math.min(terms.length, maxTerms) - 1;
   const frac = [1, 0];
   for (let i = first; i >= 0; --i) {
-    const x = frac[0];
-    frac[0] = terms[i] * x + frac[1];
-    frac[1] = x;
+    const y = frac[0];
+    frac[0] = terms[i] * y + frac[1];
+    frac[1] = y;
   }
   return frac;
 }
@@ -267,6 +267,7 @@ function onLoad() {
     return flag;
   };
 
+  const flagShowConvergents = makeFlag('Show convergents');
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
 
@@ -387,6 +388,14 @@ function onLoad() {
         px = x;
         py = y;
         hits.push(k);
+      }
+
+      // Draw convergents, if enabled.
+      if (flagShowConvergents.value) {
+        for (let i = 1; i < terms.length; ++i) {
+          const [y, x] = getApproxFrac(terms, i);
+          circle(ctx, x, y, 2 * dotSize, '#FF0');
+        }
       }
 
       // Fill continued fraction and approx fraction.
