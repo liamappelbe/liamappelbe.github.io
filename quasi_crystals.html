@@ -278,11 +278,24 @@ function onLoad() {
 
   let mouseClicked = false;
   const onMouse = (e, click) => {
-    let x = viewSize * e.offsetX / canvas.width;
-    let y = viewSize * (1 - e.offsetY / canvas.height);
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.pageX - rect.x;
+    const my = e.pageY - rect.y;
+    let x = viewSize * mx / canvas.width;
+    let y = viewSize * (1 - my / canvas.height);
+    console.log(x, y);
     if (!click) {
-      x = Math.floor(x + 0.5);
-      y = Math.floor(y + 0.5);
+      const px = Math.floor(x + 0.5);
+      const py = Math.floor(y + 0.5);
+      if (px >= 0 && py >= 0 && px <= viewSize && py <= viewSize) {
+        const dx = x - px;
+        const dy = y - py;
+        if ((dx * dx + dy * dy) < 0.05) {
+          x = px;
+          y = py;
+        }
+      }
     }
     y += off.value;
     if (x <= 0) {
@@ -296,13 +309,10 @@ function onLoad() {
   canvas.addEventListener('mousedown', e => {
     onMouse(e, mouseClicked = true);
   });
-  canvas.addEventListener('mousemove', e => {
+  document.addEventListener('mousemove', e => {
     if (mouseClicked) onMouse(e, mouseClicked);
   });
-  canvas.addEventListener('mouseout', e => {
-    if (mouseClicked) onMouse(e, mouseClicked = false);
-  });
-  canvas.addEventListener('mouseup', e => {
+  document.addEventListener('mouseup', e => {
     if (mouseClicked) onMouse(e, mouseClicked = false);
   });
 
@@ -430,6 +440,9 @@ function onLoad() {
 window.addEventListener('load', onLoad);
 </script>
 <style>
+html {
+  min-height: 100%;
+}
 body {
   background-color: #212121;
   margin: 0;
@@ -523,6 +536,7 @@ a {
   gap: 8px;
   justify-content: center;
   align-items: center;
+  min-height: 130px;
 }
 #approx_equal {
   font-size: 32px;
