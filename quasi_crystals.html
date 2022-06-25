@@ -7,7 +7,13 @@
 <script type="text/javascript">
 
 // Config
-const viewSize = 10;
+const mainViewSize = 10;
+const mainDotSize = 0.03;
+const mainLineSize = 1;
+const cellViewSize = 1;
+const cellDotSize = 0.01;
+const cellLineSize = 2;
+const cellRayLength = 10;
 const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
 const approxContFracTerms = 7;
@@ -169,13 +175,61 @@ function runUnitTests() {
   }
 }
 
-function setupCanvas(canvas, viewWidth) {
+function getRayCellCrossingsDist(gx, ox, len) {
+  if (gx == 0) return null;
+  const k = (1 - ox) / gx;
+  if (k >= len) return null
+  return k;
+}
+
+function getRayCellCrossings(gx, gy, ox, oy, len) {
+  let d = 0;
+  let x = ox;
+  let y = oy;
+  const a = [];
+  for (let i = 0; i < 100; ++i) {
+    const l = len - d;
+    const kx = getRayCellCrossingsDist(gx, x, l);
+    const ky = getRayCellCrossingsDist(gy, y, l);
+    const stop = kx == null && ky == null;
+
+    let k = 0;
+    let px = null;
+    let py = null;
+    let nx = null;
+    let ny = null;
+    if (stop) {
+      k = l;
+    } else if (ky == null || (kx != null && kx < ky)) {
+      k = kx;
+      px = 1;
+      nx = 0;
+    } else {
+      k = ky;
+      py = 1;
+      ny = 0;
+    }
+    if (ny == null) ny = py = y + k * gy;
+    if (nx == null) nx = px = x + k * gx;
+
+    const nd = d + k;
+    a.push([x, y, d / len, px, py, nd / len]);
+    x = nx;
+    y = ny;
+    d = nd;
+
+    if (stop) break;
+  }
+  return a;
+}
+
+function setupCanvas(canvas, viewWidth, lineWidthMul = 1) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(
       canvas.width / viewWidth, 0,
       0, -canvas.width / viewWidth,
       0, canvas.height);
-  ctx.lineWidth = viewWidth / canvas.width;
+  ctx.lineWidth = lineWidthMul * viewWidth / canvas.width;
   return ctx;
 }
 
@@ -281,17 +335,18 @@ function onLoad() {
   const flagShowConvergents = makeFlag('Show convergents');
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
+  const flagUnitCellMode = makeFlag('Unit cell mode', true);
 
-  const ctx = setupCanvas(canvas, viewSize);
-  const crystalCtx = setupCanvas(crystalCanvas, viewSize);
+  const crystalCtx = setupCanvas(crystalCanvas, mainViewSize);
 
-  const dotSize = 0.003 * viewSize;
+  const getViewSize = () =>
+      flagUnitCellMode.value ? cellViewSize : mainViewSize;
 
   let mouseClicked = false;
   const onMouse = (e, click) => {
     e.preventDefault();
+    const viewSize = getViewSize();
     const rect = canvas.getBoundingClientRect();
-    console.log(e.clientY, rect.y);
     const mx = e.clientX - rect.x;
     const my = e.clientY - rect.y;
     let x = viewSize * mx / canvas.width;
@@ -346,7 +401,7 @@ function onLoad() {
   };
 
   const ray = (cc, px, py, dx, dy, clr) => {
-    line(cc, px, py, px + 2 * viewSize * dx, py + 2 * viewSize * dy, clr);
+    line(cc, px, py, px + 2 * mainViewSize * dx, py + 2 * mainViewSize * dy, clr);
   };
 
   const update = () => {
@@ -354,6 +409,10 @@ function onLoad() {
 
     if (alwaysRedraw || forceRedraw) {
       forceRedraw = false;
+      const viewSize = getViewSize();
+      const dotSize = flagUnitCellMode.value ? cellDotSize : mainDotSize;
+      const lineSize = flagUnitCellMode.value ? cellLineSize : mainLineSize;
+      const ctx = setupCanvas(canvas, viewSize, lineSize);
       const g = grad.value;
       const o = off.value;
       const gx = 1 / Math.sqrt(1 + g * g);
@@ -370,27 +429,25 @@ function onLoad() {
       const sequence = sequenceFromGrad(g, o, genSeqLength);
 
       // Clear to black.
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = 'rgba(0, 0, 0, 1)';
       ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
 
       // Draw kernel lines.
-      for (let i = 0; i <= viewSize; ++i) {
-        for (let j = 0; j <= viewSize; ++j) {
-          line(ctx, i, j, i + hitSx, j + hitSy, '#222');
+      const kernDraw = viewSize + 1;
+      for (let i = -1; i <= kernDraw; ++i) {
+        for (let j = -1; j <= kernDraw; ++j) {
+          line(ctx, i, j, i + hitSx, j + hitSy, 'rgba(68, 68, 68, 1)');
         }
       }
 
       // Draw dots.
       for (let i = 0; i <= viewSize; ++i) {
         for (let j = 0; j <= viewSize; ++j) {
-          circle(ctx, i, j, dotSize, '#444');
+          circle(ctx, i, j, dotSize, 'rgba(68, 68, 68, 1)');
         }
       }
 
-      // Draw ray.
-      ray(ctx, hitOx, hitOy, gx, gy, '#FFF');
-
-      // Iterate through the sequence.
+      // Calculate ray hits.
       let px = 0;
       let py = 0;
       const hits = [];
@@ -400,31 +457,77 @@ function onLoad() {
         const k = gx * (x - hitOx) + gy * (y - hitOy);
         const ux = hitOx + k * gx;
         const uy = hitOy + k * gy;
-
-        // Draw hit dots.
-        line(ctx, x, y, ux, uy, '#08F');
-        circle(ctx, x, y, dotSize, '#08F');
-        circle(ctx, ux, uy, 2 * dotSize, '#F20');
-
-        // Draw steps.
-        if (flagShowSteps.value) line(ctx, px, py, x, y, '#0F0C');
-
+        hits.push([px, py, x, y, ux, uy, k]);
         px = x;
         py = y;
-        hits.push(k);
       }
 
-      // Draw convergents, if enabled.
-      if (flagShowConvergents.value) {
-        for (let i = 1; i <= terms.length; ++i) {
-          const [y, x] = getApproxFrac(terms, i);
-          circle(ctx, x, y, 2 * dotSize, '#FF0');
+      if (!flagUnitCellMode.value) {  // Normal mode.
+        // Draw ray.
+        ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 1)');
+
+        // Draw hit kernel lines.
+        for (const [px, py, x, y, ux, uy, k] of hits) {
+          line(ctx, x, y, ux, uy, 'rgba(0, 136, 255, 1)');
+          circle(ctx, x, y, dotSize, 'rgba(0, 136, 255, 1)');
+        }
+
+        // Draw hit dots.
+        for (const [px, py, x, y, ux, uy, k] of hits) {
+          circle(ctx, ux, uy, 2 * dotSize, 'rgba(255, 34, 0, 1)');
+        }
+
+        // Draw steps.
+        if (flagShowSteps.value) {
+          for (const [px, py, x, y, ux, uy, k] of hits) {
+            line(ctx, px, py, x, y, 'rgba(0, 255, 0, 0.8)');
+          }
+        }
+
+        // Draw convergents, if enabled.
+        if (flagShowConvergents.value) {
+          for (let i = 1; i <= terms.length; ++i) {
+            const [y, x] = getApproxFrac(terms, i);
+            circle(ctx, x, y, 2 * dotSize, 'rgba(255, 255, 0, 1)');
+          }
+        }
+      } else {  // Unit cell mode.
+        // Draw ray.
+        const rcc = getRayCellCrossings(gx, gy, hitOx, hitOy, cellRayLength);
+        for (const [ax, ay, ak, bx, by, bk] of rcc) {
+          const grd = ctx.createLinearGradient(ax, ay, bx, by);
+          grd.addColorStop(0, `rgba(255, 255, 0, ${1 - ak})`);
+          grd.addColorStop(1, `rgba(255, 255, 0, ${1 - bk})`);
+          line(ctx, ax, ay, bx, by, grd);
+        }
+
+        // Modulo all the ray hits into the unit cell.
+        const modhits = [];
+        for (const [px, py, x, y, ux, uy, k] of hits) {
+          if (k > cellRayLength) break;
+          const mux = fmod(ux);
+          const muy = fmod(uy);
+          const gux = x + mux - ux;
+          const guy = y + muy - uy;
+          const alpha = 1 - k / cellRayLength;
+          modhits.push([mux, muy, gux, guy, alpha])
+        }
+
+        // Draw hit kernel lines.
+        for (const [mux, muy, gux, guy, alpha] of modhits) {
+          line(ctx, gux, guy, mux, muy, `rgba(0, 136, 255, ${alpha})`);
+          circle(ctx, gux, guy, dotSize, `rgba(0, 136, 255, ${alpha})`);
+        }
+
+        // Draw hit dots.
+        for (const [mux, muy, gux, guy, alpha] of modhits) {
+          circle(ctx, mux, muy, dotSize, `rgba(255, 34, 0, ${alpha})`);
         }
       }
 
       // Draw target point, if it exists.
       if (targX != null && targY != null) {
-        circle(ctx, targX, targY, 2 * dotSize, '#FFF');
+        circle(ctx, targX, targY, 2 * dotSize, 'rgba(255, 255, 255, 1)');
       }
 
       // Fill continued fraction and approx fraction.
@@ -439,13 +542,14 @@ function onLoad() {
       // Draw the crystal, if enabled.
       if (flagShowCrystal.value) {
         crystalCanvas.classList.remove('hidden');
-        crystalCtx.fillStyle = '#000';
+        crystalCtx.fillStyle = 'rgba(0, 0, 0, 1)';
         crystalCtx.fillRect(
-          -2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
+          -2 * mainViewSize, -2 * mainViewSize,
+          4 * mainViewSize, 4 * mainViewSize);
         const midy = 0.25;
-        line(crystalCtx, 0, midy, viewSize, midy, '#FFF');
-        for (const x of hits) {
-          circle(crystalCtx, x, midy, 2 * dotSize, '#F20');
+        line(crystalCtx, 0, midy, mainViewSize, midy, 'rgba(255, 255, 255, 1)');
+        for (const [px, py, x, y, ux, uy, k] of hits) {
+          circle(crystalCtx, k, midy, 2 * mainDotSize, 'rgba(255, 34, 0, 1)');
         }
       } else {
         crystalCanvas.classList.add('hidden');
