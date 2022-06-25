@@ -24,21 +24,17 @@ const genSeqLength = 100;
 
 const tau = 2 * Math.PI;
 
+function randInt(n) {
+  return Math.floor(n * Math.random());
+}
+
 function fmod(x, y = 1) {
   const z = x / y;
   return (z - Math.floor(z)) * y;
 }
 
-function newElement(type, parent, classes = [], text = null) {
-  const n = document.createElement(type);
-  if (text != null) n.innerText = text;
-  for (const cls of classes) n.classList.add(cls);
-  if (parent != null) parent.appendChild(n);
-  return n;
-}
-
-function newDiv(parent, classes = [], text = null) {
-  return newElement('div', parent, classes, text);
+function isInt(x) {
+  return Math.floor(x) == x;
 }
 
 function getContFracTerms(x, maxTerms) {
@@ -47,7 +43,13 @@ function getContFracTerms(x, maxTerms) {
     const c = Math.floor(x);
     terms.push(c);
     const r = x - c;
-    if (r < epsilon) break;
+    if (r < epsilon) {
+      if (c == 1 && terms.length > 1) {
+        terms.pop();
+        terms[terms.length - 1] += 1;
+      }
+      break;
+    }
     x = 1 / r;
   }
   return terms;
@@ -62,6 +64,14 @@ function getApproxFrac(terms, maxTerms) {
     frac[1] = y;
   }
   return frac;
+}
+
+function getContFracValue(terms) {
+  let x = Infinity;
+  for (let i = terms.length - 1; i >= 0; --i) {
+    x = terms[i] + 1 / x;
+  }
+  return x;
 }
 
 function repeatStr(s, n, max) {
@@ -127,29 +137,6 @@ function emptyDiv(n) {
   while (n.hasChildNodes()) n.removeChild(n.lastChild);
 }
 
-function fillContFracDom(node, terms) {
-  emptyDiv(node);
-  let n = terms.length;
-  const trunc = n > visibleContFracTerms;
-  if (trunc) n = visibleContFracTerms;
-  --n;
-  for (let i = 0; i < n; ++i) {
-    if (!(i == 0 && terms[i] == 0)) {
-      newDiv(node, ['cont-frac-term-inner'], `${terms[i]} + `);
-    }
-    const frac = newDiv(node, ['cont-frac-frac']);
-    newDiv(frac, ['cont-frac-num'], '1');
-    node = newDiv(frac, ['cont-frac-den']);
-  }
-  newDiv(node, ['cont-frac-term'], `${terms[n]}${trunc ? ' ...' : ''}`);
-}
-
-function fillApproxFracDom(node, terms) {
-  emptyDiv(node);
-  newDiv(node, ['approx-frac-num'], terms[0]);
-  newDiv(node, ['approx-frac-den'], terms[1]);
-}
-
 function runUnitTests() {
   let anyFails = false;
   const testWord = (terms, expectedWord) => {
@@ -169,6 +156,19 @@ function runUnitTests() {
   testWord([1, 1, 1, 1, 1, 1], 'SSLSSLSLSSLSSLSLSSLSL');
   testWord([1, 6, 2, 3, 1, 2], 'SSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSLSSLSLSLSLSLSLSSLSLSLSLSLSLSL');
   testWord([0, 2, 2], 'SLLSLLL');
+
+  const testContFrac = (x) => {
+    const y = getContFracValue(getContFracTerms(x, 100));
+    if (Math.abs(x - y) > 1e-12) {
+      console.error(`getContFracValue(getContFracTerms(${x}, 100)) produced ${y} instead of ${x}`);
+      anyFails = true;
+    }
+  };
+
+  for (let i = 0; i < 1000; ++i) {
+    testContFrac(10 * Math.random());
+    testContFrac(randInt(10000) / (randInt(10000) + 1));
+  }
 
   if (!anyFails) {
     console.log('All tests passed :)');
@@ -335,7 +335,55 @@ function onLoad() {
   const flagShowConvergents = makeFlag('Show convergents');
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
-  const flagUnitCellMode = makeFlag('Unit cell mode', true);
+  const flagUnitCellMode = makeFlag('Unit cell mode');
+  const flagContFracEdit = makeFlag('Editable fraction', true);
+
+  const fillContFracDom = terms => {
+    emptyDiv(domContFrac);
+    let n = terms.length;
+    const trunc = n > visibleContFracTerms;
+    if (trunc) n = visibleContFracTerms;
+    --n;
+    let node = domContFrac;
+    const addTerm = (i, suffix, cls) => {
+      if (flagContFracEdit.value) {
+        const t = newElement('input', node, [cls, 'cont-frac-term-edit']);
+        t.setAttribute('type', 'text');
+        t.value = terms[i];
+        t.addEventListener('change', () => {
+          const x = safeGet(t, terms[i], y => (y >= 0 && isInt(y)));
+          if (x == terms[i]) return;
+          const setTerm = (i, x) => {
+            if (i > 0 && x == 0) return terms.slice(0, i);
+            const terms_ = terms.slice(0);
+            terms_[i] = x;
+            return terms_;
+          };
+          const terms_ = setTerm(i, x);
+          grad.value = getContFracValue(terms_);
+          forceRedraw = true;
+        });
+      } else {
+        newDiv(node, [cls], terms[i]);
+      }
+      newDiv(node, [cls], suffix);
+    };
+    for (let i = 0; i < n; ++i) {
+      if (flagContFracEdit.value || !(i == 0 && terms[i] == 0)) {
+        addTerm(i, ' + ', 'cont-frac-term');
+      }
+      const frac = newDiv(node, ['cont-frac-frac']);
+      newDiv(frac, ['cont-frac-num'], '1');
+      node = newDiv(frac, ['cont-frac-den']);
+    }
+    addTerm(n, trunc ? ' ...' : '', 'cont-frac-term-end');
+  }
+
+  const fillApproxFracDom = terms => {
+    emptyDiv(domApproxFrac);
+    newDiv(domApproxFrac, ['approx-frac-num'], terms[0]);
+    newDiv(domApproxFrac, ['approx-frac-den'], terms[1]);
+  }
 
   const crystalCtx = setupCanvas(crystalCanvas, mainViewSize);
 
@@ -531,9 +579,8 @@ function onLoad() {
       }
 
       // Fill continued fraction and approx fraction.
-      fillContFracDom(domContFrac, terms);
-      fillApproxFracDom(
-          domApproxFrac, getApproxFrac(terms, approxContFracTerms));
+      fillContFracDom(terms);
+      fillApproxFracDom(getApproxFrac(terms, approxContFracTerms));
 
       // Fill word.
       const word = sequence.map(x => x ? 'S' : 'L').join('');
@@ -631,9 +678,17 @@ a {
   text-overflow: ellipsis;
   width: 350px;
 }
-.cont-frac-term-inner {
-  padding-top: 0.5em;
-  padding-right: 0.7em;
+.cont-frac-term {
+  display: flex;
+  flex-direction: row;
+  margin-top: 0.6em;
+}
+.cont-frac-term-end {
+  margin-top: 0;
+}
+.cont-frac-term-edit {
+  width: 1.4em;
+  height: 1em;
 }
 .cont-frac-frac {
   display: flex;
@@ -647,6 +702,7 @@ a {
   display: flex;
   flex-direction: row;
   justify-content: center;
+  gap: 4px;
 }
 .cont-frac-den, .approx-frac-den {
   border-top: 2px solid #f5f5f5;
@@ -659,7 +715,7 @@ a {
   gap: 8px;
   justify-content: center;
   align-items: center;
-  min-height: 130px;
+  min-height: 140px;
 }
 #approx_equal {
   font-size: 32px;
