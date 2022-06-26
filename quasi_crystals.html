@@ -305,6 +305,7 @@ function onLoad() {
   const canvas = document.getElementById('view');
   const crystalCanvas = document.getElementById('crystal_view');
   const domContFrac = document.getElementById('cont_frac');
+  const domApproxEqual = document.getElementById('approx_equal');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
 
@@ -380,9 +381,11 @@ function onLoad() {
   }
 
   const fillApproxFracDom = terms => {
+    const [y, x] = getApproxFrac(terms, approxContFracTerms);
     emptyDiv(domApproxFrac);
-    newDiv(domApproxFrac, ['approx-frac-num'], terms[0]);
-    newDiv(domApproxFrac, ['approx-frac-den'], terms[1]);
+    newDiv(domApproxFrac, ['approx-frac-num'], y);
+    if (x != 1) newDiv(domApproxFrac, ['approx-frac-den'], x);
+    domApproxEqual.innerText = approxContFracTerms < terms.length ? '≈' : '=';
   }
 
   const crystalCtx = setupCanvas(crystalCanvas, mainViewSize);
@@ -580,7 +583,7 @@ function onLoad() {
 
       // Fill continued fraction and approx fraction.
       fillContFracDom(terms);
-      fillApproxFracDom(getApproxFrac(terms, approxContFracTerms));
+      fillApproxFracDom(terms);
 
       // Fill word.
       const word = sequence.map(x => x ? 'S' : 'L').join('');
@@ -812,7 +815,7 @@ slide-show.loaded {
       Continued Fraction:<br/>
       <div class="frac-row">
         <div id="cont_frac"></div>
-        <div id="approx_equal">≈</div>
+        <div id="approx_equal"></div>
         <div id="approx_frac"></div>
       </div>
       <br/>
