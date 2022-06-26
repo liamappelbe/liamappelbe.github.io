@@ -33,6 +33,19 @@ function fmod(x, y = 1) {
   return (z - Math.floor(z)) * y;
 }
 
+function clamp(x, lo = 0, hi = 1) {
+  return Math.max(Math.min(x, hi), lo);
+}
+
+function squish(x) {
+  return (1 - Math.cos(x * Math.PI)) / 4 + x / 2;
+}
+
+function squishy(x, n) {
+  for (let i = 0; i < n; ++i) x = squish(x);
+  return x;
+}
+
 function isInt(x) {
   return Math.floor(x) == x;
 }
@@ -301,6 +314,16 @@ function onLoad() {
     }
   });
   const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
+  const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
+  const getZ = () => {
+    const x = rawzterm.value;
+    if (x == 0) return [0, 1];
+    if (x == 1) return [Infinity, 1];
+    if (x == 0.5) return [1, 1];
+    const y = squishy(x, 8);
+    const z = (1 / (1 - y)) - 1;
+    return x < 0.5 ? [1, Math.floor(1 / z)] : [Math.floor(z), 1];
+  };
 
   const canvas = document.getElementById('view');
   const crystalCanvas = document.getElementById('crystal_view');
@@ -308,6 +331,7 @@ function onLoad() {
   const domApproxEqual = document.getElementById('approx_equal');
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
+  const domZSlider = document.getElementById('z_slider');
 
   const domAdvancedOptions = document.getElementById('advanced_options');
   const domFlagAdvanced = document.getElementById('flag_advanced');
@@ -337,9 +361,10 @@ function onLoad() {
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
   const flagUnitCellMode = makeFlag('Unit cell mode');
-  const flagContFracEdit = makeFlag('Editable fraction', true);
+  const flagContFracEdit = makeFlag('Editable fraction');
+  const flagShowZ = makeFlag('Show Z term');
 
-  const fillContFracDom = terms => {
+  const fillContFracDom = (terms, zn, zd) => {
     emptyDiv(domContFrac);
     let n = terms.length;
     const trunc = n > visibleContFracTerms;
@@ -377,7 +402,16 @@ function onLoad() {
       newDiv(frac, ['cont-frac-num'], '1');
       node = newDiv(frac, ['cont-frac-den']);
     }
-    addTerm(n, trunc ? ' ...' : '', 'cont-frac-term-end');
+    if (flagShowZ.value && !flagContFracEdit.value) {
+      domZSlider.classList.remove('hidden');
+      addTerm(n, ' + ', zd == 1 ? 'cont-frac-term-end' : 'cont-frac-term');
+      const frac = newDiv(node, ['cont-frac-frac']);
+      newDiv(frac, ['cont-frac-num'], zn == Infinity ? '∞' : zn);
+      if (zd != 1) newDiv(frac, ['cont-frac-den'], zd);
+    } else {
+      addTerm(n, trunc ? ' ...' : '', 'cont-frac-term-end');
+      domZSlider.classList.add('hidden');
+    }
   }
 
   const fillApproxFracDom = terms => {
@@ -475,6 +509,7 @@ function onLoad() {
       const hitSy = hitGy * hitRad;
       const hitOx = 0;
       const hitOy = -o;
+      const [zn, zd] = getZ();
 
       const terms = getContFracTerms(g, contFracTerms);
       const sequence = sequenceFromGrad(g, o, genSeqLength);
@@ -582,7 +617,7 @@ function onLoad() {
       }
 
       // Fill continued fraction and approx fraction.
-      fillContFracDom(terms);
+      fillContFracDom(terms, zn, zd);
       fillApproxFracDom(terms);
 
       // Fill word.
@@ -818,6 +853,8 @@ slide-show.loaded {
         <div id="approx_equal"></div>
         <div id="approx_frac"></div>
       </div>
+      <input type="range" id="z_slider" min="0" max="1" step="0.001"
+          class="hidden"/><br/>
       <br/>
       <div class="flag">
         <input type="checkbox" id="flag_advanced"/>
