@@ -16,7 +16,7 @@ const cellLineSize = 2;
 const cellRayLength = 10;
 const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
-const approxContFracTerms = 7;
+const approxContFracTerms = visibleContFracTerms;  // +1??
 const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
@@ -50,6 +50,12 @@ function isInt(x) {
   return Math.floor(x) == x;
 }
 
+function unit(x, y) {
+  const d = Math.sqrt(x * x + y * y);
+  if (d == 0) return [0, 0];
+  return [x / d, y / d];
+}
+
 function getContFracTerms(x, maxTerms) {
   const terms = [];
   for (let i = 0; i < maxTerms; ++i) {
@@ -68,9 +74,9 @@ function getContFracTerms(x, maxTerms) {
   return terms;
 }
 
-function getApproxFrac(terms, maxTerms) {
+function getApproxFrac(terms, maxTerms, zn = 0, zd = 1) {
   const first = Math.min(terms.length, maxTerms) - 1;
-  const frac = [1, 0];
+  const frac = [zd, zn];
   for (let i = first; i >= 0; --i) {
     const y = frac[0];
     frac[0] = terms[i] * y + frac[1];
@@ -318,7 +324,7 @@ function onLoad() {
   const getZ = () => {
     const x = rawzterm.value;
     if (x == 0) return [0, 1];
-    if (x == 1) return [Infinity, 1];
+    if (x == 1) return [1, 0];
     if (x == 0.5) return [1, 1];
     const y = squishy(x, 8);
     const z = (1 / (1 - y)) - 1;
@@ -364,6 +370,8 @@ function onLoad() {
   const flagContFracEdit = makeFlag('Editable fraction');
   const flagShowZ = makeFlag('Show Z term');
 
+  const isInZMode = () => flagShowZ.value && !flagContFracEdit.value;
+
   const fillContFracDom = (terms, zn, zd) => {
     emptyDiv(domContFrac);
     let n = terms.length;
@@ -402,20 +410,21 @@ function onLoad() {
       newDiv(frac, ['cont-frac-num'], '1');
       node = newDiv(frac, ['cont-frac-den']);
     }
-    if (flagShowZ.value && !flagContFracEdit.value) {
+    if (isInZMode()) {
       domZSlider.classList.remove('hidden');
-      addTerm(n, ' + ', zd == 1 ? 'cont-frac-term-end' : 'cont-frac-term');
+      const haszd = zd > 1;
+      addTerm(n, ' + ', haszd ? 'cont-frac-term' : 'cont-frac-term-end');
       const frac = newDiv(node, ['cont-frac-frac']);
-      newDiv(frac, ['cont-frac-num'], zn == Infinity ? '∞' : zn);
-      if (zd != 1) newDiv(frac, ['cont-frac-den'], zd);
+      newDiv(frac, ['cont-frac-num'], zd == 0 ? '∞' : zn);
+      if (haszd) newDiv(frac, ['cont-frac-den'], zd);
     } else {
       addTerm(n, trunc ? ' ...' : '', 'cont-frac-term-end');
       domZSlider.classList.add('hidden');
     }
   }
 
-  const fillApproxFracDom = terms => {
-    const [y, x] = getApproxFrac(terms, approxContFracTerms);
+  const fillApproxFracDom = (terms, zn, zd) => {
+    const [y, x] = getApproxFrac(terms, approxContFracTerms, zn, zd);
     emptyDiv(domApproxFrac);
     newDiv(domApproxFrac, ['approx-frac-num'], y);
     if (x != 1) newDiv(domApproxFrac, ['approx-frac-den'], x);
@@ -552,6 +561,18 @@ function onLoad() {
         // Draw ray.
         ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 1)');
 
+        // Draw z, z=0, and z=inf lines, if in z mode.
+        if (isInZMode()) {
+          const zvec = (n, d) => {
+            const [y, x] = getApproxFrac(terms, approxContFracTerms, n, d);
+            const [gy, gx] = unit(y, x);
+            ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 0.5)');
+          };
+          zvec(zn, zd);
+          zvec(0, 1);
+          zvec(1, 0);
+        }
+
         // Draw hit kernel lines.
         for (const [px, py, x, y, ux, uy, k] of hits) {
           line(ctx, x, y, ux, uy, 'rgba(0, 136, 255, 1)');
@@ -618,7 +639,7 @@ function onLoad() {
 
       // Fill continued fraction and approx fraction.
       fillContFracDom(terms, zn, zd);
-      fillApproxFracDom(terms);
+      fillApproxFracDom(terms, zn, zd);
 
       // Fill word.
       const word = sequence.map(x => x ? 'S' : 'L').join('');
