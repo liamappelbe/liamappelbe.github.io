@@ -320,6 +320,22 @@ function onLoad() {
     }
   });
   const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
+  let targCoeff = null;
+  const coeffterm = liveValue(['coeff_slider'], 1,
+      x => clamp(Math.floor(x), 1, 10), () => {
+    if (targCoeff == null) return;
+    console.log("Coeff changed");
+    // const x = safeGet(t, terms[i], y => (y >= 0 && isInt(y)));
+    // if (x == terms[i]) return;
+    // const setTerm = (i, x) => {
+    //   if (i > 0 && x == 0) return terms.slice(0, i);
+    //   const terms_ = terms.slice(0);
+    //   terms_[i] = x;
+    //   return terms_;
+    // };
+    // const terms_ = setTerm(i, x);
+    // grad.value = getContFracValue(terms_);
+  });
   const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
 
   const canvas = document.getElementById('view');
@@ -358,7 +374,7 @@ function onLoad() {
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
   const flagUnitCellMode = makeFlag('Unit cell mode');
-  const flagContFracEdit = makeFlag('Editable fraction');
+  const flagContFracEdit = makeFlag('Editable fraction', true);
   const flagShowZ = makeFlag('Show Z term');
 
   const isInZMode = () => flagShowZ.value && !flagContFracEdit.value;
@@ -379,27 +395,21 @@ function onLoad() {
     if (trunc) n = visibleContFracTerms;
     --n;
     let node = domContFrac;
+    const termDivs = [];
     const addTerm = (i, suffix, cls) => {
+      const termWrap = newDiv(node, [cls]);
+      const term = newDiv(termWrap, [], terms[i]);
       if (flagContFracEdit.value) {
-        const t = newElement('input', node, [cls, 'cont-frac-term-edit']);
-        t.setAttribute('type', 'text');
-        t.value = terms[i];
-        t.addEventListener('change', () => {
-          const x = safeGet(t, terms[i], y => (y >= 0 && isInt(y)));
-          if (x == terms[i]) return;
-          const setTerm = (i, x) => {
-            if (i > 0 && x == 0) return terms.slice(0, i);
-            const terms_ = terms.slice(0);
-            terms_[i] = x;
-            return terms_;
-          };
-          const terms_ = setTerm(i, x);
-          grad.value = getContFracValue(terms_);
-          forceRedraw = true;
+        term.classList.add('cont-frac-term-clickable');
+        term.addEventListener('click', () => {
+          for (const t of termDivs) {
+            t.classList.remove('selected');
+          }
+          term.classList.add('selected');
+          targCoeff = i;
         });
-      } else {
-        newDiv(node, [cls], terms[i]);
       }
+      termDivs.push(term);
       newDiv(node, [cls], suffix);
     };
     for (let i = 0; i < n; ++i) {
@@ -738,16 +748,10 @@ a {
   width: 350px;
 }
 .cont-frac-term {
-  display: flex;
-  flex-direction: row;
   margin-top: 0.6em;
 }
 .cont-frac-term-end {
   margin-top: 0;
-}
-.cont-frac-term-edit {
-  width: 1.4em;
-  height: 1em;
 }
 .cont-frac-frac {
   display: flex;
@@ -767,6 +771,15 @@ a {
   border-top: 2px solid #f5f5f5;
   text-align: center;
 }
+.cont-frac-term-clickable {
+  cursor: pointer;
+}
+.cont-frac-term-clickable:hover {
+  background-color: rgba(0, 128, 255, 0.5);
+}
+.cont-frac-term-clickable.selected {
+  background-color: rgba(0, 128, 255, 1);
+}
 .frac-row {
   display: flex;
   flex-direction: row;
@@ -784,13 +797,13 @@ a {
   flex-direction: column;
   justify-content: center;
 }
-#z_slider_wrap {
+#z_slider_wrap, #coeff_slider_wrap {
   display: flex;
   flex-direction: row;
   justify-content: center;
   gap: 4px;
 }
-#z_slider {
+#z_slider, #coeff_slider {
   flex-grow: 1;
 }
 .hidden {
@@ -882,6 +895,9 @@ slide-show.loaded {
         <div id="cont_frac"></div>
         <div id="approx_equal"></div>
         <div id="approx_frac"></div>
+      </div>
+      <div id="coeff_slider_wrap" class="hidden">
+        <input type="range" id="coeff_slider" min="1" max="30" step="1"/><br/>
       </div>
       <div id="z_slider_wrap" class="hidden">
         Z:
