@@ -320,21 +320,14 @@ function onLoad() {
     }
   });
   const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
-  let targCoeff = null;
-  const coeffterm = liveValue(['coeff_slider'], 1,
-      x => clamp(Math.floor(x), 1, 10), () => {
-    if (targCoeff == null) return;
-    console.log("Coeff changed");
-    // const x = safeGet(t, terms[i], y => (y >= 0 && isInt(y)));
-    // if (x == terms[i]) return;
-    // const setTerm = (i, x) => {
-    //   if (i > 0 && x == 0) return terms.slice(0, i);
-    //   const terms_ = terms.slice(0);
-    //   terms_[i] = x;
-    //   return terms_;
-    // };
-    // const terms_ = setTerm(i, x);
-    // grad.value = getContFracValue(terms_);
+  let targCoeff = 0;
+  const coeffterm = liveValue(['coeff_slider'], 1, x => Math.floor(x), () => {
+    const terms = getContFracTerms(grad.value, contFracTerms);
+    const x = coeffterm.value;
+    if (x == terms[targCoeff]) return;
+    const terms_ = terms.slice(0);
+    terms_[targCoeff] = x;
+    grad.value = getContFracValue(terms_);
   });
   const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
 
@@ -345,6 +338,7 @@ function onLoad() {
   const domApproxFrac = document.getElementById('approx_frac');
   const domWord = document.getElementById('word');
   const domZSliderWrap = document.getElementById('z_slider_wrap');
+  const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
 
   const domAdvancedOptions = document.getElementById('advanced_options');
   const domFlagAdvanced = document.getElementById('flag_advanced');
@@ -374,7 +368,7 @@ function onLoad() {
   const flagShowSteps = makeFlag('Show steps');
   const flagShowCrystal = makeFlag('Show crystal');
   const flagUnitCellMode = makeFlag('Unit cell mode');
-  const flagContFracEdit = makeFlag('Editable fraction', true);
+  const flagContFracEdit = makeFlag('Editable fraction');
   const flagShowZ = makeFlag('Show Z term');
 
   const isInZMode = () => flagShowZ.value && !flagContFracEdit.value;
@@ -396,22 +390,30 @@ function onLoad() {
     --n;
     let node = domContFrac;
     const termDivs = [];
+
     const addTerm = (i, suffix, cls) => {
       const termWrap = newDiv(node, [cls]);
       const term = newDiv(termWrap, [], terms[i]);
       if (flagContFracEdit.value) {
+        termWrap.classList.add('cont-frac-term-wrap');
         term.classList.add('cont-frac-term-clickable');
+        if (targCoeff == i) {
+          termWrap.classList.add('selected');
+        }
         term.addEventListener('click', () => {
           for (const t of termDivs) {
             t.classList.remove('selected');
           }
-          term.classList.add('selected');
+          termWrap.classList.add('selected');
           targCoeff = i;
+          coeffterm.value = terms[i];
         });
+        newDiv(termWrap, ['cont-frac-term-line']);
       }
-      termDivs.push(term);
-      newDiv(node, [cls], suffix);
+      termDivs.push(termWrap);
+      if (suffix != '') newDiv(node, [cls], suffix);
     };
+
     for (let i = 0; i < n; ++i) {
       if (flagContFracEdit.value || !(i == 0 && terms[i] == 0)) {
         addTerm(i, ' + ', 'cont-frac-term');
@@ -420,6 +422,14 @@ function onLoad() {
       newDiv(frac, ['cont-frac-num'], '1');
       node = newDiv(frac, ['cont-frac-den']);
     }
+
+    if (flagContFracEdit.value) {
+      domCoeffSliderWrap.classList.remove('hidden');
+    } else {
+      domCoeffSliderWrap.classList.add('hidden');
+      targCoeff = 0;
+    }
+
     if (isInZMode()) {
       domZSliderWrap.classList.remove('hidden');
       const haszd = zd > 1;
@@ -771,14 +781,30 @@ a {
   border-top: 2px solid #f5f5f5;
   text-align: center;
 }
+.cont-frac-term-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: top;
+  align-items: center;
+  min-height: 30px;
+}
 .cont-frac-term-clickable {
   cursor: pointer;
 }
 .cont-frac-term-clickable:hover {
   background-color: rgba(0, 128, 255, 0.5);
 }
-.cont-frac-term-clickable.selected {
+.selected .cont-frac-term-clickable {
   background-color: rgba(0, 128, 255, 1);
+}
+.cont-frac-term-line {
+  display: none;
+  background-color: rgba(0, 128, 255, 1);
+  flex-grow: 1;
+  width: 1px;
+}
+.selected .cont-frac-term-line {
+  display: block;
 }
 .frac-row {
   display: flex;
