@@ -45,7 +45,7 @@ function randPermutation(n) {
   return a;
 }
 
-function fclamp(x, hi = 1, lo = 0) {
+function clamp(x, hi = 1, lo = 0) {
   return x <= lo ? lo : x >= hi ? hi : x;
 }
 
@@ -63,7 +63,7 @@ function popSwap(a, i) {
 
 function rgb2str(r, g, b) {
   const ch = x => {
-    const s = Math.floor(fclamp(x * 256, 255)).toString(16);
+    const s = Math.floor(clamp(x * 256, 255)).toString(16);
     if (s.length > 2) return 'ff';
     if (s.length == 0) return '00';
     if (s.length == 1) return '0' + s;
@@ -192,38 +192,74 @@ class HumanCtrl {
   onTurn() {}
 }
 
+function aiCalculateScoreImplForPhil(graph) {
+  const status = graph.getStatus();
+  if (status != -1) {
+    return status == 1 ? Infinity : -Infinity;
+  }
+  // Invariant: Must leave graph how it was found.
+  // TODO Heuristics:
+  //  - Sum the score of each node. Node score is proportional to its degree.
+  //      If a node is full or has no empty neighbors, that score is positive.
+  //      Otherwise it's negative.
+  //  - Number of colors next to each adjacent node is negative.
+  //  - Number of colors in use is negative.
+  return 0.1 * Math.random();
+}
+
+function aiCalculateScore(graph, move, isPhil) {
+  // Invariant: Must leave graph how it was found.
+  graph.doMove(move);
+  const score = aiCalculateScoreImplForPhil(graph);
+  graph.undoMove(move);
+  return isPhil ? score : -score;
+};
+
+const kRecScoreWeight = 3;
+function aiCombineScores(score, recScore) {
+  if (!isFinite(score)) return score;
+  recScore = -recScore;
+  if (!isFinite(recScore)) return recScore;
+  return score + kRecScoreWeight * recScore;
+};
+
 class AiCtrl {
-  constructor(kind, graph, isPhil, ui, doMove) {
-    const depth = {
+  constructor(kind, graph, isPhilCtrl, ui, doMove) {
+    const maxDepth = {
       'Random AI': -1,
       'Easy AI': 2,
-      'Medium AI': 4,
-      'Hard AI': 6,
+      'Medium AI': 3,
+      'Hard AI': 4,
     }[kind];
-    let setStatus = null;
-    let setMood = null;
-    if (ui) {
-      const status = newDiv(ui, ['game-status']);
-      setStatus = (s) => {
-        status.innerText =`${isPhil ? 'Phil' : 'Emmy'} is ${s}...`;
-      };
-      const moods = [
-          '😭', '🥺', '😒', '😵', '😬', '😅', '🤨',
-          '🤔',
-          '🙂', '😉', '🤭', '😄', '🤣', '😎', '🥳'];
-      const mood = newDiv(ui, ['ai-mood']);
-      setMood = (m) => {
-        mood.innerText = `Mood: ${m}`;
-      };
-      setMood(moods[7]);
-    }
-    if (depth == -1) {
+    const status = newDiv(ui, ['game-status']);
+    const setStatus = (s) => {
+      status.innerText =`${isPhilCtrl ? 'Phil' : 'Emmy'} is ${s}...`;
+    };
+    const happyMoods = ['🙂', '😉', '🤭', '😄', '🤣', '😎', '🥳'];
+    const neutralMoods = ['🤨', '🤔', '😑', '😐', '🧐', '😯', '😪'];
+    const sadMoods = ['😅', '😬', '😵', '😒', '🥺', '😭', '💀'];
+    const moodRow = newDiv(ui, ['ai-mood-row']);
+    newDiv(moodRow, [], 'Mood:');
+    const mood = newDiv(moodRow, ['ai-mood']);
+    const setMood = (m) => mood.innerText = m;
+    const setMoodValue = (x) => {
+      const neutralRange = 1;
+      const maxRange = 10;
+      const y = (Math.abs(x) - neutralRange) / (maxRange - neutralRange);
+      if (y <= 0) {
+        setMood(neutralMoods[randInt(neutralMoods.length)]);
+        return;
+      }
+      const moods = x < 0 ? sadMoods : happyMoods;
+      const z = (y * moods.length) + (randInt(2) - 1);
+      setMood(moods[clamp(Math.floor(z), moods.length - 1)]);
+    };
+    setMoodValue(0);
+    if (maxDepth == -1) {
       this.onTurn = async () => {
-        if (ui) {
-          setStatus('"thinking"');
-          setMood('🤪');
-          await wait(1);
-        }
+        setStatus('"thinking"');
+        setMood('🤪');
+        await wait(1);
 
         const moves = [];
         graph.forEachValidMove((node, color) => {
@@ -231,20 +267,95 @@ class AiCtrl {
         });
         const move = moves[randInt(moves.length)];
 
-        if (ui) {
-          setStatus('coloring');
-          setMood('🤠');
-          await wait(0.5);
-        }
+        setStatus('coloring');
+        setMood('🤠');
+        await wait(1);
 
         doMove(move);
       };
     } else {
-      if (ui) {
+      this.onTurn = async () => {
         setStatus('thinking');
-        // TODO.
-      }
+        await wait(0);
+
+        // Returns [Move, Score]
+        let time = performance.now();
+        const runAi = async (depth, isPhil) => {
+          // Allow a frame to render every 200ms.
+          const newTime = performance.now();
+          if (newTime > time + 200) {
+            await wait(0);
+            time = newTime;
+          }
+
+          const mss = [];  // Array{Tuple{Move, Score}}
+          graph.forEachUsefulMove((node, color) => {
+            // Invariant: Must leave graph how it was found.
+            const move = new Move(node, color);
+            const score = aiCalculateScore(graph, move, isPhil);
+            if (score != -Infinity) mss.push([move, score]);
+          });
+          if (mss.length == 0) {
+            // No useful moves, so do a random move.
+            const moves = [];
+            graph.forEachValidMove((node, color) => {
+              moves.push(new Move(node, color));
+            });
+            const move = moves[randInt(moves.length)];
+            return [move, aiCalculateScore(graph, move, isPhil)];
+          }
+          for (const [move, score] of mss) {
+            // Bail early to avoid recursion if there's a winning move.
+            if (score == Infinity) return [move, score];
+          }
+          if (depth > 0) {
+            for (let i = 0; i < mss.length; ++i) {
+              // Invariant: Must leave graph how it was found.
+              const [move, score] = mss[i];
+              if (!isFinite(score)) continue;
+              graph.doMove(move);
+              const [revMove, recScore] = await runAi(depth - 1, !isPhil);
+              const combinedScore = aiCombineScores(score, recScore);
+              graph.undoMove(move);
+              mss[i] = [move, combinedScore];
+            }
+          }
+          let bestIndex = 0;
+          let bestScore = mss[0];
+          for (let i = 1; i < mss.length; ++i) {
+            const [move, score] = mss[i];
+            if (score > bestScore) {
+              bestScore = score;
+              bestIndex = i;
+            }
+          }
+          return mss[bestIndex];
+        };
+        const [move, score] = await runAi(maxDepth, isPhilCtrl);
+        console.log(move, score);
+
+        const thinkTime = (performance.now() - time) / 1000;
+        if (thinkTime < 1) await wait(1 - thinkTime);
+        setStatus('coloring');
+        setMoodValue(score);
+        await wait(1);
+
+        doMove(move);
+      };
     }
+  }
+}
+
+class SyncAiCtrl {
+  constructor(graph, isPhil, doMove) {
+    this.onTurn = () => {
+      const moves = [];
+      graph.forEachValidMove((node, color) => {
+        moves.push(new Move(node, color));
+      });
+      const move = moves[randInt(moves.length)];
+      doMove(move);
+    };
   }
 }
 
@@ -286,6 +397,7 @@ class Graph {
     this.camy = 0;
     this.heldNode = null;
     this.selectedNode = null;
+    this.culpritNode = null;
     this.nodes = [];
     this.numColors = 0;
     this.colors = [];
@@ -422,7 +534,7 @@ class Graph {
     // Emmy wins more than half of the games, there are too few colors. So
     // starting with our initial guess, go up and down searching for the closest
     // to an equal win rate we can find.
-    const kTestGames = 100;
+    const kTestGames = 1000;
     const kTargWins = kTestGames / 2;
     const rates = [];
     const runTest = n => {
@@ -434,6 +546,13 @@ class Graph {
       }
       rates[n] = philWins;
     };
+    const score = philWins => {
+      // 50% is best. For rates near 50%, bias slightly towards Phil. Further
+      // away, the bias gets stronger. 100% is scores the same as 17%.
+      const x = philWins / kTestGames;
+      const y = Math.sqrt(x) - Math.SQRT1_2;
+      return y * y;
+    };
     const runTests = d => {
       for (let n = guess; ; n += d) {
         if (n < 2 || n >= this.nodes.length) break;
@@ -441,7 +560,7 @@ class Graph {
         const pr = rates[n - d];
         if (pr == null) continue;
         const r = rates[n];
-        if (Math.abs(r - kTargWins) > Math.abs(pr - kTargWins)) break;
+        if (score(r) >= score(pr)) break;
       }
     };
     runTests(1);
@@ -452,7 +571,7 @@ class Graph {
     for (let i = 0; i < rates.length; ++i) {
       const r = rates[i];
       if (r == null) continue;
-      const s = Math.abs(r - kTargWins);
+      const s = score(r);
       if (s < mins) {
         mins = s;
         mini = i;
@@ -465,15 +584,13 @@ class Graph {
   runTestGame() {
     let onTurn = null;
     let status = -2;
-    const onMove = (isPhil, move) => {
+    const move = (isPhil, move) => {
       this.doMove(move);
       status = this.getStatus();
       if (status == -1) onTurn(isPhil);
     };
-    const phil = new AiCtrl(
-        'Random AI', this, true, null, m => onMove(true, m));
-    const emmy = new AiCtrl(
-        'Random AI', this, false, null, m => onMove(false, m));
+    const phil = new SyncAiCtrl(this, true, m => move(true, m));
+    const emmy = new SyncAiCtrl(this, false, m => move(false, m));
     onTurn = (isPhil) => (isPhil ? emmy : phil).onTurn();
     phil.onTurn();
     for (const n of this.nodes) n.resetColor();
@@ -590,7 +707,7 @@ class Graph {
     // Draw all the nodes.
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
-      const c = (this.selectedNode == i) ? '#FFF' :
+      const c = (this.selectedNode == i || this.culpritNode == i) ? '#FFF' :
           (n.color == -1) ? '#444' : this.colors[n.color];
       drawNode(tx(n.px), ty(n.py), c);
     }
@@ -643,18 +760,26 @@ class Graph {
     return true;
   }
 
-  // Returns -1 if game is not over, 0 if Emmy won, and 1 if Phil won.
   doMove(move) {
     // console.log(move);
-    this.selectedNode = null;
+    console.assert(this.nodes[move.nodeId].color == -1);
     this.nodes[move.nodeId].color = move.color;
   }
 
-  getStatus() {
-    // If all nodes are filled, Phil has won. Otherwise, if there are no valid
-    // moves left, Emmy has won.
+  undoMove(move) {
+    console.assert(this.nodes[move.nodeId].color == move.color);
+    this.nodes[move.nodeId].color = -1;
+  }
+
+  // Returns -1 if game is not over, 0 if Emmy won, and 1 if Phil won.
+  getStatus(uiMode = false) {
+    // If all nodes are filled, Phil has won. Otherwise, if any node has no
+    // valid moves, Emmy has won (and that node is the culprit). Otherwise, if
+    // all empty nodes have only full neighbors, Phil has won (but in uiMode we
+    // ignore this case). Otherwise, the game is not over.
+    if (uiMode) this.culpritNode = null;
     let anyEmpty = false;
-    let anyMoves = false;
+    let anyEmptyWithEmptyNeighbors = false;
     for (const n of this.nodes) {
       if (n.color == -1) {
         anyEmpty = true;
@@ -662,22 +787,28 @@ class Graph {
         // Are there any colors not used by the neighbors?
         const usedColors = new Set();
         for (const m of n.links) {
-          if (m.color != -1) usedColors.add(m.color);
+          if (m.color == -1) {
+            anyEmptyWithEmptyNeighbors = true;
+          } else {
+            usedColors.add(m.color);
+          }
         }
-        if (usedColors.size < this.numColors) {
-          anyMoves = true;
-          break;
+        if (usedColors.size == this.numColors) {
+          if (uiMode) this.culpritNode = n.id;
+          return 0;
         }
       }
     }
     if (!anyEmpty) return 1;
-    if (!anyMoves) return 0;
+    if (!anyEmptyWithEmptyNeighbors && !uiMode) return 1;
     return -1;
   }
 
-  forEachValidMove(fn) {
+  forEachValidMove(fn, nodePredicate = n => true) {
+    // TODO: For each unused color, we only need to iterate one of that color.
+    //   Eg, when no colors are used yet the choice of color doesn't matter.
     for (const n of this.nodes) {
-      if (n.color == -1) {
+      if (n.color == -1 && nodePredicate(n)) {
         for (let i = 0; i < this.numColors; ++i) {
           let validColor = true;
           for (const m of n.links) {
@@ -692,6 +823,16 @@ class Graph {
         }
       }
     }
+  }
+
+  forEachUsefulMove(fn) {
+    // A useful move is a valid move on a node with at least one empty neighbor.
+    this.forEachValidMove(fn, n => {
+      for (const m of n.links) {
+        if (m.color == -1) return true;
+      }
+    });
+    return false;
   }
 }
 
@@ -826,7 +967,8 @@ class Game {
     let onTurn = null;
     const onMove = (isPhil, move) => {
       this.graph.doMove(move);
-      if (!maybeDoEndTransition(this.graph.getStatus())) {
+      this.graph.selectedNode = null;
+      if (!maybeDoEndTransition(this.graph.getStatus(true))) {
         (isPhil ? philUi : emmyUi).classList.add('hidden');
         (isPhil ? emmyUi : philUi).classList.remove('hidden');
         onTurn(isPhil);
@@ -921,7 +1063,16 @@ a {
 }
 .game-status {
   color: #ffc107;
-  font-size: 20px;
+  font-size: 24px;
+}
+.ai-mood-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.ai-mood {
+  font-size: 32px;
 }
 .game-ctrl-clr-row {
   margin: 8px;
@@ -964,7 +1115,7 @@ a {
 <body>
 <div id="head">
   <a id="index" href="index.html">&lt;</a>
-  <h1>Graph Coloring Game (Prototype)</h1>
+  <h1>Graph Coloring Game</h1>
 </div>
 <div id="wrap">
   Two players, Phil and Emmy, take turns coloring nodes of a graph. Connected
