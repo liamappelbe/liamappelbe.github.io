@@ -14,6 +14,19 @@ const kDamping = kFastFreeze ? 0.5 : 0.2;
 const kUpdateItrs = kFastFreeze ? 10 : 1;
 const kFreezeThreshold = kFastFreeze ? 1e-4 : 1e-6;
 
+const kAiTestingMode = false;
+const kAiTestingRuns = 1000;
+const kAiTestingPhils = ['Random AI', 'Easy AI', 'Easy H1 AI', 'Easy H2 AI', 'Easy H3 AI', 'Medium AI', 'Medium H1 AI', 'Medium H2 AI', 'Medium H3 AI'];
+const kAiTestingEmmys = kAiTestingPhils;
+const kAiTestingGraphSize = 12;
+const kAiDefaultHeurVer = kAiTestingMode ? 0 : 3;
+
+const kAiHeurRecursive = 3;
+const kAiHeurDegree = 1;
+const kAiHeurAdjClr = 1;
+const kAiHeurColor = 10;
+const kAiColorCalcRand = 1;
+
 const tau = 2 * Math.PI;
 
 function randInt(n) {
@@ -137,7 +150,11 @@ function emptyDiv(n) {
 let game = null;
 function onLoad() {
   game = new Game(document.getElementById('game'));
-  game.transitionToSetup();
+  if (kAiTestingMode) {
+    game.transitionToAiTestingMode();
+  } else {
+    game.transitionToSetup();
+  }
 }
 window.addEventListener('load', onLoad);
 
@@ -192,74 +209,127 @@ class HumanCtrl {
   onTurn() {}
 }
 
-function aiCalculateScoreImplForPhil(graph) {
+function aiCalculateScoreImplForPhil(graph, heurVer, isColorCalc) {
   const status = graph.getStatus();
   if (status != -1) {
     return status == 1 ? Infinity : -Infinity;
   }
-  // Invariant: Must leave graph how it was found.
-  // TODO Heuristics:
-  //  - Sum the score of each node. Node score is proportional to its degree.
-  //      If a node is full or has no empty neighbors, that score is positive.
-  //      Otherwise it's negative.
-  //  - Number of colors next to each adjacent node is negative.
-  //  - Number of colors in use is negative.
-  return 0.1 * Math.random();
+  if (heurVer == 0) return 0.1 * Math.random();
+
+  // Sum the score of each node. Node score is proportional to its degree. If a
+  // node is full or has no empty neighbors, that score is positive. Otherwise
+  // it's negative.
+  let score = (isColorCalc ? kAiColorCalcRand : 1e-9) * Math.random();
+  const size = graph.nodes.length;
+  for (const n of graph.nodes) {
+    let inPlay = n.isEmpty() && n.hasEmptyNeighbors();
+    let degreeScore = n.links.size / size;
+    score += kAiHeurDegree * (inPlay ? -degreeScore : degreeScore);
+  }
+
+  if (heurVer == 1) return score;
+
+  // Number of colors adjacent to each node is negative.
+  const temp = [];
+  for (const n of graph.nodes) {
+    for (let i = 0; i < graph.numColors; ++i) temp[i] = 0;
+    for (const m of n.links) temp[m.clr] = 1;
+    let clrScore = 0;
+    for (let i = 0; i < graph.numColors; ++i) clrScore += temp[i];
+    score += -kAiHeurAdjClr * clrScore / graph.numColors;
+  }
+
+  if (heurVer == 2) return score;
+
+  // Number of colors in use is negative.
+  for (let i = 0; i < graph.numColors; ++i) {
+    if (graph.nodesPerColor[i] != 0) {
+      score += -kAiHeurColor / graph.numColors;
+    }
+  }
+
+  return score;
 }
 
-function aiCalculateScore(graph, move, isPhil) {
+function aiCalculateScore(graph, move, isPhil, heurVer, isColorCalc = false) {
   // Invariant: Must leave graph how it was found.
   graph.doMove(move);
-  const score = aiCalculateScoreImplForPhil(graph);
+  const score = aiCalculateScoreImplForPhil(graph, heurVer, isColorCalc);
   graph.undoMove(move);
   return isPhil ? score : -score;
 };
 
-const kRecScoreWeight = 3;
 function aiCombineScores(score, recScore) {
   if (!isFinite(score)) return score;
   recScore = -recScore;
   if (!isFinite(recScore)) return recScore;
-  return score + kRecScoreWeight * recScore;
+  return score + kAiHeurRecursive * recScore;
 };
 
 class AiCtrl {
   constructor(kind, graph, isPhilCtrl, ui, doMove) {
     const maxDepth = {
       'Random AI': -1,
-      'Easy AI': 2,
-      'Medium AI': 3,
+      'Easy AI': 0,
+      'Easy H1 AI': 0,
+      'Easy H2 AI': 0,
+      'Easy H3 AI': 0,
+      'Medium AI': 2,
+      'Medium H1 AI': 2,
+      'Medium H2 AI': 2,
+      'Medium H3 AI': 2,
       'Hard AI': 4,
+      'Hard H1 AI': 4,
+      'Hard H2 AI': 4,
+      'Hard H3 AI': 4,
     }[kind];
-    const status = newDiv(ui, ['game-status']);
-    const setStatus = (s) => {
-      status.innerText =`${isPhilCtrl ? 'Phil' : 'Emmy'} is ${s}...`;
-    };
-    const happyMoods = ['🙂', '😉', '🤭', '😄', '🤣', '😎', '🥳'];
-    const neutralMoods = ['🤨', '🤔', '😑', '😐', '🧐', '😯', '😪'];
-    const sadMoods = ['😅', '😬', '😵', '😒', '🥺', '😭', '💀'];
-    const moodRow = newDiv(ui, ['ai-mood-row']);
-    newDiv(moodRow, [], 'Mood:');
-    const mood = newDiv(moodRow, ['ai-mood']);
-    const setMood = (m) => mood.innerText = m;
-    const setMoodValue = (x) => {
-      const neutralRange = 1;
-      const maxRange = 10;
-      const y = (Math.abs(x) - neutralRange) / (maxRange - neutralRange);
-      if (y <= 0) {
-        setMood(neutralMoods[randInt(neutralMoods.length)]);
-        return;
-      }
-      const moods = x < 0 ? sadMoods : happyMoods;
-      const z = (y * moods.length) + (randInt(2) - 1);
-      setMood(moods[clamp(Math.floor(z), moods.length - 1)]);
-    };
-    setMoodValue(0);
+    const heurVer = {
+      'Easy H1 AI': 1,
+      'Medium H1 AI': 1,
+      'Hard H1 AI': 1,
+      'Easy H2 AI': 2,
+      'Medium H2 AI': 2,
+      'Hard H2 AI': 2,
+      'Easy H3 AI': 3,
+      'Medium H3 AI': 3,
+      'Hard H3 AI': 3,
+    }[kind] ?? kAiDefaultHeurVer;
+    let setStatus = null;
+    let setMood = null;
+    let setMoodValue = null;
+    if (ui) {
+      const status = newDiv(ui, ['game-status']);
+      setStatus = (s) => {
+        status.innerText =`${isPhilCtrl ? 'Phil' : 'Emmy'} is ${s}...`;
+      };
+      const happyMoods = ['🙂', '😉', '🤭', '😄', '🤣', '😎', '🥳'];
+      const neutralMoods = ['🤨', '🤔', '😑', '😐', '🧐', '😯', '😪'];
+      const sadMoods = ['😅', '😬', '😵', '😒', '🥺', '😭', '💀'];
+      const moodRow = newDiv(ui, ['ai-mood-row']);
+      newDiv(moodRow, [], 'Mood:');
+      const mood = newDiv(moodRow, ['ai-mood']);
+      setMood = (m) => mood.innerText = m;
+      setMoodValue = (x) => {
+        const neutralRange = 100;
+        const maxRange = 1000;
+        const y = (Math.abs(x) - neutralRange) / (maxRange - neutralRange);
+        if (y <= 0) {
+          setMood(neutralMoods[randInt(neutralMoods.length)]);
+          return;
+        }
+        const moods = x < 0 ? sadMoods : happyMoods;
+        const z = (y * moods.length) + (randInt(2) - 1);
+        setMood(moods[clamp(Math.floor(z), moods.length - 1)]);
+      };
+      setMoodValue(0);
+    }
     if (maxDepth == -1) {
       this.onTurn = async () => {
-        setStatus('"thinking"');
-        setMood('🤪');
-        await wait(1);
+        if (ui) {
+          setStatus('"thinking"');
+          setMood('🤪');
+          await wait(1);
+        }
 
         const moves = [];
         graph.forEachValidMove((node, color) => {
@@ -267,16 +337,20 @@ class AiCtrl {
         });
         const move = moves[randInt(moves.length)];
 
-        setStatus('coloring');
-        setMood('🤠');
-        await wait(1);
+        if (ui) {
+          setStatus('coloring');
+          setMood('🤠');
+          await wait(1);
+        }
 
         doMove(move);
       };
     } else {
       this.onTurn = async () => {
-        setStatus('thinking');
-        await wait(0);
+        if (ui) {
+          setStatus('thinking');
+          await wait(0);
+        }
 
         // Returns [Move, Score]
         let time = performance.now();
@@ -292,7 +366,7 @@ class AiCtrl {
           graph.forEachUsefulMove((node, color) => {
             // Invariant: Must leave graph how it was found.
             const move = new Move(node, color);
-            const score = aiCalculateScore(graph, move, isPhil);
+            const score = aiCalculateScore(graph, move, isPhil, heurVer);
             if (score != -Infinity) mss.push([move, score]);
           });
           if (mss.length == 0) {
@@ -302,7 +376,7 @@ class AiCtrl {
               moves.push(new Move(node, color));
             });
             const move = moves[randInt(moves.length)];
-            return [move, aiCalculateScore(graph, move, isPhil)];
+            return [move, aiCalculateScore(graph, move, isPhil, heurVer)];
           }
           for (const [move, score] of mss) {
             // Bail early to avoid recursion if there's a winning move.
@@ -321,7 +395,7 @@ class AiCtrl {
             }
           }
           let bestIndex = 0;
-          let bestScore = mss[0];
+          let bestScore = mss[0][1];
           for (let i = 1; i < mss.length; ++i) {
             const [move, score] = mss[i];
             if (score > bestScore) {
@@ -332,13 +406,15 @@ class AiCtrl {
           return mss[bestIndex];
         };
         const [move, score] = await runAi(maxDepth, isPhilCtrl);
-        console.log(move, score);
 
-        const thinkTime = (performance.now() - time) / 1000;
-        if (thinkTime < 1) await wait(1 - thinkTime);
-        setStatus('coloring');
-        setMoodValue(score);
-        await wait(1);
+        if (ui) {
+          console.log(move, score);
+          const thinkTime = (performance.now() - time) / 1000;
+          if (thinkTime < 1) await wait(1 - thinkTime);
+          setStatus('coloring');
+          setMoodValue(score);
+          await wait(1);
+        }
 
         doMove(move);
       };
@@ -347,13 +423,64 @@ class AiCtrl {
 }
 
 class SyncAiCtrl {
-  constructor(graph, isPhil, doMove) {
-    this.onTurn = () => {
+  constructor(graph, isPhilCtrl, doMove) {
+    /*this.onTurn = () => {
       const moves = [];
       graph.forEachValidMove((node, color) => {
         moves.push(new Move(node, color));
       });
       const move = moves[randInt(moves.length)];
+      doMove(move);
+    };*/
+    const maxDepth = 0;
+    const heurVer = 3;
+    this.onTurn = () => {
+      // Returns [Move, Score]
+      const runAi = (depth, isPhil) => {
+        const mss = [];  // Array{Tuple{Move, Score}}
+        graph.forEachUsefulMove((node, color) => {
+          // Invariant: Must leave graph how it was found.
+          const move = new Move(node, color);
+          const score = aiCalculateScore(graph, move, isPhil, heurVer, true);
+          if (score != -Infinity) mss.push([move, score]);
+        });
+        if (mss.length == 0) {
+          // No useful moves, so do a random move.
+          const moves = [];
+          graph.forEachValidMove((node, color) => {
+            moves.push(new Move(node, color));
+          });
+          const move = moves[randInt(moves.length)];
+          return [move, aiCalculateScore(graph, move, isPhil, heurVer, true)];
+        }
+        for (const [move, score] of mss) {
+          // Bail early to avoid recursion if there's a winning move.
+          if (score == Infinity) return [move, score];
+        }
+        if (depth > 0) {
+          for (let i = 0; i < mss.length; ++i) {
+            // Invariant: Must leave graph how it was found.
+            const [move, score] = mss[i];
+            if (!isFinite(score)) continue;
+            graph.doMove(move);
+            const [revMove, recScore] = runAi(depth - 1, !isPhil);
+            const combinedScore = aiCombineScores(score, recScore);
+            graph.undoMove(move);
+            mss[i] = [move, combinedScore];
+          }
+        }
+        let bestIndex = 0;
+        let bestScore = mss[0][1];
+        for (let i = 1; i < mss.length; ++i) {
+          const [move, score] = mss[i];
+          if (score > bestScore) {
+            bestScore = score;
+            bestIndex = i;
+          }
+        }
+        return mss[bestIndex];
+      };
+      const [move, score] = runAi(maxDepth, isPhilCtrl);
       doMove(move);
     };
   }
@@ -365,10 +492,6 @@ class GraphNode {
     this.color = -1;
     this.links = new Set();
     this.resetPos(total);
-  }
-
-  resetColor() {
-    this.color = -1;
   }
 
   resetPos(total) {
@@ -388,6 +511,17 @@ class GraphNode {
     other.links.add(this);
     return true;
   }
+
+  isEmpty() {
+    return this.color == -1;
+  }
+
+  hasEmptyNeighbors() {
+    for (const m of this.links) {
+      if (m.isEmpty()) return true;
+    }
+    return false;
+  }
 }
 
 class Graph {
@@ -401,7 +535,26 @@ class Graph {
     this.nodes = [];
     this.numColors = 0;
     this.colors = [];
+    this.nodesPerColor = [];
     this.frozen = false;
+  }
+
+  createNodes(size) {
+    this.frozen = false;
+    this.nodes = [];
+    for (let i = 0; i < size; ++i) {
+      this.nodes.push(new GraphNode(i, size));
+    }
+  }
+
+  fillColors() {
+    this.colors = [];
+    this.nodesPerColor = [];
+    const offset = Math.random();
+    for (let i = 0; i < this.numColors; ++i) {
+      this.colors.push(hsv2rgb(offset + i / this.numColors));
+      this.nodesPerColor.push(0);
+    }
   }
 
   newGraph(size) {
@@ -442,13 +595,8 @@ class Graph {
       maxLinksPerNode = Math.max(maxLinksPerNode, n.links.size);
     }
     // TODO: Tune this heuristic. It's probably an overestimate at higher sizes.
-    const numColors = maxLinksPerNode + 1;
-    this.colors = [];
-    const offset = Math.random();
-    for (let i = 0; i < numColors; ++i) {
-      this.colors.push(hsv2rgb(offset + i / numColors));
-    }
-    this.frozen = false;
+    this.numColors = maxLinksPerNode + 1;
+    this.fillColors();
   }
 
   newPlanarGraph(size) {
@@ -500,12 +648,11 @@ class Graph {
     }
 
     // Create nodes.
-    this.nodes = [];
-    for (let i = 0; i < size; ++i) {
-      this.nodes.push(new GraphNode(i, size));
-      // this.nodes[i].px = nodePos[i][0];
-      // this.nodes[i].py = nodePos[i][1];
-    }
+    this.createNodes(size);
+    // for (let i = 0; i < size; ++i) {
+    //   this.nodes[i].px = nodePos[i][0];
+    //   this.nodes[i].py = nodePos[i][1];
+    // }
 
     // Turn the region set into links.
     for (const r of regions) {
@@ -518,15 +665,21 @@ class Graph {
 
     // Choose the right number of colors for this graph.
     const philWinRate = this.chooseNumColors(4);
-    console.log(`Phil win rate for this graph: ${philWinRate * 100}%`);
+    console.log(
+        `Phil win rate for this graph: ${philWinRate * 100}%`,
+        `Using ${this.numColors} colors`);
+    this.fillColors();
+  }
 
-    // Define colors.
-    this.colors = [];
-    const offset = Math.random();
-    for (let i = 0; i < this.numColors; ++i) {
-      this.colors.push(hsv2rgb(offset + i / this.numColors));
+  newCompleteGraph(size) {
+    this.createNodes(size);
+    for (const n of this.nodes) {
+      for (const m of this.nodes) {
+        n.link(m);
+      }
     }
-    this.frozen = false;
+    this.numColors = size;
+    this.fillColors();
   }
 
   chooseNumColors(guess) {
@@ -534,7 +687,7 @@ class Graph {
     // Emmy wins more than half of the games, there are too few colors. So
     // starting with our initial guess, go up and down searching for the closest
     // to an equal win rate we can find.
-    const kTestGames = 1000;
+    const kTestGames = 100;
     const kTargWins = kTestGames / 2;
     const rates = [];
     const runTest = n => {
@@ -550,7 +703,7 @@ class Graph {
       // 50% is best. For rates near 50%, bias slightly towards Phil. Further
       // away, the bias gets stronger. 100% is scores the same as 17%.
       const x = philWins / kTestGames;
-      const y = Math.sqrt(x) - Math.SQRT1_2;
+      const y = Math.sqrt(x) - Math.sqrt(0.5);
       return y * y;
     };
     const runTests = d => {
@@ -593,8 +746,15 @@ class Graph {
     const emmy = new SyncAiCtrl(this, false, m => move(false, m));
     onTurn = (isPhil) => (isPhil ? emmy : phil).onTurn();
     phil.onTurn();
-    for (const n of this.nodes) n.resetColor();
+    this.resetColors();
     return status;
+  }
+
+  resetColors() {
+    for (const n of this.nodes) n.color = -1;
+    for (let i = 0; i < this.nodesPerColor.length; ++i) {
+      this.nodesPerColor[i] = 0;
+    }
   }
 
   dfs(node, visited, fn = null) {
@@ -764,11 +924,13 @@ class Graph {
     // console.log(move);
     console.assert(this.nodes[move.nodeId].color == -1);
     this.nodes[move.nodeId].color = move.color;
+    this.nodesPerColor[move.color] += 1;
   }
 
   undoMove(move) {
     console.assert(this.nodes[move.nodeId].color == move.color);
     this.nodes[move.nodeId].color = -1;
+    this.nodesPerColor[move.color] -= 1;
   }
 
   // Returns -1 if game is not over, 0 if Emmy won, and 1 if Phil won.
@@ -781,13 +943,13 @@ class Graph {
     let anyEmpty = false;
     let anyEmptyWithEmptyNeighbors = false;
     for (const n of this.nodes) {
-      if (n.color == -1) {
+      if (n.isEmpty()) {
         anyEmpty = true;
 
         // Are there any colors not used by the neighbors?
         const usedColors = new Set();
         for (const m of n.links) {
-          if (m.color == -1) {
+          if (m.isEmpty()) {
             anyEmptyWithEmptyNeighbors = true;
           } else {
             usedColors.add(m.color);
@@ -805,11 +967,18 @@ class Graph {
   }
 
   forEachValidMove(fn, nodePredicate = n => true) {
-    // TODO: For each unused color, we only need to iterate one of that color.
-    //   Eg, when no colors are used yet the choice of color doesn't matter.
-    for (const n of this.nodes) {
-      if (n.color == -1 && nodePredicate(n)) {
-        for (let i = 0; i < this.numColors; ++i) {
+    let unusedColorIsDone = false;
+    for (let i = 0; i < this.numColors; ++i) {
+      if (this.nodesPerColor[i] == 0) {
+        if (unusedColorIsDone) {
+          // Unused colors are fungible, so only iterate one of them.
+          continue;
+        } else {
+          unusedColorIsDone = true;
+        }
+      }
+      for (const n of this.nodes) {
+        if (n.isEmpty() && nodePredicate(n)) {
           let validColor = true;
           for (const m of n.links) {
             if (m.color == i) {
@@ -827,12 +996,7 @@ class Graph {
 
   forEachUsefulMove(fn) {
     // A useful move is a valid move on a node with at least one empty neighbor.
-    this.forEachValidMove(fn, n => {
-      for (const m of n.links) {
-        if (m.color == -1) return true;
-      }
-    });
-    return false;
+    this.forEachValidMove(fn, n => n.hasEmptyNeighbors());
   }
 }
 
@@ -854,7 +1018,7 @@ class Game {
     };
     const makePlayerSelect = name =>
         newSelect(makeRow(name), ['game-setup-player-select'],
-            ['Human', 'Easy AI', 'Medium AI', 'Hard AI', 'Random AI']);
+            ['Human', 'Easy AI', 'Medium AI', 'Hard AI']);
     const phil = makePlayerSelect('Phil');
     const emmy = makePlayerSelect('Emmy');
     const makeSlider = (name, min, max) => {
@@ -978,6 +1142,109 @@ class Game {
     this.emmyCtrl = this.makeCtrl(emmy, false, emmyUi, m => onMove(false, m));
     onTurn = (isPhil) => (isPhil ? this.emmyCtrl : this.philCtrl).onTurn();
     this.philCtrl.onTurn();
+  }
+
+  async transitionToAiTestingMode() {
+    // Build UI.
+    emptyDiv(this.div);
+    newDiv(this.div, ['game-heading'], 'AI Testing');
+    const table = newElement('table', this.div, ['ai-test-table']);
+    newDiv(this.div, [], "These are Phil's win rates ⮝");
+    newElement('br', this.div);
+    const eloTable = newElement('table', this.div, ['ai-test-table']);
+    newElement('br', this.div);
+    const runCount = newDiv(this.div);
+
+    const tests = [];
+    for (let p = -1; p < kAiTestingPhils.length; ++p) {
+      const row = newElement('tr', table);
+      for (let e = -1; e < kAiTestingEmmys.length; ++e) {
+        const cell = newElement('td', row);
+        if (p == -1) {
+          if (e == -1) {
+            cell.classList.add('ai-test-table-corner');
+            cell.innerText = 'Phil⮟ Emmy⮞';
+          } else {
+            cell.classList.add('ai-test-table-heading-top');
+            cell.innerText = kAiTestingEmmys[e];
+          }
+        } else {
+          if (e == -1) {
+            cell.classList.add('ai-test-table-heading-left');
+            cell.innerText = kAiTestingPhils[p];
+          } else {
+            tests.push({
+              philAi: kAiTestingPhils[p],
+              emmyAi: kAiTestingEmmys[e],
+              cell: cell,
+              philWins: 0,
+            });
+          }
+        }
+      }
+    }
+
+    const aiElos = new Map();
+    const eloTopRow = newElement('tr', eloTable);
+    newElement('td', eloTopRow, ['ai-test-table-heading-corner']);
+    newElement('td', eloTopRow, ['ai-test-table-heading-top'], 'Elo Rating');
+    for (const ai of new Set(kAiTestingPhils.concat(kAiTestingEmmys))) {
+      const row = newElement('tr', eloTable);
+      newElement('td', row, ['ai-test-table-heading-left'], ai);
+      const cell = newElement('td', row);
+      aiElos.set(ai, {
+        cell: cell,
+        elo: 1000,
+      });
+    }
+
+    await wait(0);
+
+    // Run tests.
+    const runTest = (philAi, emmyAi) => new Promise((resolve, reject) => {
+      const g = new Graph();
+      g.newPlanarGraph(kAiTestingGraphSize);
+      let onTurn = null;
+      const move = (isPhil, move) => {
+        g.doMove(move);
+        const status = g.getStatus();
+        if (status == -1) {
+          onTurn(isPhil);
+        } else {
+          resolve(status == 1);
+        }
+      };
+      const phil = new AiCtrl(philAi, g, true, null, m => move(true, m));
+      const emmy = new AiCtrl(emmyAi, g, false, null, m => move(false, m));
+      onTurn = (isPhil) => (isPhil ? emmy : phil).onTurn();
+      phil.onTurn();
+    });
+    const updateElos = (a, b, sa) => {
+      const ra = a.elo;
+      const rb = b.elo;
+      const ea = 1 / (1 + Math.pow(10, (rb - ra) / 400));
+      const da = 32 * (sa - ea);
+      a.elo += da;
+      b.elo -= da;
+    };
+    for (let run = 0; run < kAiTestingRuns; ++run) {
+      runCount.innerText = `Run ${run + 1}...`;
+      for (const test of tests) {
+        test.cell.classList.add('running');
+        await wait(0);
+        const philWon = await runTest(test.philAi, test.emmyAi);
+        if (philWon) ++test.philWins;
+        const philElo = aiElos.get(test.philAi);
+        const emmyElo = aiElos.get(test.emmyAi);
+        updateElos(philElo, emmyElo, philWon ? 1 : 0);
+        await wait(0);
+        test.cell.innerText = `${Math.floor(test.philWins * 100 / (run + 1))}%`;
+        test.cell.classList.remove('running');
+        philElo.cell.innerText = Math.floor(philElo.elo);
+        emmyElo.cell.innerText = Math.floor(emmyElo.elo);
+      }
+    }
+    runCount.innerText = `Finished ${kAiTestingRuns} runs`;
   }
 }
 
@@ -1109,6 +1376,24 @@ a {
 }
 .hidden {
   display: none;
+}
+.ai-test-table {
+  border-spacing: 0px;
+}
+.ai-test-table-heading-left {
+  border-left: 1px solid #424242;
+}
+.ai-test-table-heading-top {
+  border-top: 1px solid #424242;
+}
+.ai-test-table td {
+  border-bottom: 1px solid #424242;
+  border-right: 1px solid #424242;
+  padding: 4px 8px;
+  text-align: center;
+}
+.ai-test-table td.running {
+  background-color: #8bc34a;
 }
 </style>
 </head>
