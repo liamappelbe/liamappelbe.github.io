@@ -367,10 +367,10 @@ function onLoad() {
 
   const flagShowConvergents = makeFlag('Show convergents');
   const flagShowSteps = makeFlag('Show steps');
-  const flagShowCrystal = makeFlag('Show crystal', true);
+  const flagShowCrystal = makeFlag('Show crystal');
   const flagUnitCellMode = makeFlag('Unit cell mode');
   const flagContFracEdit = makeFlag('Editable fraction');
-  const flagShowZ = makeFlag('Editable remainder', true);
+  const flagShowZ = makeFlag('Editable remainder');
 
   const isInZMode = () =>
       flagShowZ.value && !flagContFracEdit.value && !flagUnitCellMode.value;
