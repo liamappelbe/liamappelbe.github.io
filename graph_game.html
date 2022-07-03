@@ -10,13 +10,13 @@ const kLinkFactor = 0.5;
 const kFastFreeze = true;
 const kRepelForce = kFastFreeze ? -0.001 : -0.0001;
 const kAttractForce = kFastFreeze ? 0.1 : 0.01;
-const kDamping = kFastFreeze ? 0.5 : 0.2;
+const kDamping = kFastFreeze ? 0.8 : 0.2;
 const kUpdateItrs = kFastFreeze ? 10 : 1;
 const kFreezeThreshold = kFastFreeze ? 1e-4 : 1e-6;
 
 const kAiTestingMode = false;
 const kAiTestingRuns = 1000;
-const kAiTestingPhils = ['Random AI', 'Easy AI', 'Easy H1 AI', 'Easy H2 AI', 'Easy H3 AI', 'Medium AI', 'Medium H1 AI', 'Medium H2 AI', 'Medium H3 AI'];
+const kAiTestingPhils = ['Foolish AI', 'Easy AI', 'Easy H1 AI', 'Easy H2 AI', 'Easy H3 AI', 'Medium AI', 'Medium H1 AI', 'Medium H2 AI', 'Medium H3 AI'];
 const kAiTestingEmmys = kAiTestingPhils;
 const kAiTestingGraphSize = 12;
 const kAiDefaultHeurVer = kAiTestingMode ? 0 : 3;
@@ -269,7 +269,7 @@ function aiCombineScores(score, recScore) {
 class AiCtrl {
   constructor(kind, graph, isPhilCtrl, ui, doMove) {
     const maxDepth = {
-      'Random AI': -1,
+      'Foolish AI': -1,
       'Easy AI': 0,
       'Easy H1 AI': 0,
       'Easy H2 AI': 0,
@@ -302,24 +302,32 @@ class AiCtrl {
       setStatus = (s) => {
         status.innerText =`${isPhilCtrl ? 'Phil' : 'Emmy'} is ${s}...`;
       };
+      const clrRow = newDiv(ui, ['game-ctrl-clr-row']);
+      for (let i = 0; i < graph.numColors; ++i) {
+        const btn = newDiv(clrRow, ['game-ctrl-clr-ai']);
+        btn.style.backgroundColor = graph.colors[i];
+      }
       const happyMoods = ['🙂', '😉', '🤭', '😄', '🤣', '😎', '🥳'];
       const neutralMoods = ['🤨', '🤔', '😑', '😐', '🧐', '😯', '😪'];
       const sadMoods = ['😅', '😬', '😵', '😒', '🥺', '😭', '💀'];
       const moodRow = newDiv(ui, ['ai-mood-row']);
-      newDiv(moodRow, [], 'Mood:');
       const mood = newDiv(moodRow, ['ai-mood']);
       setMood = (m) => mood.innerText = m;
       setMoodValue = (x) => {
-        const neutralRange = 100;
-        const maxRange = 1000;
+        const neutralRange = 10;
+        const maxRange = 1200;
         const y = (Math.abs(x) - neutralRange) / (maxRange - neutralRange);
         if (y <= 0) {
           setMood(neutralMoods[randInt(neutralMoods.length)]);
           return;
         }
         const moods = x < 0 ? sadMoods : happyMoods;
-        const z = (y * moods.length) + (randInt(2) - 1);
-        setMood(moods[clamp(Math.floor(z), moods.length - 1)]);
+        if (!isFinite(x)) {
+          setMood(moods[moods.length - 1]);
+          return;
+        }
+        const z = (y * (moods.length - 1)) + (randInt(2) - 1);
+        setMood(moods[clamp(Math.floor(z), moods.length - 2)]);
       };
       setMoodValue(0);
     }
@@ -355,9 +363,9 @@ class AiCtrl {
         // Returns [Move, Score]
         let time = performance.now();
         const runAi = async (depth, isPhil) => {
-          // Allow a frame to render every 200ms.
+          // Allow a frame to render at 20Hz.
           const newTime = performance.now();
-          if (newTime > time + 200) {
+          if (newTime > time + (1000 / 20)) {
             await wait(0);
             time = newTime;
           }
@@ -557,7 +565,7 @@ class Graph {
     }
   }
 
-  newGraph(size) {
+  newDenseGraph(size) {
     // Straigtforward random graph generator.
     while (true) {
       // Create nodes.
@@ -590,13 +598,16 @@ class Graph {
     }
 
     // Calculate the number of colors we want.
-    let maxLinksPerNode = 0;
-    for (const n of this.nodes) {
-      maxLinksPerNode = Math.max(maxLinksPerNode, n.links.size);
-    }
-    // TODO: Tune this heuristic. It's probably an overestimate at higher sizes.
-    this.numColors = maxLinksPerNode + 1;
+    this.chooseNumColors(this.maxLinksPerNode());
     this.fillColors();
+  }
+
+  maxLinksPerNode() {
+    let x = 0;
+    for (const n of this.nodes) {
+      x = Math.max(x, n.links.size);
+    }
+    return x;
   }
 
   newPlanarGraph(size) {
@@ -664,10 +675,7 @@ class Graph {
     }
 
     // Choose the right number of colors for this graph.
-    const philWinRate = this.chooseNumColors(4);
-    console.log(
-        `Phil win rate for this graph: ${philWinRate * 100}%`,
-        `Using ${this.numColors} colors`);
+    this.chooseNumColors(4);
     this.fillColors();
   }
 
@@ -679,6 +687,33 @@ class Graph {
       }
     }
     this.numColors = size;
+    this.fillColors();
+  }
+
+  newLineGraph(size, loop) {
+    this.createNodes(size);
+    const end = loop ? size : size - 1;
+    for (let i = 0; i < end; ++i) {
+      this.nodes[i].link(this.nodes[(i + 1) % size]);
+    }
+    this.numColors = 2;
+    this.fillColors();
+  }
+
+  newTreeGraph(size) {
+    this.createNodes(size);
+    for (let i = 1; i < size; ++i) {
+      while (true) {
+        const r = randInt(size);
+        if (r == i) continue;
+        const visited = new Set();
+        this.dfs(this.nodes[r], visited);
+        if (visited.has(this.nodes[i])) continue;
+        this.nodes[i].link(this.nodes[r]);
+        break;
+      }
+    }
+    this.chooseNumColors(3);
     this.fillColors();
   }
 
@@ -713,7 +748,9 @@ class Graph {
         const pr = rates[n - d];
         if (pr == null) continue;
         const r = rates[n];
-        if (score(r) >= score(pr)) break;
+        const sr = score(r);
+        const sp = score(pr);
+        if (sr > sp || (r == (d > 0 ? kTestGames : 0))) break;
       }
     };
     runTests(1);
@@ -731,7 +768,10 @@ class Graph {
       }
     }
     this.numColors = mini;
-    return rates[mini] / kTestGames;
+    const philWinRate = rates[mini] / kTestGames;
+    console.log(
+        `Phil win rate for this graph: ${philWinRate * 100}%.`,
+        `Using ${this.numColors} colors.`);
   }
 
   runTestGame() {
@@ -757,10 +797,9 @@ class Graph {
     }
   }
 
-  dfs(node, visited, fn = null) {
+  dfs(node, visited) {
     if (visited.has(node)) return;
     visited.add(node);
-    if (fn) fn(node);
     for (const m of node.links) this.dfs(m, visited);
   }
 
@@ -852,14 +891,22 @@ class Graph {
     const tx = x => (x - this.camx) / this.zoom;
     const ty = y => (y - this.camy) / this.zoom;
     const size = this.nodes.length;
+    const nodeClr = n => n.isEmpty() ? '#444' : this.colors[n.color];
     for (let i = 1; i < size; ++i) {
       const n = this.nodes[i];
       for (let j = 0; j < i; ++j) {
         const m = this.nodes[j];
         if (n.links.has(m)) {
-          const clr = (this.selectedNode == i || this.selectedNode == j) ?
-              '#FFF' : '#444';
-          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), clr);
+          let clrn = nodeClr(n);
+          let clrm = nodeClr(m);
+          if (this.selectedNode == i || this.selectedNode == j) {
+            clrn = clrm = '#FFF';
+          } else if (n.isEmpty()) {
+            clrn = clrm;
+          } else if (m.isEmpty()) {
+            clrm = clrn;
+          }
+          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), clrn, clrm);
         }
       }
     }
@@ -867,8 +914,8 @@ class Graph {
     // Draw all the nodes.
     for (let i = 0; i < size; ++i) {
       const n = this.nodes[i];
-      const c = (this.selectedNode == i || this.culpritNode == i) ? '#FFF' :
-          (n.color == -1) ? '#444' : this.colors[n.color];
+      const c = (this.selectedNode == i || this.culpritNode == i) ?
+          '#FFF' : nodeClr(n);
       drawNode(tx(n.px), ty(n.py), c);
     }
   }
@@ -1017,8 +1064,8 @@ class Game {
       return row;
     };
     const makePlayerSelect = name =>
-        newSelect(makeRow(name), ['game-setup-player-select'],
-            ['Human', 'Easy AI', 'Medium AI', 'Hard AI']);
+        newSelect(makeRow(name), ['game-setup-select'],
+            ['Human', 'Foolish AI', 'Easy AI', 'Medium AI', 'Hard AI']);
     const phil = makePlayerSelect('Phil');
     const emmy = makePlayerSelect('Emmy');
     const makeSlider = (name, min, max) => {
@@ -1030,8 +1077,11 @@ class Game {
       return slider;
     };
     const size = makeSlider('Nodes', 4, 20);
+    const graphType = newSelect(makeRow(name), ['game-setup-select'],
+        ['Planar', 'Tree', 'Line', 'Loop', 'Complete', 'Dense']);
     newBtn(this.div, ['game-setup-play-button'], '[PLAY]', () =>
-      this.transitionToGame(phil.value, emmy.value, parseInt(size.value)));
+      this.transitionToGame(
+          phil.value, emmy.value, parseInt(size.value), graphType.value));
   }
 
   makeCtrl(kind, isPhil, ui, onMove) {
@@ -1040,7 +1090,7 @@ class Game {
         new HumanCtrl(this.graph, isPhil, ui, onMove);
   }
 
-  transitionToGame(phil, emmy, size) {
+  transitionToGame(phil, emmy, size, graphType) {
     emptyDiv(this.div);
     const wrap = newDiv(this.div, ['game-wrapper']);
     const ui = newDiv(wrap, ['game-ui']);
@@ -1053,7 +1103,7 @@ class Game {
     const halfWidth = canvas.width / 2;
     const halfHeight = canvas.height / 2;
     const viewSize = 2.5;
-    const nodeSize = 0.03 * viewSize;
+    const nodeSize = 0.02 * viewSize;
     const posX = 0;
     const posY = 0;
     ctx.setTransform(
@@ -1065,7 +1115,19 @@ class Game {
     ctx.textBaseline = 'middle';
 
     this.graph = new Graph();
-    this.graph.newPlanarGraph(size);
+    if (graphType == 'Tree') {
+      this.graph.newTreeGraph(size);
+    } else if (graphType == 'Line') {
+      this.graph.newLineGraph(size, false);
+    } else if (graphType == 'Loop') {
+      this.graph.newLineGraph(size, true);
+    } else if (graphType == 'Complete') {
+      this.graph.newCompleteGraph(size);
+    } else if (graphType == 'Dense') {
+      this.graph.newDenseGraph(size);
+    } else {
+      this.graph.newPlanarGraph(size);
+    }
     canvas.addEventListener('mousedown', e => {
       this.graph.onClickDown(
           (e.offsetX / canvas.width - 0.5) * viewSize,
@@ -1089,8 +1151,11 @@ class Game {
 
     const drawNode = (px, py, clr) => drawCircle(px, py, nodeSize, clr);
 
-    const drawLine = (px, py, qx, qy, clr) => {
-      ctx.strokeStyle = clr;
+    const drawLine = (px, py, qx, qy, clrp, clrq) => {
+      const grd = ctx.createLinearGradient(px, py, qx, qy);
+      grd.addColorStop(0, clrp);
+      grd.addColorStop(1, clrq);
+      ctx.strokeStyle = grd;
       ctx.beginPath();
       ctx.moveTo(px, py);
       ctx.lineTo(qx, qy);
@@ -1335,11 +1400,11 @@ a {
 .ai-mood-row {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 .ai-mood {
-  font-size: 32px;
+  font-size: 100px;
 }
 .game-ctrl-clr-row {
   margin: 8px;
@@ -1348,10 +1413,12 @@ a {
   gap: 12px;
   flex-wrap: wrap;
 }
-.game-ctrl-clr {
+.game-ctrl-clr, .game-ctrl-clr-ai {
   width: 32px;
   height: 32px;
   border-radius: 10px;
+}
+.game-ctrl-clr {
   cursor: pointer;
 }
 .game-ctrl-clr.selected {
