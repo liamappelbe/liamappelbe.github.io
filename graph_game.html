@@ -361,13 +361,22 @@ class AiCtrl {
         }
 
         // Returns [Move, Score]
-        let time = performance.now();
+        const getTime = () => performance.now() / 1000;
+        let lastPause = getTime();
+        let lastPauseEnd = lastPause;
         const runAi = async (depth, isPhil) => {
-          // Allow a frame to render at 20Hz.
-          const newTime = performance.now();
-          if (newTime > time + (1000 / 20)) {
+          // Pause to allow a frame to render, to prevent browser freezing.
+          // Rate is between 1Hz and 100Hz, with the goal of 80% CPU time.
+          const t = getTime();
+          const nextPause = lastPauseEnd + Math.max(0.01,
+              Math.min(1, (lastPauseEnd - lastPause) * 4));
+          if (t > nextPause) {
+            // console.log(`Utilization ${
+            //     Math.floor(100 * (t - lastPauseEnd) / (t - lastPause))}% ${
+            //     Math.floor(1 / (t - lastPause))}Hz`);
+            lastPause = t;
             await wait(0);
-            time = newTime;
+            lastPauseEnd = getTime();
           }
 
           const mss = [];  // Array{Tuple{Move, Score}}
@@ -417,7 +426,7 @@ class AiCtrl {
 
         if (ui) {
           console.log(move, score);
-          const thinkTime = (performance.now() - time) / 1000;
+          const thinkTime = getTime() - lastPause;
           if (thinkTime < 1) await wait(1 - thinkTime);
           setStatus('coloring');
           setMoodValue(score);
