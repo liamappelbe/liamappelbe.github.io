@@ -17,7 +17,7 @@ const cellLineSize = 2;
 const cellRayLength = 4;
 const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
-const approxContFracTerms = visibleContFracTerms;  // +1??
+const zModeContFracTerms = 4;
 const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
@@ -367,27 +367,34 @@ function onLoad() {
 
   const flagShowConvergents = makeFlag('Show convergents');
   const flagShowSteps = makeFlag('Show steps');
-  const flagShowCrystal = makeFlag('Show crystal');
+  const flagShowCrystal = makeFlag('Show crystal', true);
   const flagUnitCellMode = makeFlag('Unit cell mode');
   const flagContFracEdit = makeFlag('Editable fraction');
-  const flagShowZ = makeFlag('Show Z term');
+  const flagShowZ = makeFlag('Editable remainder', true);
 
-  const isInZMode = () => flagShowZ.value && !flagContFracEdit.value;
+  const isInZMode = () =>
+      flagShowZ.value && !flagContFracEdit.value && !flagUnitCellMode.value;
   const getZ = () => {
     const x = isInZMode() ? rawzterm.value : 0;
     if (x == 0) return [0, 1];
     if (x == 1) return [1, 0];
     if (x == 0.5) return [1, 1];
-    const y = squishy(x, 8);
+    const y = squishy(x, 4);
     const z = (1 / (1 - y)) - 1;
     return x < 0.5 ? [1, Math.floor(1 / z)] : [Math.floor(z), 1];
   };
 
+  const getVisibleContFracTerms = () =>
+      isInZMode() ? zModeContFracTerms : visibleContFracTerms;
+  const getApproxContFracTerms = () =>
+      isInZMode() ? zModeContFracTerms : visibleContFracTerms + 1;
+
   const fillContFracDom = (terms, zn, zd) => {
+    const visibleTerms = getVisibleContFracTerms();
     emptyDiv(domContFrac);
     let n = terms.length;
-    const trunc = n > visibleContFracTerms;
-    if (trunc) n = visibleContFracTerms;
+    const trunc = n > visibleTerms;
+    if (trunc) n = visibleTerms;
     --n;
     let node = domContFrac;
     const termDivs = [];
@@ -445,11 +452,11 @@ function onLoad() {
   }
 
   const fillApproxFracDom = (terms, zn, zd) => {
-    const [y, x] = getApproxFrac(terms, approxContFracTerms, zn, zd);
+    const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), zn, zd);
     emptyDiv(domApproxFrac);
     newDiv(domApproxFrac, ['approx-frac-num'], y);
     if (x != 1) newDiv(domApproxFrac, ['approx-frac-den'], x);
-    domApproxEqual.innerText = approxContFracTerms < terms.length ? '≈' : '=';
+    domApproxEqual.innerText = getApproxContFracTerms() < terms.length ? '≈' : '=';
   }
 
   let mainViewZoomExp = 0;
@@ -535,25 +542,33 @@ function onLoad() {
     if (alwaysRedraw || forceRedraw) {
       forceRedraw = false;
       const viewSize = getViewSize();
-      const mainDotSize = mainDotInitSize * Math.sqrt(viewSize / mainViewSize);
+      const mainDotSize =
+          mainDotInitSize * Math.sqrt(getMainViewSize() / mainViewSize);
       const dotSize = flagUnitCellMode.value ? cellDotSize : mainDotSize;
       const lineSize = flagUnitCellMode.value ? cellLineSize : mainLineSize;
       const ctx = setupCanvas(canvas, viewSize, lineSize);
+
+      const [zn, zd] = getZ();
+      const zmode = isInZMode();
       const g = grad.value;
       const o = off.value;
       const gx = 1 / Math.sqrt(1 + g * g);
       const gy = gx * g;
-      const hitRad = (1 + g) / Math.sqrt(1 + g * g);
-      const hitGx = gy;
-      const hitGy = -gx;
+
+      const terms = getContFracTerms(g, contFracTerms);
+      const [zgy, zgx] = zmode ? getApproxFrac(
+          terms, getApproxContFracTerms(), zn, zd) : [gy, gx];
+      const zg = zgy / zgx;
+      const [ugy, ugx] = unit(zgy, zgx);
+
+      const hitRad = (1 + zg) / Math.sqrt(1 + zg * zg);
+      const hitGx = ugy;
+      const hitGy = -ugx;
       const hitSx = hitGx * hitRad;
       const hitSy = hitGy * hitRad;
       const hitOx = 0;
       const hitOy = -o;
-      const [zn, zd] = getZ();
-
-      const terms = getContFracTerms(g, contFracTerms);
-      const sequence = sequenceFromGrad(g, o, genSeqLength);
+      const sequence = sequenceFromGrad(zg, o, genSeqLength);
 
       // Clear to black.
       ctx.fillStyle = 'rgba(0, 0, 0, 1)';
@@ -581,28 +596,30 @@ function onLoad() {
       for (const goUp of sequence) {
         const x = px + (goUp ? 0 : 1);
         const y = py + (goUp ? 1 : 0);
-        const k = gx * (x - hitOx) + gy * (y - hitOy);
-        const ux = hitOx + k * gx;
-        const uy = hitOy + k * gy;
+        const k = ugx * (x - hitOx) + ugy * (y - hitOy);
+        const ux = hitOx + k * ugx;
+        const uy = hitOy + k * ugy;
         hits.push([px, py, x, y, ux, uy, k]);
         px = x;
         py = y;
       }
 
       if (!flagUnitCellMode.value) {  // Normal mode.
-        // Draw ray.
-        ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 1)');
+        // Draw rays.
+        if (zmode) {
+          ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 0.5)');
 
-        // Draw z, z=0, and z=inf lines, if in z mode.
-        if (isInZMode()) {
-          const zvec = (n, d) => {
-            const [y, x] = getApproxFrac(terms, approxContFracTerms, n, d);
+          // Draw z, z=0, and z=inf lines, if in z mode.
+          const zvec = (n, d, alpha) => {
+            const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), n, d);
             const [gy, gx] = unit(y, x);
-            ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 0.5)');
+            ray(ctx, hitOx, hitOy, gx, gy, `rgba(255, 255, 255, ${alpha})`);
           };
-          zvec(zn, zd);
-          zvec(0, 1);
-          zvec(1, 0);
+          zvec(zn, zd, 1);
+          zvec(0, 1, 0.5);
+          zvec(1, 0, 0.5);
+        } else {
+          ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 1)');
         }
 
         // Draw hit kernel lines.
@@ -632,7 +649,7 @@ function onLoad() {
         }
       } else {  // Unit cell mode.
         // Draw ray.
-        const rcc = getRayCellCrossings(gx, gy, hitOx, hitOy, cellRayLength);
+        const rcc = getRayCellCrossings(ugx, ugy, hitOx, hitOy, cellRayLength);
         for (const [ax, ay, ak, bx, by, bk] of rcc) {
           const grd = ctx.createLinearGradient(ax, ay, bx, by);
           grd.addColorStop(0, `rgba(255, 255, 0, ${1 - ak})`);
@@ -939,7 +956,7 @@ slide-show.loaded {
         <input type="range" id="coeff_slider" min="1" max="30" step="1"/><br/>
       </div>
       <div id="z_slider_wrap" class="hidden">
-        Z:
+        Rem:
         <input type="range" id="z_slider" min="0" max="1" step="0.01"
             value="0"/><br/>
       </div>
