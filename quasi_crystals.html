@@ -8,12 +8,13 @@
 
 // Config
 const mainViewSize = 10;
-const mainDotSize = 0.03;
+const mainViewZoomRate = 1.1;
+const mainDotInitSize = 0.03;
 const mainLineSize = 1;
 const cellViewSize = 1;
 const cellDotSize = 0.01;
 const cellLineSize = 2;
-const cellRayLength = 10;
+const cellRayLength = 4;
 const contFracTerms = 10;  // Max is around 30 before float errors.
 const visibleContFracTerms = 6;
 const approxContFracTerms = visibleContFracTerms;  // +1??
@@ -451,10 +452,12 @@ function onLoad() {
     domApproxEqual.innerText = approxContFracTerms < terms.length ? '≈' : '=';
   }
 
-  const crystalCtx = setupCanvas(crystalCanvas, mainViewSize);
+  let mainViewZoomExp = 0;
+  const getMainViewSize = () =>
+      mainViewSize * Math.pow(mainViewZoomRate, mainViewZoomExp);
 
   const getViewSize = () =>
-      flagUnitCellMode.value ? cellViewSize : mainViewSize;
+      flagUnitCellMode.value ? cellViewSize : getMainViewSize();
 
   let mouseClicked = false;
   const onMouse = (e, click) => {
@@ -498,6 +501,13 @@ function onLoad() {
   document.addEventListener('mouseup', e => {
     if (mouseClicked) onMouse(e, mouseClicked = false);
   });
+  const onZoom = delta => {
+    forceRedraw = true;
+    mainViewZoomExp = clamp(mainViewZoomExp + delta, -20, 10);
+  };
+  canvas.addEventListener('wheel', e => {
+    onZoom(0.01 * e.deltaY);
+  });
 
   const circle = (cc, px, py, r, clr) => {
     cc.fillStyle = clr;
@@ -515,7 +525,8 @@ function onLoad() {
   };
 
   const ray = (cc, px, py, dx, dy, clr) => {
-    line(cc, px, py, px + 2 * mainViewSize * dx, py + 2 * mainViewSize * dy, clr);
+    const len = 2 * getMainViewSize();
+    line(cc, px, py, px + len * dx, py + len * dy, clr);
   };
 
   const update = () => {
@@ -524,6 +535,7 @@ function onLoad() {
     if (alwaysRedraw || forceRedraw) {
       forceRedraw = false;
       const viewSize = getViewSize();
+      const mainDotSize = mainDotInitSize * Math.sqrt(viewSize / mainViewSize);
       const dotSize = flagUnitCellMode.value ? cellDotSize : mainDotSize;
       const lineSize = flagUnitCellMode.value ? cellLineSize : mainLineSize;
       const ctx = setupCanvas(canvas, viewSize, lineSize);
@@ -648,7 +660,7 @@ function onLoad() {
 
         // Draw hit dots.
         for (const [mux, muy, gux, guy, alpha] of modhits) {
-          circle(ctx, mux, muy, dotSize, `rgba(255, 34, 0, ${alpha})`);
+          circle(ctx, mux, muy, dotSize, `rgba(255, 34, 0, 1)`);
         }
       }
 
@@ -667,13 +679,14 @@ function onLoad() {
 
       // Draw the crystal, if enabled.
       if (flagShowCrystal.value) {
+        const viewSize = getMainViewSize();
+        const crystalCtx = setupCanvas(crystalCanvas, viewSize);
         crystalCanvas.classList.remove('hidden');
         crystalCtx.fillStyle = 'rgba(0, 0, 0, 1)';
         crystalCtx.fillRect(
-          -2 * mainViewSize, -2 * mainViewSize,
-          4 * mainViewSize, 4 * mainViewSize);
-        const midy = 0.25;
-        line(crystalCtx, 0, midy, mainViewSize, midy, 'rgba(255, 255, 255, 1)');
+          -2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
+        const midy = 0.025 * viewSize;
+        line(crystalCtx, 0, midy, viewSize, midy, 'rgba(255, 255, 255, 1)');
         for (const [px, py, x, y, ux, uy, k] of hits) {
           circle(crystalCtx, k, midy, 2 * mainDotSize, 'rgba(255, 34, 0, 1)');
         }
