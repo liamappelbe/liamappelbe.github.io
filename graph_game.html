@@ -708,7 +708,7 @@ class Graph {
     };
     const runTests = d => {
       for (let n = guess; ; n += d) {
-        if (n < 2 || n >= this.nodes.length) break;
+        if (n < 2 || n > this.nodes.length) break;
         runTest(n);
         const pr = rates[n - d];
         if (pr == null) continue;
