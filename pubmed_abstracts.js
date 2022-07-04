@@ -542,6 +542,7 @@ class PubMedImpl {
     newLink(null, [], kLink + this.pmid).click();
   }
   _hideAbstract() {
+    domTooltip.classList.remove('shown');
     if (domPma == null) return;
     emptyDiv(domPma);
   }
