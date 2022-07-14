@@ -446,7 +446,7 @@ function onLoad() {
       newDiv(frac, ['cont-frac-num'], zd == 0 ? '∞' : zn);
       if (haszd) newDiv(frac, ['cont-frac-den'], zd);
     } else {
-      addTerm(n, trunc ? ' ...' : '', 'cont-frac-term-end');
+      addTerm(n, trunc ? ' + ...' : '', 'cont-frac-term-end');
       domZSliderWrap.classList.add('hidden');
     }
   }
@@ -513,6 +513,7 @@ function onLoad() {
     mainViewZoomExp = clamp(mainViewZoomExp + delta, -20, 10);
   };
   canvas.addEventListener('wheel', e => {
+    e.preventDefault();
     onZoom(0.01 * e.deltaY);
   });
 
@@ -556,10 +557,15 @@ function onLoad() {
       const gy = gx * g;
 
       const terms = getContFracTerms(g, contFracTerms);
-      const [zgy, zgx] = zmode ? getApproxFrac(
-          terms, getApproxContFracTerms(), zn, zd) : [gy, gx];
-      const zg = zgy / zgx;
-      const [ugy, ugx] = unit(zgy, zgx);
+      const zray = (n, d) => {
+        if (!zmode) return [[gy, gx], g];
+        const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), n, d);
+        return [unit(y, x), y / x];
+      };
+
+      const [[ugy, ugx], zg] = zray(zn, zd);
+      const [[ugy0, ugx0], zg0] = zray(0, 1);
+      const [[ugy1, ugx1], zg1] = zray(1, 0);
 
       const hitRad = (1 + zg) / Math.sqrt(1 + zg * zg);
       const hitGx = ugy;
@@ -574,18 +580,19 @@ function onLoad() {
       ctx.fillStyle = 'rgba(0, 0, 0, 1)';
       ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
 
+      // Draw dots.
+      const dotClr = zmode ? 'rgba(34, 34, 34, 1)' : 'rgba(68, 68, 68, 1)';
+      for (let i = 0; i <= viewSize; ++i) {
+        for (let j = 0; j <= viewSize; ++j) {
+          circle(ctx, i, j, dotSize, dotClr);
+        }
+      }
+
       // Draw kernel lines.
       const kernDraw = viewSize + 1;
       for (let i = -1; i <= kernDraw; ++i) {
         for (let j = -1; j <= kernDraw; ++j) {
-          line(ctx, i, j, i + hitSx, j + hitSy, 'rgba(68, 68, 68, 1)');
-        }
-      }
-
-      // Draw dots.
-      for (let i = 0; i <= viewSize; ++i) {
-        for (let j = 0; j <= viewSize; ++j) {
-          circle(ctx, i, j, dotSize, 'rgba(68, 68, 68, 1)');
+          line(ctx, i, j, i + hitSx, j + hitSy, dotClr);
         }
       }
 
@@ -610,14 +617,9 @@ function onLoad() {
           ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 0.5)');
 
           // Draw z, z=0, and z=inf lines, if in z mode.
-          const zvec = (n, d, alpha) => {
-            const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), n, d);
-            const [gy, gx] = unit(y, x);
-            ray(ctx, hitOx, hitOy, gx, gy, `rgba(255, 255, 255, ${alpha})`);
-          };
-          zvec(zn, zd, 1);
-          zvec(0, 1, 0.5);
-          zvec(1, 0, 0.5);
+          ray(ctx, hitOx, hitOy, ugx, ugy, `rgba(255, 255, 255, 1)`);
+          ray(ctx, hitOx, hitOy, ugx0, ugy0, `rgba(255, 255, 255, 0.5)`);
+          ray(ctx, hitOx, hitOy, ugx1, ugy1, `rgba(255, 255, 255, 0.5)`);
         } else {
           ray(ctx, hitOx, hitOy, gx, gy, 'rgba(255, 255, 255, 1)');
         }
@@ -626,6 +628,18 @@ function onLoad() {
         for (const [px, py, x, y, ux, uy, k] of hits) {
           line(ctx, x, y, ux, uy, 'rgba(0, 136, 255, 1)');
           circle(ctx, x, y, dotSize, 'rgba(0, 136, 255, 1)');
+        }
+
+        // Hilite the dots between the z rays, if in z mode.
+        if (zmode) {
+          for (let i = 0; i <= viewSize; ++i) {
+            for (let j = 0; j <= viewSize; ++j) {
+              const k = (j - hitOy) / (i - hitOx);
+              if (k >= zg1 && k <= zg0) {
+                circle(ctx, i, j, dotSize, 'rgba(170, 170, 170, 1)');
+              }
+            }
+          }
         }
 
         // Draw hit dots.
@@ -667,12 +681,6 @@ function onLoad() {
           const guy = y + muy - uy;
           const alpha = 1 - k / cellRayLength;
           modhits.push([mux, muy, gux, guy, alpha])
-        }
-
-        // Draw hit kernel lines.
-        for (const [mux, muy, gux, guy, alpha] of modhits) {
-          line(ctx, gux, guy, mux, muy, `rgba(0, 136, 255, ${alpha})`);
-          circle(ctx, gux, guy, dotSize, `rgba(0, 136, 255, ${alpha})`);
         }
 
         // Draw hit dots.
@@ -731,7 +739,7 @@ body {
   width: 100%;
   display: flex;
   justify-content: space-around;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 h1, #index {
   color: #ffc107;
@@ -956,7 +964,7 @@ slide-show.loaded {
         <input type="range" id="coeff_slider" min="1" max="30" step="1"/><br/>
       </div>
       <div id="z_slider_wrap" class="hidden">
-        Rem:
+        r:
         <input type="range" id="z_slider" min="0" max="1" step="0.01"
             value="0"/><br/>
       </div>
