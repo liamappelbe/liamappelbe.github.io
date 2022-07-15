@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Quasi Crystals</title>
+<title>Quasicrystals</title>
 <link rel="icon" href="res/favicon.ico">
 <script src="slide_show.js"></script>
 <script type="text/javascript">
@@ -56,6 +56,13 @@ function unit(x, y) {
   const d = Math.sqrt(x * x + y * y);
   if (d == 0) return [0, 0];
   return [x / d, y / d];
+}
+
+function popSwap(a, i) {
+  const x = a[i];
+  const y = a.pop();
+  if (i < a.length) a[i] = y;
+  return x;
 }
 
 function getContFracTerms(x, maxTerms) {
@@ -403,7 +410,10 @@ function onLoad() {
       targY = null;
     }
   });
-  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
+  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x), () => {
+    targX = null;
+    targY = null;
+  });
   let targCoeff = 0;
   const coeffterm = liveValue(['coeff_slider'], 1, x => Math.floor(x), () => {
     const [terms, targCoeff_] = getContFracTermsWithTargCoeff(
@@ -520,55 +530,95 @@ function onLoad() {
   const getViewSize = () =>
       flagUnitCellMode.value ? cellViewSize : getMainViewSize();
 
-  let mouseClicked = false;
-  const onMouse = (e, click) => {
-    e.preventDefault();
+  const getClickPos = e => {
     const viewSize = getViewSize();
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.x;
     const my = e.clientY - rect.y;
-    let x = viewSize * mx / canvas.width;
-    let y = viewSize * (1 - my / canvas.height);
-    if (!click) {
-      const px = Math.floor(x + 0.5);
-      const py = Math.floor(y + 0.5);
+    const x = viewSize * mx / canvas.width;
+    const y = viewSize * (1 - my / canvas.height);
+    return [x, y];
+  };
+
+  let mouseClicked = false;
+  const anchors = [];
+  const snapToAnchor = (x, y, alsoSnapToGrid) => {
+    const viewSize = getViewSize();
+    let mx = null;
+    let my = null;
+    let mi = null;
+    let md = Infinity;
+    const maybeSnap = (px, py, pi) => {
       if (px >= 0 && py >= 0 && px <= viewSize && py <= viewSize) {
         const dx = x - px;
         const dy = y - py;
-        if ((dx * dx + dy * dy) < 0.05) {
-          x = px;
-          y = py;
+        const dd = dx * dx + dy * dy;
+        if (dd < md) {
+          mx = px;
+          my = py;
+          mi = pi;
+          md = dd;
         }
       }
+    };
+    if (alsoSnapToGrid) {
+      maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null);
     }
-    y += off.value;
+    for (const [px, py] of anchors) maybeSnap(px, py);
+    if (md > 0.05) return null;
+    return [mx, my, mi];
+  };
+  const onMouse = (e, click) => {
+    e.preventDefault();
+    let [x, y] = getClickPos(e);
+    if (!click) {
+      const snap = snapToAnchor(x, y, true);
+      if (snap != null) {
+        x = snap[0];
+        y = snap[1];
+      }
+    }
+    const y_ = y + off.value;
     if (x <= 0) {
       grad.value = 1e3;
-    } else if (y <= 0) {
+    } else if (y_ <= 0) {
       grad.value = 0;
     } else {
-      grad.value = y / x;
+      grad.value = y_ / x;
     }
     targX = x;
     targY = y;
     targKeep = true;
   };
+  const onRightClick = e => {
+    forceRedraw = true;
+    let [x, y] = getClickPos(e);
+    const snap = snapToAnchor(x, y, false);
+    if (snap == null) {
+      anchors.push([x, y]);
+    } else {
+      popSwap(anchors, snap[2]);
+    }
+  };
   canvas.addEventListener('mousedown', e => {
-    onMouse(e, mouseClicked = true);
+    if (e.which == 1) {
+      onMouse(e, mouseClicked = true);
+    } else if (e.which == 3) {
+      onRightClick(e);
+    }
   });
   document.addEventListener('mousemove', e => {
     if (mouseClicked) onMouse(e, mouseClicked);
   });
   document.addEventListener('mouseup', e => {
-    if (mouseClicked) onMouse(e, mouseClicked = false);
+    if (e.which == 1 && mouseClicked) onMouse(e, mouseClicked = false);
   });
-  const onZoom = delta => {
-    forceRedraw = true;
-    mainViewZoomExp = clamp(mainViewZoomExp + delta, -20, 10);
-  };
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    onZoom(0.01 * e.deltaY);
+    forceRedraw = true;
+    mainViewZoomExp = clamp(mainViewZoomExp + (0.01 * e.deltaY), -20, 10);
   });
 
   const circle = (cc, px, py, r, clr) => {
@@ -654,6 +704,11 @@ function onLoad() {
         for (let j = -1; j <= kernDraw; ++j) {
           line(ctx, i, j, i + hitSx, j + hitSy, dotClr);
         }
+      }
+
+      // Draw anchors.
+      for (const [x, y] of anchors) {
+        circle(ctx, x, y, 2 * dotSize, 'rgba(156, 39, 176, 1)');
       }
 
       // Calculate ray hits.
@@ -1008,7 +1063,7 @@ slide-show.loaded {
 <body>
 <div id="head">
   <a id="index" href="index.html">&lt;</a>
-  <h1>Quasi Crystals (Prototype)</h1>
+  <h1>Quasicrystals (Prototype)</h1>
 </div>
 <div id="wrap">
   <div id="layout">
