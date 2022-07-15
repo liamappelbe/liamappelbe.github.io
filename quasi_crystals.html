@@ -76,6 +76,26 @@ function getContFracTerms(x, maxTerms) {
   return terms;
 }
 
+function getContFracTermsWithTargCoeff(x, maxTerms, targCoeff) {
+  const terms = getContFracTerms(x, maxTerms);
+  // targCoeff is not allowed to target a term that doesn't exist, unless it's
+  // the very next term after the end of the terms array and the last element is
+  // greater than 1. In that case we steal a 1/1 from that last term. Otherwise
+  // we cap the targetCoeff.
+  if (targCoeff > terms.length) {
+    targCoeff = terms.length;
+  }
+  if (targCoeff == terms.length) {
+    if (terms[terms.length - 1] > 1) {
+      terms[terms.length - 1] -= 1;
+      terms.push(1);
+    } else {
+      targCoeff = terms.length - 1;
+    }
+  }
+  return [terms, targCoeff];
+}
+
 function getApproxFrac(terms, maxTerms, zn = 0, zd = 1) {
   const first = Math.min(terms.length, maxTerms) - 1;
   const frac = [zd, zn];
@@ -340,39 +360,6 @@ function onLoad() {
     return obj;
   };
 
-  let targKeep = false;
-  let targX = null;
-  let targY = null;
-  const grad = liveValue(
-      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0, () => {
-    if (targKeep) {
-      targKeep = false;
-    } else {
-      targX = null;
-      targY = null;
-    }
-  });
-  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
-  let targCoeff = 0;
-  const coeffterm = liveValue(['coeff_slider'], 1, x => Math.floor(x), () => {
-    const terms = getContFracTerms(grad.value, contFracTerms);
-    const x = coeffterm.value;
-    if (x == terms[targCoeff]) return;
-    const terms_ = terms.slice(0);
-    terms_[targCoeff] = x;
-    grad.value = getContFracValue(terms_);
-  });
-  const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
-
-  const canvas = document.getElementById('view');
-  const crystalCanvas = document.getElementById('crystal_view');
-  const domContFrac = document.getElementById('cont_frac');
-  const domApproxEqual = document.getElementById('approx_equal');
-  const domApproxFrac = document.getElementById('approx_frac');
-  const domWord = document.getElementById('word');
-  const domZSliderWrap = document.getElementById('z_slider_wrap');
-  const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
-
   const domAdvancedOptions = document.getElementById('advanced_options');
   const domFlagAdvanced = document.getElementById('flag_advanced');
   domFlagAdvanced.addEventListener('change', () => {
@@ -403,6 +390,41 @@ function onLoad() {
   const flagUnitCellMode = makeFlag('Unit cell mode');
   const flagContFracEdit = makeFlag('Editable fraction');
   const flagShowZ = makeFlag('Editable remainder');
+
+  let targKeep = false;
+  let targX = null;
+  let targY = null;
+  const grad = liveValue(
+      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0, () => {
+    if (targKeep) {
+      targKeep = false;
+    } else {
+      targX = null;
+      targY = null;
+    }
+  });
+  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x));
+  let targCoeff = 0;
+  const coeffterm = liveValue(['coeff_slider'], 1, x => Math.floor(x), () => {
+    const [terms, targCoeff_] = getContFracTermsWithTargCoeff(
+        grad.value, contFracTerms, targCoeff);
+    targCoeff = targCoeff_;
+    const x = coeffterm.value;
+    if (x == terms[targCoeff]) return;
+    const terms_ = terms.slice(0);
+    terms_[targCoeff] = x;
+    grad.value = getContFracValue(terms_);
+  });
+  const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
+
+  const canvas = document.getElementById('view');
+  const crystalCanvas = document.getElementById('crystal_view');
+  const domContFrac = document.getElementById('cont_frac');
+  const domApproxEqual = document.getElementById('approx_equal');
+  const domApproxFrac = document.getElementById('approx_frac');
+  const domWord = document.getElementById('word');
+  const domZSliderWrap = document.getElementById('z_slider_wrap');
+  const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
 
   const isInZMode = () =>
       flagShowZ.value && !flagContFracEdit.value && !flagUnitCellMode.value;
@@ -467,7 +489,6 @@ function onLoad() {
       domCoeffSliderWrap.classList.remove('hidden');
     } else {
       domCoeffSliderWrap.classList.add('hidden');
-      targCoeff = 0;
     }
 
     if (isInZMode()) {
@@ -488,7 +509,8 @@ function onLoad() {
     emptyDiv(domApproxFrac);
     newDiv(domApproxFrac, ['approx-frac-num'], y);
     if (x != 1) newDiv(domApproxFrac, ['approx-frac-den'], x);
-    domApproxEqual.innerText = getApproxContFracTerms() < terms.length ? '≈' : '=';
+    domApproxEqual.innerText =
+        getApproxContFracTerms() < terms.length ? '≈' : '=';
   }
 
   let mainViewZoomExp = 0;
@@ -588,7 +610,13 @@ function onLoad() {
       const gx = 1 / Math.sqrt(1 + g * g);
       const gy = gx * g;
 
-      const terms = getContFracTerms(g, contFracTerms);
+      if (!flagContFracEdit.value) {
+        targCoeff = 0;
+      }
+
+      const [terms, targCoeff_] = getContFracTermsWithTargCoeff(
+          grad.value, contFracTerms, targCoeff);
+      targCoeff = targCoeff_;
       const zray = (n, d) => {
         if (!zmode) return [[gy, gx], g];
         const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), n, d);
@@ -599,7 +627,7 @@ function onLoad() {
       const [[ugy0, ugx0], zg0] = zray(0, 1);
       const [[ugy1, ugx1], zg1] = zray(1, 0);
 
-      const hitRad = (1 + zg) / Math.sqrt(1 + zg * zg);
+      const hitRad = isFinite(zg) ? (1 + zg) / Math.sqrt(1 + zg * zg) : 1;
       const hitGx = ugy;
       const hitGy = -ugx;
       const hitSx = hitGx * hitRad;
