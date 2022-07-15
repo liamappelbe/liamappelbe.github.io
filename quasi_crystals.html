@@ -22,6 +22,7 @@ const epsilon = 1e-6;
 const alwaysRedraw = false;
 const maxSeqLength = 1000;  // Way more than what we display.
 const genSeqLength = 100;
+const timeBetweenDomUpdatesMs = 100;
 
 const tau = 2 * Math.PI;
 
@@ -133,6 +134,36 @@ function sequenceFromGrad(x, o, len) {
     }
   }
   return a;
+}
+
+class RateLimiter {
+  constructor() {
+    this.lastRun = null;
+    this.timeout = null;
+  }
+
+  run(delayMs, task) {
+    const t = performance.now();
+
+    // If it's been more than delayMs since our last task, run immediately.
+    if (this.lastRun == null || (this.lastRun + delayMs) < t) {
+      this.lastRun = t;
+      task();
+      return;
+    }
+
+    // We're about to set a new timeout, so cancel any existing timeouts.
+    if (this.timeout != null) {
+      window.clearTimeout(this.timeout);
+    }
+
+    // Set a timeout that delays the task by the extra wait time.
+    const dt = this.lastRun + delayMs - t;
+    this.timeout = window.setTimeout(() => {
+      this.lastRun = performance.now();
+      task();
+    }, dt);
+  }
 }
 
 function safeGet(node, defaultValue, isValid = (x => true)) {
@@ -258,6 +289,7 @@ function onLoad() {
 
   let forceRedraw = true;
   const onFrameCallbacks = [];
+  const domUpdateLimiter = new RateLimiter();
 
   const liveValue = (ids, init = 0, validate = x => x, onchange = () => {}) => {
     // Does a few things:
@@ -694,13 +726,15 @@ function onLoad() {
         circle(ctx, targX, targY, 2 * dotSize, 'rgba(255, 255, 255, 1)');
       }
 
-      // Fill continued fraction and approx fraction.
-      fillContFracDom(terms, zn, zd);
-      fillApproxFracDom(terms, zn, zd);
+      domUpdateLimiter.run(timeBetweenDomUpdatesMs, () => {
+        // Fill continued fraction and approx fraction.
+        fillContFracDom(terms, zn, zd);
+        fillApproxFracDom(terms, zn, zd);
 
-      // Fill word.
-      const word = sequence.map(x => x ? 'S' : 'L').join('');
-      domWord.innerText = word;
+        // Fill word.
+        const word = sequence.map(x => x ? 'S' : 'L').join('');
+        domWord.innerText = word;
+      });
 
       // Draw the crystal, if enabled.
       if (flagShowCrystal.value) {
