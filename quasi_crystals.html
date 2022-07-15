@@ -787,6 +787,25 @@ function onLoad() {
   update();
 }
 window.addEventListener('load', onLoad);
+
+class YouTubeEmbed extends HTMLElement {
+  constructor() {
+    super();
+    const iframe = newElement('iframe', this);
+    iframe.setAttribute('width', 560);
+    iframe.setAttribute('height', 315);
+    iframe.setAttribute(
+        'src', 'https://www.youtube.com/embed/' + this.getAttribute('src'));
+    iframe.setAttribute('title', 'YouTube video player');
+    iframe.setAttribute('frameborder', 0);
+    iframe.setAttribute(
+        'allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; ' +
+            'gyroscope; picture-in-picture');
+    iframe.setAttribute('allowfullscreen', '');
+  }
+}
+window.addEventListener(
+    'load', () => customElements.define('youtube-embed', YouTubeEmbed));
 </script>
 <style>
 html {
@@ -999,7 +1018,7 @@ slide-show.loaded {
         <span>More text.</span>
         <div>
           YouTube embed:<br/>
-          <iframe width="560" height="315" src="https://www.youtube.com/embed/AaQD-cyXH2A" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <youtube-embed src="AaQD-cyXH2A"></youtube-embed>
         </div>
       </slide-show>
     </div>
