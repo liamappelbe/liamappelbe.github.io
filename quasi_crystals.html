@@ -52,6 +52,11 @@ function isInt(x) {
   return Math.floor(x) == x;
 }
 
+function validate(x, condition) {
+  if (condition(x)) return x;
+  return null;
+}
+
 function unit(x, y) {
   const d = Math.sqrt(x * x + y * y);
   if (d == 0) return [0, 0];
@@ -377,7 +382,7 @@ function onLoad() {
     }
   });
 
-  const makeFlag = (name, initValue = false) => {
+  const makeFlag = (name, initValue = false, onChange = () => {}) => {
     const flag = { value: initValue };
     const div = newDiv(domAdvancedOptions, ['flag']);
     const check = newElement('input', div);
@@ -386,17 +391,11 @@ function onLoad() {
     check.addEventListener('change', () => {
       forceRedraw = true;
       flag.value = check.checked;
+      onChange();
     });
     const label = newElement('span', div, [], name);
     return flag;
   };
-
-  const flagShowConvergents = makeFlag('Show convergents');
-  const flagShowSteps = makeFlag('Show steps');
-  const flagShowCrystal = makeFlag('Show crystal');
-  const flagUnitCellMode = makeFlag('Unit cell mode');
-  const flagContFracEdit = makeFlag('Editable fraction');
-  const flagShowZ = makeFlag('Editable remainder');
 
   let targKeep = false;
   let targX = null;
@@ -427,6 +426,34 @@ function onLoad() {
   });
   const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
 
+  const flagShowConvergents = makeFlag('Show convergents');
+  const flagShowSteps = makeFlag('Show steps');
+  const flagShowCrystal = makeFlag('Show crystal');
+  const flagUnitCellMode = makeFlag('Unit cell mode');
+  const flagShowZ = makeFlag('Editable remainder');
+  const flagContFracEdit = makeFlag('Editable continued fraction');
+  let flagSimpleFracEdit = null;
+
+  const isInZMode = () => (
+      flagShowZ.value && !flagContFracEdit.value && !flagSimpleFracEdit.value &&
+      !flagUnitCellMode.value);
+  const isInSimpleFracEditMode = () =>
+      flagSimpleFracEdit.value && !flagContFracEdit.value;
+  const getVisibleContFracTerms = () =>
+      isInZMode() ? zModeContFracTerms : visibleContFracTerms;
+  const getApproxContFracTerms = () =>
+      isInZMode() ? zModeContFracTerms : visibleContFracTerms + 1;
+
+  flagSimpleFracEdit = makeFlag('Editable simple fraction', false, () => {
+    /*if (isInSimpleFracEditMode()) {
+      // Truncate the gradient to the current fraction approximation.
+      const [y, x] = getApproxFrac(
+          getContFracTerms(grad.value, contFracTerms),
+          getApproxContFracTerms(), 0, 1);
+      grad.value = y / x;
+    }*/
+  });
+
   const canvas = document.getElementById('view');
   const crystalCanvas = document.getElementById('crystal_view');
   const domContFrac = document.getElementById('cont_frac');
@@ -436,8 +463,6 @@ function onLoad() {
   const domZSliderWrap = document.getElementById('z_slider_wrap');
   const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
 
-  const isInZMode = () =>
-      flagShowZ.value && !flagContFracEdit.value && !flagUnitCellMode.value;
   const getZ = () => {
     const x = isInZMode() ? rawzterm.value : 0;
     if (x == 0) return [0, 1];
@@ -447,11 +472,6 @@ function onLoad() {
     const z = (1 / (1 - y)) - 1;
     return x < 0.5 ? [1, Math.floor(1 / z)] : [Math.floor(z), 1];
   };
-
-  const getVisibleContFracTerms = () =>
-      isInZMode() ? zModeContFracTerms : visibleContFracTerms;
-  const getApproxContFracTerms = () =>
-      isInZMode() ? zModeContFracTerms : visibleContFracTerms + 1;
 
   const fillContFracDom = (terms, zn, zd) => {
     const visibleTerms = getVisibleContFracTerms();
@@ -515,12 +535,28 @@ function onLoad() {
   }
 
   const fillApproxFracDom = (terms, zn, zd) => {
-    const [y, x] = getApproxFrac(terms, getApproxContFracTerms(), zn, zd);
+    const [n, d] = getApproxFrac(terms, getApproxContFracTerms(), zn, zd);
     emptyDiv(domApproxFrac);
-    newDiv(domApproxFrac, ['approx-frac-num'], y);
-    if (x != 1) newDiv(domApproxFrac, ['approx-frac-den'], x);
-    domApproxEqual.innerText =
-        getApproxContFracTerms() < terms.length ? '≈' : '=';
+    if (isInSimpleFracEditMode()) {
+      const makeText = (cls, val, minVal, onChange) => {
+        const inp = newElement('input', domApproxFrac, ['approx-frac-edit']);
+        inp.value = val;
+        inp.addEventListener('change', () => {
+          const val = validate(parseFloat(inp.value),
+            x => isFinite(x) && isInt(x) && (x >= minVal));
+          if (val != null) onChange(val);
+        });
+      };
+      makeText(n, 0, x => grad.value = x / d);
+      newDiv(domApproxFrac, ['approx-frac-edit-line']);
+      makeText(d, 1, x => grad.value = n / x);
+      domApproxEqual.innerText = '=';
+    } else {
+      newDiv(domApproxFrac, ['approx-frac-num'], n);
+      if (d != 1) newDiv(domApproxFrac, ['approx-frac-den'], d);
+      domApproxEqual.innerText =
+          getApproxContFracTerms() < terms.length ? '≈' : '=';
+    }
   }
 
   let mainViewZoomExp = 0;
@@ -564,7 +600,10 @@ function onLoad() {
     if (alsoSnapToGrid) {
       maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null);
     }
-    for (const [px, py] of anchors) maybeSnap(px, py);
+    for (let i = 0; i < anchors.length; ++i) {
+      const [px, py] = anchors[i];
+      maybeSnap(px, py, i);
+    }
     if (md > 0.05) return null;
     return [mx, my, mi];
   };
@@ -951,9 +990,15 @@ a {
   justify-content: center;
   gap: 4px;
 }
-.cont-frac-den, .approx-frac-den {
+.cont-frac-den, .approx-frac-den, .approx-frac-edit-line {
   border-top: 2px solid #f5f5f5;
   text-align: center;
+}
+.approx-frac-edit-line {
+  margin: 4px;
+}
+.approx-frac-edit {
+  max-width: 50px;
 }
 .cont-frac-term-wrap {
   display: flex;
