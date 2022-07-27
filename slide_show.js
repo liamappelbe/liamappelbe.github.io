@@ -83,6 +83,7 @@ class SlideShowImpl {
         slide.dot.classList.remove('active');
       }
     }
+    this.node.dispatchEvent(new CustomEvent('change', {detail: index}));
   }
 
   nextSlide() {

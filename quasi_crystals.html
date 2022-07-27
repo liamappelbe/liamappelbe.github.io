@@ -220,6 +220,18 @@ function emptyDiv(n) {
   while (n.hasChildNodes()) n.removeChild(n.lastChild);
 }
 
+function findCousinDivWithClass(n, className) {
+  while (n != null) {
+    for (const c of n.childNodes) {
+      if (c.classList != null && c.classList.contains(className)) {
+        return c;
+      }
+    }
+    n = n.parentElement;
+  }
+  return null;
+}
+
 function runUnitTests() {
   let anyFails = false;
   const testWord = (terms, expectedWord) => {
@@ -323,20 +335,22 @@ function onLoad() {
   const onFrameCallbacks = [];
   const domUpdateLimiter = new RateLimiter();
 
-  const liveValue = (ids, init = 0, validate = x => x, onchange = () => {}) => {
+  const allLiveValues = new Map();
+  const liveValue = (id, nodeIds, init = 0, validate = x => x, onchange = () => {}) => {
     // Does a few things:
     // - Maintains the invariant that each dom element has the same value.
     // - Whenever the value changes, sets forceRedraw to true.
     // - Uses validate to sanitize, a function from float to nullable float.
     // - Returns an object with a value field that is kept up to date.
     // - Changes to that field are also reflected on the elements.
-    const elements = ids.map(id => document.getElementById(id));
+    const elements = nodeIds.map(id => document.getElementById(id));
     const oldValues = [];  // One for each element, and one for obj.value.
     for (const e of elements) {
       e.value = init;
       oldValues.push(e.value);
     }
-    const obj = { value: init };
+    const obj = { value: init, reset: null };
+    obj.reset = () => obj.value = init;
     oldValues.push(obj.value);
     onFrameCallbacks.push(() => {
       let anyChange = obj.value != oldValues[elements.length];
@@ -369,6 +383,7 @@ function onLoad() {
         onchange();
       }
     });
+    allLiveValues.set(id, obj);
     return obj;
   };
 
@@ -382,26 +397,34 @@ function onLoad() {
     }
   });
 
-  const makeFlag = (name, initValue = false, onChange = () => {}) => {
-    const flag = { value: initValue };
+  const allFlags = new Map();
+  const makeFlag = (id, name, initValue = false, onChange = () => {}) => {
+    const flag = { value: initValue, setValue: null };
     const div = newDiv(domAdvancedOptions, ['flag']);
     const check = newElement('input', div);
     check.setAttribute('type', 'checkbox');
     if (initValue) check.setAttribute('checked', true);
-    check.addEventListener('change', () => {
+    flag.setValue = value => {
+      if (value) {
+        check.setAttribute('checked', true);
+      } else {
+        check.removeAttribute('checked');
+      }
       forceRedraw = true;
-      flag.value = check.checked;
+      flag.value = value;
       onChange();
-    });
+    };
+    check.addEventListener('change', () => flag.setValue(check.checked));
     const label = newElement('span', div, [], name);
+    allFlags.set(id, flag);
     return flag;
   };
 
   let targKeep = false;
   let targX = null;
   let targY = null;
-  const grad = liveValue(
-      ['in_grad', 'ins_grad'], 0.618033988749894, x => x >= 0 ? x : 0, () => {
+  const grad = liveValue('grad', ['in_grad', 'ins_grad'], 0.618033988749894,
+      x => x >= 0 ? x : 0, () => {
     if (targKeep) {
       targKeep = false;
     } else {
@@ -409,12 +432,13 @@ function onLoad() {
       targY = null;
     }
   });
-  const off = liveValue(['in_off', 'ins_off'], 0, x => fmod(x), () => {
+  const off = liveValue('off', ['in_off', 'ins_off'], 0, x => fmod(x), () => {
     targX = null;
     targY = null;
   });
   let targCoeff = 0;
-  const coeffterm = liveValue(['coeff_slider'], 1, x => Math.floor(x), () => {
+  const coeffterm = liveValue('coeff', ['coeff_slider'], 1, x => Math.floor(x),
+      () => {
     const [terms, targCoeff_] = getContFracTermsWithTargCoeff(
         grad.value, contFracTerms, targCoeff);
     targCoeff = targCoeff_;
@@ -424,15 +448,15 @@ function onLoad() {
     terms_[targCoeff] = x;
     grad.value = getContFracValue(terms_);
   });
-  const rawzterm = liveValue(['z_slider'], 0, x => clamp(x, 0, 1));
+  const rawzterm = liveValue('rawz', ['z_slider'], 0, x => clamp(x, 0, 1));
 
-  const flagShowConvergents = makeFlag('Show convergents');
-  const flagShowSteps = makeFlag('Show steps');
-  const flagShowCrystal = makeFlag('Show crystal');
-  const flagUnitCellMode = makeFlag('Unit cell mode');
-  const flagShowZ = makeFlag('Editable remainder');
-  const flagContFracEdit = makeFlag('Editable continued fraction');
-  let flagSimpleFracEdit = null;
+  const flagShowConvergents = makeFlag('conv', 'Show convergents');
+  const flagShowSteps = makeFlag('step', 'Show steps');
+  const flagShowCrystal = makeFlag('crys', 'Show crystal');
+  const flagUnitCellMode = makeFlag('unit', 'Unit cell mode');
+  const flagShowZ = makeFlag('rem', 'Editable remainder');
+  const flagContFracEdit = makeFlag('cont', 'Editable continued fraction');
+  const flagSimpleFracEdit = makeFlag('simp', 'Editable simple fraction');
 
   const isInZMode = () => (
       flagShowZ.value && !flagContFracEdit.value && !flagSimpleFracEdit.value &&
@@ -444,16 +468,6 @@ function onLoad() {
   const getApproxContFracTerms = () =>
       isInZMode() ? zModeContFracTerms : visibleContFracTerms + 1;
 
-  flagSimpleFracEdit = makeFlag('Editable simple fraction', false, () => {
-    /*if (isInSimpleFracEditMode()) {
-      // Truncate the gradient to the current fraction approximation.
-      const [y, x] = getApproxFrac(
-          getContFracTerms(grad.value, contFracTerms),
-          getApproxContFracTerms(), 0, 1);
-      grad.value = y / x;
-    }*/
-  });
-
   const canvas = document.getElementById('view');
   const crystalCanvas = document.getElementById('crystal_view');
   const domContFrac = document.getElementById('cont_frac');
@@ -462,6 +476,32 @@ function onLoad() {
   const domWord = document.getElementById('word');
   const domZSliderWrap = document.getElementById('z_slider_wrap');
   const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
+
+  const blogPageUpdater = [];
+  const addBlogPage = (flags, liveValues) => {
+    const flg = new Set(flags);
+    const lvs = new Map(liveValues);
+    blogPageUpdater.push(() => {
+      for (const [id, flag] of allFlags.entries()) {
+        flag.setValue(flg.has(id));
+      }
+      for (const [id, lv] of allLiveValues.entries()) {
+        if (lvs.has(id)) {
+          lv.value = lvs.get(id);
+        } else {
+          lv.reset();
+        }
+      }
+    });
+  };
+
+  addBlogPage(['crys', 'step']);
+  addBlogPage(['crys', 'step']);
+
+  const showBlog = index => blogPageUpdater[index]();
+  document.getElementById('blog').addEventListener(
+      'change', e => showBlog(e.detail));
+  showBlog(0);
 
   const getZ = () => {
     const x = isInZMode() ? rawzterm.value : 0;
@@ -900,6 +940,27 @@ class YouTubeEmbed extends HTMLElement {
 }
 window.addEventListener(
     'load', () => customElements.define('youtube-embed', YouTubeEmbed));
+
+let shownQuizAnswer = null;
+class QuizAnswer extends HTMLElement {
+  constructor() {
+    super();
+    this.answerHTML = this.innerHTML;
+    this.innerText = '[Answer]';
+    this.answerDiv = findCousinDivWithClass(this, 'quiz-answer');
+    this.addEventListener('click', () => {
+      if (shownQuizAnswer != this) {
+        shownQuizAnswer = this;
+        this.answerDiv.innerHTML = this.answerHTML;
+      } else {
+        shownQuizAnswer = null;
+        this.answerDiv.innerHTML = '';
+      }
+    });
+  }
+}
+window.addEventListener(
+    'load', () => customElements.define('quiz-answer', QuizAnswer));
 </script>
 <style>
 html {
@@ -963,12 +1024,13 @@ a {
 #right {
   display: flex;
   flex-direction: column;
-  width: 400px;
+  flex-shrink: 0;
+  width: 350px;
 }
 #word {
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 350px;
+  width: 330px;
 }
 .cont-frac-term {
   margin-top: 0.6em;
@@ -1069,7 +1131,7 @@ slide-show {
 }
 slide-show.loaded {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
   gap: 8px;
 }
@@ -1103,6 +1165,13 @@ slide-show.loaded {
   cursor: pointer;
   user-select: none;
 }
+quiz-answer {
+  cursor: pointer;
+  color: #ff5722;
+}
+quiz-answer:hover {
+  color: #ffc107;
+}
 </style>
 </head>
 <body>
@@ -1113,13 +1182,100 @@ slide-show.loaded {
 <div id="wrap">
   <div id="layout">
     <div id="left">
-      <slide-show button-layout="low">
-        <span>Blog stuff goes here.</span>
-        <span>More text.</span>
-        <div>
+      <slide-show id="blog" button-layout="low">
+        <span>
+          <h2>Rational Numbers and Periodic Crystals</h2>
+
+          You can click and drag the slope of the line and watch the crystal
+          structures (bottom) and sequences (right) which form based on this.
+          Use the mouse wheel to zoom.
+          <br/>
+
+          <h3>Questions</h3>
+
+          1) Can you make a periodic structure?
+          <quiz-answer>Try clicking on any of the grid points.</quiz-answer>
+          <br/><br/>
+
+          2) What sort of gradients give you periodic structures?
+          <quiz-answer>
+            Since the lattice is periodic, the view from any point on the
+            lattice is the same as from any other. Hence, if a line leaves a
+            point (i.e., the origin), and hits another point, then the view
+            from the next point must be the same as that from the first point,
+            meaning the structure repeats itself until we hit the next point,
+            after which it repeats again, continuing indefinitely. Any line
+            that hits a lattice point must move an integer number of steps up,
+            and an integer number of steps along, meaning its gradient is of the
+            form p/q, where (q,p) are the coordinates of the point we hit.
+          </quiz-answer>
+          <br/><br/>
+
+          3) What determines how many atoms appear in your crystal before it
+          begins to repeat.
+          <quiz-answer>
+            As for the number of atoms in between – if we look at the staircase
+            representation, we can see the total number of atoms is given by the
+            number of steps up, plus the number along, meaning there will always
+            be p+q atoms per repetition (or ‘in the unit cell’).
+          </quiz-answer>
+          <br/><br/>
+
+          <br/><br/>
+          <div class="quiz-answer"></div>
+        </span>
+        <span>
+          <h2>Rational Numbers and Periodic Crystals</h2>
+
+          If a line directly hits a lattice point, that fixes its gradient, so
+          at least some gradients can be represented by just a point.
+          <br/>
+
+          <h3>Questions</h3>
+
+          1) Is this representation unique?
+          <quiz-answer>
+            The fraction p/q, corresponding to hitting the point (q,p), isn’t
+            unique – we could multiply top and bottom by an integer, and find
+            another point the line hits (np/nq and (nq,np)). This is another
+            way of showing the periodicity of this structure.
+          </quiz-answer>
+          <br/><br/>
+
+          2) What additional requirement could you add to <i>make</i> it unique?
+          <quiz-answer>
+            If we want to find a <i>unique</i> point corresponding to any
+            gradient, we can always simplify this fraction by cancelling all
+            common factors between p and q, corresponding to finding the first
+            point we hit as we move out from the origin.
+          </quiz-answer>
+          <br/><br/>
+
+          3) Do all possible gradients correspond to a point on the lattice?
+          <quiz-answer>
+            All this work <i>assumes</i> that we hit an atom in the first
+            place. But what if we pick a gradient which <i>isn’t</i>
+            rational (meaning it’s not a number which can be written p/q,
+            where p and q are integers – say like π, ϕ, or √2)?
+            Well, if the line ever <i>did</i> touch a point, that would
+            mean it had a rational gradient – but we know it’s an
+            irrational number, so it never does. Hence, it only
+            ever hits one atom (the one at the origin), and
+            it never repeats. Hence, we’ve found a deterministic
+            <i>non</i>-periodic structure. We haven’t shown yet that it
+            is aperiodic (i.e., that it doesn’t ever have large runs
+            of repeating words), which will be one of our major
+            goals in investigating these.
+          </quiz-answer>
+          <br/><br/>
+
+          <br/><br/>
+          <div class="quiz-answer"></div>
+        </span>
+        <!-- <div>
           YouTube embed:<br/>
           <youtube-embed src="AaQD-cyXH2A"></youtube-embed>
-        </div>
+        </div> -->
       </slide-show>
     </div>
     <div id="middle">
