@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Graph Puzzle</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+const tau = 2 * Math.PI;
+
+function swap(a, i, j) {
+  const x = a[i];
+  a[i] = a[j];
+  a[j] = x;
+}
+
+function popSwap(a, i) {
+  const x = a[i];
+  const y = a.pop();
+  if (i < a.length) a[i] = y;
+  return x;
+}
+
+function clamp(x, hi = 1, lo = 0) {
+  return x <= lo ? lo : x >= hi ? hi : x;
+}
+
+function fmod(x, y = 1) {
+  const z = x / y;
+  return (z - Math.floor(z)) * y;
+}
+
+function rgb2str(r, g, b) {
+  const ch = x => {
+    const s = Math.floor(clamp(x * 256, 255)).toString(16);
+    if (s.length > 2) return 'ff';
+    if (s.length == 0) return '00';
+    if (s.length == 1) return '0' + s;
+    return s;
+  }
+  return `#${ch(r)}${ch(g)}${ch(b)}ff`;
+}
+
+function hsv2rgb(h, s = 1, v = 1) {
+  const i = fmod(h) * 6.0;
+  const c = v * s;
+  const m = v - c;
+  const x = c * (1 - Math.abs(fmod(i, 2) - 1)) + m;
+  const d = c + m;
+  if (i < 1) return rgb2str(d, x, m);
+  if (i < 2) return rgb2str(x, d, m);
+  if (i < 3) return rgb2str(m, d, x);
+  if (i < 4) return rgb2str(m, x, d);
+  if (i < 5) return rgb2str(x, m, d);
+  return rgb2str(d, m, x);
+}
+
+let game = null;
+function onLoad() {
+  game = new Game(document.getElementById('view'));
+}
+window.addEventListener('load', onLoad);
+
+class GraphNode {
+  constructor(id, total, cid, group, cycle, px, py) {
+    this.id = id;
+    this.cid = cid;
+    this.group = group;
+    this.cycle = cycle;
+    this.links = new Set();
+    this.px = px;
+    this.py = py;
+  }
+
+  link(other) {
+    if (this == other) return false;
+    if (this.links.has(other)) return false;
+    this.links.add(other);
+    other.links.add(this);
+    return true;
+  }
+}
+
+class Graph {
+  constructor() {
+    this.zoom = 1;
+    this.camx = 0;
+    this.camy = 0;
+    this.heldNode = null;
+    this.selectedNodes = [];
+    this.nodes = [];
+    this.createNodes([
+      [0, 0, -2, 0, [1, 2, 3]], [1, 0, -0.5, 0.866, [3, 2, 0]],
+      [2, 0, -0.5, -0.866, [0, 1, 3]], [3, 0, -1, 0, [0, 2, 1]],
+      [5, 1, 2, 0, []], [6, 1, 0.5, 0.866, []],
+      [4, 1, 0.5, -0.866, []], [7, 1, 1, 0, []],
+    ], [
+      [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
+      [4, 5], [4, 6], [4, 7], [5, 6], [5, 7], [6, 7],
+    ]);
+  }
+
+  createNodes(nodeSpec, linkSpec) {
+    this.nodes = [];
+    for (let i = 0; i < nodeSpec.length; ++i) {
+      const [cid, group, px, py] = nodeSpec[i];
+      this.nodes.push(new GraphNode(i, nodeSpec.length, cid, group, px, py));
+    }
+    for (let i = 0; i < linkSpec.length; ++i) {
+      const [i0, i1] = linkSpec[i];
+      this.nodes[i0].link(this.nodes[i1]);
+    }
+  }
+
+  dfs(node, visited) {
+    if (visited.has(node)) return;
+    visited.add(node);
+    for (const m of node.links) this.dfs(m, visited);
+  }
+
+  draw(drawLink, drawNode) {
+    // Draw all the links.
+    const tx = x => (x - this.camx) / this.zoom;
+    const ty = y => (y - this.camy) / this.zoom;
+    const size = this.nodes.length;
+    for (let i = 1; i < size; ++i) {
+      const n = this.nodes[i];
+      for (let j = 0; j < i; ++j) {
+        const m = this.nodes[j];
+        if (n.links.has(m)) {
+          drawLink(tx(n.px), ty(n.py), tx(m.px), ty(m.py), '#444');
+        }
+      }
+    }
+
+    // Draw selected node halos.
+    for (const n of this.selectedNodes) {
+      drawNode(tx(n.px), ty(n.py), '#FFF', 1.3);
+      drawNode(tx(n.px), ty(n.py), '#000', 1.15);
+    }
+
+    // Draw all the nodes.
+    const clr = i => hsv2rgb(i / size - 0.04);
+    for (let i = 0; i < size; ++i) {
+      const n = this.nodes[i];
+      drawNode(tx(n.px), ty(n.py), clr(n.id));
+      drawNode(tx(n.px), ty(n.py), '#000', 0.6);
+      drawNode(tx(n.px), ty(n.py), clr(n.cid), 0.5);
+    }
+  }
+
+  onClickDown(rawx, rawy, hitrad) {
+    const px = this.camx + rawx * this.zoom;
+    const py = this.camy + rawy * this.zoom;
+    let minr = Infinity;
+    let mini = -1;
+    for (let i = 0; i < this.nodes.length; ++i) {
+      const n = this.nodes[i];
+      const dx = px - n.px;
+      const dy = py - n.py;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minr) {
+        minr = dist;
+        mini = i;
+      }
+    }
+    if (minr < hitrad * this.zoom) {
+      this.heldNode = mini;
+      const find1 = this.selectedNodes.findIndex(n => n.id == mini);
+      if (find1 != -1) {
+        popSwap(this.selectedNodes, find1);
+      } else {
+        const ming = this.nodes[mini].group;
+        const find2 = this.selectedNodes.findIndex(n => n.group == ming);
+        if (find2 != -1) {
+          popSwap(this.selectedNodes, find2);
+        }
+        this.selectedNodes.push(this.nodes[mini]);
+      }
+    } else {
+      this.heldNode = null;
+    }
+  }
+
+  onClickMove(rawx, rawy) {
+    /*if (this.heldNode == null) return;
+    const px = this.camx + rawx * this.zoom;
+    const py = this.camy + rawy * this.zoom;
+    this.nodes[this.heldNode].px = px;
+    this.nodes[this.heldNode].py = py;*/
+  }
+
+  onClickUp() {
+    this.heldNode = null;
+  }
+}
+
+function setupCanvas(canvas, viewWidth, lineWidthMul = 1) {
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(
+      canvas.width / viewWidth, 0,
+      0, canvas.width / viewWidth,
+      canvas.width / 2, canvas.height / 2);
+  ctx.lineWidth = lineWidthMul * viewWidth / canvas.width;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  return ctx;
+}
+
+class Game {
+  constructor(canvas) {
+    this.graph = new Graph();
+
+    const viewSize = 5;
+    const nodeSize = 0.02 * viewSize;
+    const ctx = setupCanvas(canvas, viewSize);
+
+    canvas.addEventListener('mousedown', e => {
+      this.graph.onClickDown(
+          (e.offsetX / canvas.width - 0.5) * viewSize,
+          (e.offsetY / canvas.height - 0.5) * viewSize,
+          nodeSize);
+    });
+    canvas.addEventListener('mousemove', e => {
+      this.graph.onClickMove(
+          (e.offsetX / canvas.width - 0.5) * viewSize,
+          (e.offsetY / canvas.height - 0.5) * viewSize);
+    });
+    canvas.addEventListener('mouseout', e => this.graph.onClickUp());
+    canvas.addEventListener('mouseup', e => this.graph.onClickUp());
+
+    const drawCircle = (px, py, r, clr) => {
+      ctx.fillStyle = clr;
+      ctx.beginPath();
+      ctx.ellipse(px, py, r, r, 0, 0, tau);
+      ctx.fill();
+    };
+
+    const drawNode = (px, py, clr, sizeMult = 1) =>
+        drawCircle(px, py, nodeSize * sizeMult, clr);
+
+    const drawLine = (px, py, qx, qy, clr) => {
+      ctx.strokeStyle = clr;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(qx, qy);
+      ctx.stroke();
+    };
+
+    const update = () => {
+      // Clear to black.
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-2 * viewSize, -2 * viewSize, 4 * viewSize, 4 * viewSize);
+
+      this.graph.draw(drawLine, drawNode);
+      window.requestAnimationFrame(update);
+    }
+    update();
+  }
+}
+
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+#game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.game-setup-row {
+  display: flex;
+  flex-direction: row;
+  margin-top: 16px;
+}
+.game-heading {
+  font-size: 24px;
+  color: #ffc107;
+}
+.game-setup-name {
+  margin-right: 16px;
+}
+.game-setup-slider-number {
+  margin-right: 8px;
+}
+.game-setup-play-button {
+  margin-top: 16px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #ff5722;
+}
+.game-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+.game-ui {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+.game-status {
+  color: #ffc107;
+  font-size: 24px;
+}
+.ai-mood-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+}
+.ai-mood {
+  font-size: 100px;
+}
+.game-ctrl-clr-row {
+  margin: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.game-ctrl-clr, .game-ctrl-clr-ai {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.game-ctrl-clr {
+  cursor: pointer;
+}
+.game-ctrl-clr.selected {
+  width: 24px;
+  height: 24px;
+  border: 4px solid white;
+}
+.game-ctrl-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.game-ctrl-fill {
+  color: #f44336;
+}
+.game-ctrl-fill {
+  cursor: pointer;
+  color: #ff5722;
+}
+.game-ctrl-error {
+  color: #f44336;
+}
+.hidden {
+  display: none;
+}
+.ai-test-table {
+  border-spacing: 0px;
+}
+.ai-test-table-heading-left {
+  border-left: 1px solid #424242;
+}
+.ai-test-table-heading-top {
+  border-top: 1px solid #424242;
+}
+.ai-test-table td {
+  border-bottom: 1px solid #424242;
+  border-right: 1px solid #424242;
+  padding: 4px 8px;
+  text-align: center;
+}
+.ai-test-table td.running {
+  background-color: #8bc34a;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Graph Puzzle</h1>
+</div>
+<div id="wrap">
+  <br/><br/>
+  <div id="game">
+    <canvas id="view" width="800" height="800"></canvas>
+  </div>
+</div>
+</body>
+</html>
