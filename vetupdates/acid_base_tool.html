@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Acid Base Tool</title>
+<link rel="icon" href="../res/favicon.ico">
+<script src="acid_base_tool.js"></script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+.invalid {
+  background-color: #ef9a9a;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>Acid Base Tool</h1>
+</div>
+<div id="wrap">
+  <h2>Stewart</h2>
+  <acid-base-tool mode="stewart"></acid-base-tool><br/><br/>
+  <h2>Semi-Quantitative</h2>
+  <acid-base-tool mode="semi-quant"></acid-base-tool><br/><br/>
+  <h2>Blood Transfusion</h2>
+  <acid-base-tool mode="blood-trans"></acid-base-tool><br/><br/>
+</div>
+</body>
+</html>
