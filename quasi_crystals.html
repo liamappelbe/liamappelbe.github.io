@@ -318,6 +318,18 @@ function getRayCellCrossings(gx, gy, ox, oy, len) {
   return a;
 }
 
+function closestPointToLine(px, py, ox, oy, dx, dy) {
+  // q = o + kd
+  // (q - o) . (p - q) = 0
+  // kd . (p - o - kd) = 0
+  // d . (p - o - kd) = 0
+  // d . (p - o) - k(d . d) = 0
+  // d . (p - o) = k(d . d)
+  // d . (p - o) = k  // d is a unit vector
+  const k = dx * (px - ox) + dy * (py - oy);
+  return [ox + k * dx, oy + k * dy];
+}
+
 function setupCanvas(canvas, viewWidth, lineWidthMul = 1) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(
@@ -617,18 +629,22 @@ function onLoad() {
   };
 
   let mouseClicked = false;
+  let currentGx = 1;
+  let currentGy = 0;
+  let currentOx = 0;
+  let currentOy = 0;
   const anchors = [];
-  const snapToAnchor = (x, y) => {
+  const snapToAnchor = (x, y, alsoSnapToLine) => {
     const viewSize = getViewSize();
     let mx = null;
     let my = null;
     let mi = null;
     let md = Infinity;
-    const maybeSnap = (px, py, pi) => {
+    const maybeSnap = (px, py, pi, distmul = 1) => {
       if (px >= 0 && py >= 0 && px <= viewSize && py <= viewSize) {
         const dx = x - px;
         const dy = y - py;
-        const dd = dx * dx + dy * dy;
+        const dd = distmul * (dx * dx + dy * dy);
         if (dd < md) {
           mx = px;
           my = py;
@@ -641,7 +657,12 @@ function onLoad() {
       const [px, py] = anchors[i];
       maybeSnap(px, py, i);
     }
-    maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null);
+    maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null, 1.1);
+    if (alsoSnapToLine) {
+      const [lx, ly] = closestPointToLine(
+          x, y, currentOx, currentOy, currentGx, currentGy);
+      maybeSnap(lx, ly, null, 2);
+    }
     if (md > 0.05) return null;
     return [mx, my, mi];
   };
@@ -649,7 +670,7 @@ function onLoad() {
     e.preventDefault();
     let [x, y] = getClickPos(e);
     if (!click) {
-      const snap = snapToAnchor(x, y);
+      const snap = snapToAnchor(x, y, false);
       if (snap != null) {
         x = snap[0];
         y = snap[1];
@@ -670,7 +691,7 @@ function onLoad() {
   const onRightClick = e => {
     forceRedraw = true;
     let [x, y] = getClickPos(e);
-    const snap = snapToAnchor(x, y);
+    const snap = snapToAnchor(x, y, true);
     if (snap == null) {
       anchors.push([x, y]);
     } else if (snap[2] == null) {
@@ -764,6 +785,11 @@ function onLoad() {
       const hitOx = 0;
       const hitOy = -o;
       const sequence = sequenceFromGrad(zg, o, genSeqLength);
+
+      currentGx = ugx;
+      currentGy = ugy;
+      currentOx = hitOx;
+      currentOy = hitOy;
 
       // Clear to black.
       ctx.fillStyle = 'rgba(0, 0, 0, 1)';
