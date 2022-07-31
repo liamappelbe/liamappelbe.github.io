@@ -618,7 +618,7 @@ function onLoad() {
 
   let mouseClicked = false;
   const anchors = [];
-  const snapToAnchor = (x, y, alsoSnapToGrid) => {
+  const snapToAnchor = (x, y) => {
     const viewSize = getViewSize();
     let mx = null;
     let my = null;
@@ -637,13 +637,11 @@ function onLoad() {
         }
       }
     };
-    if (alsoSnapToGrid) {
-      maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null);
-    }
     for (let i = 0; i < anchors.length; ++i) {
       const [px, py] = anchors[i];
       maybeSnap(px, py, i);
     }
+    maybeSnap(Math.floor(x + 0.5), Math.floor(y + 0.5), null);
     if (md > 0.05) return null;
     return [mx, my, mi];
   };
@@ -651,7 +649,7 @@ function onLoad() {
     e.preventDefault();
     let [x, y] = getClickPos(e);
     if (!click) {
-      const snap = snapToAnchor(x, y, true);
+      const snap = snapToAnchor(x, y);
       if (snap != null) {
         x = snap[0];
         y = snap[1];
@@ -672,9 +670,11 @@ function onLoad() {
   const onRightClick = e => {
     forceRedraw = true;
     let [x, y] = getClickPos(e);
-    const snap = snapToAnchor(x, y, false);
+    const snap = snapToAnchor(x, y);
     if (snap == null) {
       anchors.push([x, y]);
+    } else if (snap[2] == null) {
+      anchors.push([snap[0], snap[1]]);
     } else {
       popSwap(anchors, snap[2]);
     }
