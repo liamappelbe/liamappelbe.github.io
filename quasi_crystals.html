@@ -4,6 +4,13 @@
 <title>Quasicrystals</title>
 <link rel="icon" href="res/favicon.ico">
 <script src="slide_show.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+MathJax = {
+  tex: {inlineMath: [['$', '$']]}
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
 <script type="text/javascript">
 
 // Config
@@ -972,15 +979,17 @@ class QuizAnswer extends HTMLElement {
   constructor() {
     super();
     this.answerHTML = this.innerHTML;
-    this.innerText = '[Answer]';
+    this.innerText = '[Hint]';
     this.answerDiv = findCousinDivWithClass(this, 'quiz-answer');
     this.addEventListener('click', () => {
       if (shownQuizAnswer != this) {
         shownQuizAnswer = this;
         this.answerDiv.innerHTML = this.answerHTML;
+        this.answerDiv.classList.add('shown');
       } else {
         shownQuizAnswer = null;
         this.answerDiv.innerHTML = '';
+        this.answerDiv.classList.remove('shown');
       }
     });
   }
@@ -995,6 +1004,7 @@ html {
 body {
   background-color: #212121;
   margin: 0;
+  overflow-y: scroll;
 }
 #head {
   background-color: #424242;
@@ -1198,6 +1208,21 @@ quiz-answer {
 quiz-answer:hover {
   color: #ffc107;
 }
+b {
+  color: #ffc107;
+}
+.questions {
+  margin-left: 12px;
+}
+.quiz-answer {
+  display: none;
+  background-color: #ffffff11;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+.quiz-answer.shown {
+  display: block;
+}
 </style>
 </head>
 <body>
@@ -1215,89 +1240,228 @@ quiz-answer:hover {
           You can click and drag the slope of the line and watch the crystal
           structures (bottom) and sequences (right) which form based on this.
           Use the mouse wheel to zoom.
-          <br/>
-
-          <h3>Questions</h3>
-
-          1) Can you make a periodic structure?
-          <quiz-answer>Try clicking on any of the grid points.</quiz-answer>
           <br/><br/>
 
-          2) What sort of gradients give you periodic structures?
-          <quiz-answer>
-            Since the lattice is periodic, the view from any point on the
-            lattice is the same as from any other. Hence, if a line leaves a
-            point (i.e., the origin), and hits another point, then the view
-            from the next point must be the same as that from the first point,
-            meaning the structure repeats itself until we hit the next point,
-            after which it repeats again, continuing indefinitely. Any line
-            that hits a lattice point must move an integer number of steps up,
-            and an integer number of steps along, meaning its gradient is of the
-            form p/q, where (q,p) are the coordinates of the point we hit.
-          </quiz-answer>
-          <br/><br/>
+          <div class="questions">
+            <b>Q1)</b> Can you make a periodic structure?
+            <quiz-answer>Try clicking on any of the grid points.</quiz-answer>
+            <br/><br/>
 
-          3) What determines how many atoms appear in your crystal before it
-          begins to repeat.
-          <quiz-answer>
-            As for the number of atoms in between – if we look at the staircase
-            representation, we can see the total number of atoms is given by the
-            number of steps up, plus the number along, meaning there will always
-            be p+q atoms per repetition (or ‘in the unit cell’).
-          </quiz-answer>
-          <br/><br/>
+            <b>Q2)</b> What sort of gradients give you periodic structures?
+            <quiz-answer>
+              Since the lattice is periodic, the view from any point on the
+              lattice is the same as from any other. Hence, if a line leaves a
+              point (i.e., the origin), and hits another point, then the view
+              from the next point must be the same as that from the first point,
+              meaning the structure repeats itself until we hit the next point,
+              after which it repeats again, continuing indefinitely. Any line
+              that hits a lattice point must move an integer number of steps up,
+              and an integer number of steps along, meaning its gradient is of
+              the form $p \over q$, where $(q,p)$ are the coordinates of the
+              point we hit.
+            </quiz-answer>
+            <br/><br/>
 
-          <br/><br/>
-          <div class="quiz-answer"></div>
-        </span>
-        <span>
-          <h2>Rational Numbers and Periodic Crystals</h2>
+            <b>Q3)</b> What determines how many atoms appear in your crystal
+            before it begins to repeat.
+            <quiz-answer>
+              As for the number of atoms in between - if we look at the
+              staircase representation, we can see the total number of atoms
+              is given by the number of steps up, plus the number along,
+              meaning there will always be $p+q$ atoms per repetition
+              (or 'in the unit cell').
+            </quiz-answer>
+            <br/><br/>
+          </div>
 
           If a line directly hits a lattice point, that fixes its gradient, so
           at least some gradients can be represented by just a point.
-          <br/>
-
-          <h3>Questions</h3>
-
-          1) Is this representation unique?
-          <quiz-answer>
-            The fraction p/q, corresponding to hitting the point (q,p), isn’t
-            unique – we could multiply top and bottom by an integer, and find
-            another point the line hits (np/nq and (nq,np)). This is another
-            way of showing the periodicity of this structure.
-          </quiz-answer>
           <br/><br/>
 
-          2) What additional requirement could you add to <i>make</i> it unique?
-          <quiz-answer>
-            If we want to find a <i>unique</i> point corresponding to any
-            gradient, we can always simplify this fraction by cancelling all
-            common factors between p and q, corresponding to finding the first
-            point we hit as we move out from the origin.
-          </quiz-answer>
-          <br/><br/>
+          <div class="questions">
+            <b>Q4)</b> Is this representation unique?
+            <quiz-answer>
+              The fraction $p \over q$, corresponding to hitting the point
+              $(q,p)$, isn't unique - we could multiply top and bottom by
+              an integer, and find another point the line hits
+              ($np \over nq$ and $(nq,np)$). This is another
+              way of showing the periodicity of this structure.
+            </quiz-answer>
+            <br/><br/>
 
-          3) Do all possible gradients correspond to a point on the lattice?
-          <quiz-answer>
-            All this work <i>assumes</i> that we hit an atom in the first
-            place. But what if we pick a gradient which <i>isn’t</i>
-            rational (meaning it’s not a number which can be written p/q,
-            where p and q are integers – say like π, ϕ, or √2)?
-            Well, if the line ever <i>did</i> touch a point, that would
-            mean it had a rational gradient – but we know it’s an
-            irrational number, so it never does. Hence, it only
-            ever hits one atom (the one at the origin), and
-            it never repeats. Hence, we’ve found a deterministic
-            <i>non</i>-periodic structure. We haven’t shown yet that it
-            is aperiodic (i.e., that it doesn’t ever have large runs
-            of repeating words), which will be one of our major
-            goals in investigating these.
-          </quiz-answer>
-          <br/><br/>
+            <b>Q5)</b> What additional requirement could you add to <i>make</i>
+            it unique?
+            <quiz-answer>
+              If we want to find a <i>unique</i> point corresponding to any
+              gradient, we can always simplify this fraction by cancelling all
+              common factors between $p$ and $q$, corresponding to finding the
+              first point we hit as we move out from the origin.
+            </quiz-answer>
+            <br/><br/>
 
-          <br/><br/>
+            <b>Q6)</b> Do all possible gradients correspond to a point on the
+            lattice?
+            <quiz-answer>
+              All this work <i>assumes</i> that we hit an atom in the first
+              place. But what if we pick a gradient which <i>isn't</i>
+              rational (meaning it's not a number which can be written
+              $p \over q$, where $p$ and $q$ are integers - say like
+              $\pi$, $\phi$, $\sqrt{2}$, or $\sqrt[7]{5}$)?
+              Well, if the line ever <i>did</i> touch a point, that would
+              mean it had a rational gradient - but we know it's an
+              irrational number, so it never does. Hence, it only
+              ever hits one atom (the one at the origin), and
+              it never repeats. Hence, we've found a deterministic
+              <i>non</i>-periodic structure. We haven't shown yet that it
+              is aperiodic (i.e., that it doesn't ever have large runs
+              of repeating words), which will be one of our major
+              goals in investigating these.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
           <div class="quiz-answer"></div>
         </span>
+
+
+        <span>
+          <h2>Offsets and Words</h2>
+
+          Before we go further, let's take a look at how the offset slider
+          affects the generated sequence.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q1)</b> Can you spot the relationship between the pattern of
+            atoms and the generated sequence of S's and L's?
+            <quiz-answer>
+              For gradients less than 1, we tend to label the atoms based
+              on whether they correspond to short (S) or long (L) gaps.
+              This corresponds to steps <i>up</i> on the staircase corresponding
+              to the letter S, and steps <i>along</i> corresponding to the
+              letter L.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q2)</b> Does this still hold if we increase the gradient past 45
+            degrees?
+            <quiz-answer>
+              When the gradient is 1, this classification poses a
+              problem - steps up and along are both the same length,
+              and for gradients greater than 1, steps up are now
+              the longer ones, and vice versa. In order to maintain
+              some sense of continuity, however, we remain labelling
+              steps up (such as the first point) with an S, even
+              for gradients greater than 1. Practically, the exact
+              spacing can be accounted for in other ways, and often
+              isn't used, so the letters are mostly arbitrary.
+              In other words, think of S as steps up, and L as steps
+              along.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> Can you spot any rough pattern between the length of
+            runs of the same letter (known as its power), and the gradient?
+            <quiz-answer>
+              You might have also seen that the letter S will have
+              a power of the gradient rounded either down or up.
+              This turns out to generalise to the powers of more
+              complicated structures, as we'll see later, and
+              is part of how we'll prove aperiodicity.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          Since the structure of atoms is determined by this sequence of
+          letters, this sequence is quite important, and sometimes
+          referred to as the 'word' for a particular gradient.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q4)</b> Pick a simple rational number for the gradient - say
+            something like $1 \over 3$. By how much do you have to change
+            the offset before atoms begin to jump?
+            <quiz-answer>
+              For a number of the form $p \over q$, we need to increase
+              the offset to at least $1 \over q$ for the first hop to occur.
+              For irrational numbers, the distance we have to move
+              is infinitesimal. The graph of these distances is
+              known as
+              <a target="_blank" href="https://en.wikipedia.org/wiki/Thomae%27s_function">Thomae's function</a>,
+              or the popcorn function. To a physicist's eye, this function
+              is truly an abomination, it has the property that,
+              despite being continuous almost everywhere, it's
+              never continuous over any finite range (it's discontinuous
+              at every rational number). It's a great example of
+              why calculus and number theory tend to be so disjoint -
+              good luck trying to write a differential equation
+              which describes <i>this</i>!
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q5)</b> Are atoms conserved as we change the offset?
+            <quiz-answer>
+              Atoms are, in fact, conserved (meaning this
+              can happen in real quasicrystals - it's called a 'phason') -
+              from the perspective of the 'step' argument, moving past a
+              point corresponds from changing an along-then-up (i.e. LS)
+              to an up-then-along (SL).
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          Now, try an irrational number - say something like $\phi^{-1}$
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q6)</b> How far do you have to move the offset now, before atoms
+            begin to jump (and how do you think this would change if we
+            could zoom as far out as we liked)?
+            <quiz-answer>
+              For irrational numbers, any finite movement,
+              however small, will correspond to a jump. Compared to
+              rational numbers, where numbers of the form $p \over q$ change
+              after a shift by $1 \over q$, this can be thought of as
+              $p$ and $q$ being infinite, so ${1 \over q} = 0$.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q7)</b> Are the first atoms to move near, or far? Why?
+            <quiz-answer>
+              Hops also typically will occur far away, first. In the
+              case of irrational numbers, a rough argument for this
+              is that a change near the origin would require our
+              line crossing a point near the origin before any
+              further away, implying that the best approximation
+              is near the origin. However, this implies that
+              there exists a <i>best</i> rational approximation to a
+              particular irrational number, and it should be fairly
+              easy to convince yourself that given any rational
+              approximation, we can always build another, better one.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q8)</b> If I suggest that you can view a change in offset
+            as shifting the entire grid by an integer number of steps,
+            am I right or wrong? Does your answer depend on whether
+            or not the crystal is rational?
+            <quiz-answer>
+              As it turns out, only <i>certain</i> offsets correspond
+              directly to a shift in our perspective. Specifically,
+              it's those offsets which have <i>just</i> caused an atom to
+              jump - our line now crosses through the atom which
+              <i>just</i> jumped, and it's therefore equivalent to our
+              origin. Hence, in the case of an irrational number,
+              continuously changing the offset is equivalent to
+              pinging us wildly across our crystal.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
         <!-- <div>
           YouTube embed:<br/>
           <youtube-embed src="AaQD-cyXH2A"></youtube-embed>
