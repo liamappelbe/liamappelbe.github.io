@@ -517,6 +517,7 @@ function onLoad() {
   addBlogPage(['crys', 'step']);
   addBlogPage(['crys', 'step']);
   addBlogPage(['crys', 'step', 'aprx']);
+  addBlogPage(['crys', 'step', 'aprx']);
 
   const showBlog = index => blogPageUpdater[index]();
   document.getElementById('blog').addEventListener(
@@ -1561,6 +1562,152 @@ b {
               but should always remember that, <i>unlike</i> in the
               case of $\phi^{-1}$, there in general may also be other
               numbers which <i>could</i> fit into our sequence.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <h2>Moving Between Approximants</h2>
+
+          We can now construct a series of approximants to ou
+          quasicrystal, but that doesn't leave us better off,
+          if the only way of calculating the next approximant
+          is by drawing another line. If we have to do that,
+          we might as well go right back to drawing the line
+          for $\phi^{-1}$ and be done with this. To avoid this, we can
+          try to understand simply the <i>differences</i> between
+          successive approximants.<br/>
+          Rational approximants have the advantage of periodicity
+          - in order to understand an approximant's structure
+          <i>everywhere</i>, we only actually need to understand a
+          single period.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q1)</b> Consider slowly moving the graph from a
+            rational point near the origin to any other further
+            out: Under what condition will a given atom hop?
+            (Hint: This is similar to what we found when adjusting
+            the offset earlier).
+            <quiz-answer>
+              The structure changes whenever the gradient line
+              crosses a lattice point.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q2)</b> Where does the structure change the least?
+            Is it close to the origin, or further away?
+            <quiz-answer>
+              The number of lattice points close to the line is the
+              lowest near the origin, meaning it will cross the
+              fewest points and typically behave the most simply,
+              there, out of all the sections of the line we could
+              consider. So, if we want to understand the difference
+              in structure between the smaller and the larger
+              approximants, it would be a good idea to base
+              our understanding off of this section of the line.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> Focusing now on the first period of the
+            final structure, what determines how many changes
+            occur between the two lines (I.e., how many times
+            do atoms jump position as we move?).
+            <quiz-answer>
+              The number of changes between the two lines
+              will depend slightly on if you're moving up
+              or down. If you're moving up (i.e. $1 \over 1$ to
+              $17 \over 16$, both approximations to $\sqrt[12]{2}$, the
+              frequency multiplier for a semitone on a
+              typical piano), you will instantly push out
+              the staircase at all points equivalent to $1 \over 1$
+              (i.e. $(n,n)$), whilst moving the gradient
+              downwards makes no instant change at these
+              points (this is all simply based on how the
+              staircase structure was defined). Otherwise,
+              the number of changes from a smaller
+              approximant to a larger approximant within
+              the first period is simply the number of
+              points between those lines, plus those points
+              possibly corresponding to the approximants themselves.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q4)</b> Consider our approximants to $\phi^{-1}$, as
+            chosen above: how many points in the first
+            period (as well as <i>which</i> points) change as we
+            move between approximants (particularly
+            successive approximants) from the sequence below?
+            $${1 \over 1},{1 \over 2},{2 \over 3},{3 \over 5},{5 \over 8},{8 \over 13},{13 \over 21},...$$
+            <quiz-answer>
+              This sequence has the property (as for <i>why</i>
+              this is the case, we'll find this out later) that
+              the only changes within the first period of the
+              larger approximation are those corresponding to the
+              approximants themselves - there are no points between
+              the lines until we get to much higher denominators
+              (again, we'll prove this later). Therefore, there should
+              be one change every time the line is moved, each time
+              at the site of one of the approximants.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q5)</b> Can you find another sequence where even
+            fewer points change between each step?
+            <quiz-answer>
+              Strictly speaking, yes, we can, but not in terms of
+              rational approximants, for these, at least one point
+              <i>will</i> change each time. However, we <i>can</i> still
+              simplify things by picking a series also with the property
+              that only one point changes each time, and which
+              also converges faster. It turns out we can choose
+              a strictly decreasing series of approximants, such
+              as the other series we found earlier for $\phi^{-1}$:
+              $${1 \over 1},{2 \over 3},{5 \over 8},{13 \over 21},...$$
+
+              It's worth noting the reason we're able to make
+              this gain to convergence, which we can see if we
+              move from $5 \over 8$ down to $8 \over 13$ and back up
+              to $13 \over 21$, whilst
+              paying attention to, rather than the first period
+              of $8 \over 13$, the first period of $13 \over 21$.
+              The act of moving
+              down to hit $8 \over 13$ changes one point, but moving back
+              up to $13 \over 21$ undoes that change straight after.
+
+              If I'm being honest, focusing on this sequence makes
+              the maths for understanding this particular problem
+              with quasicrystals significantly easier, but isn't
+              as useful generally in number theory, hence why I'm
+              not focusing on it, here. I should also note that
+              another such sequence exists which approaches $\phi^{-1}$
+              from <i>below</i>:
+              $${0 \over 1},{1 \over 2},{3 \over 5},{8 \over 13},...$$
+              A similar property holds for this sequence, with a
+              similar argument - the sequence used above actually
+              just hops back and forth between these two series.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q6)</b> Two approximants for $\sqrt{2}$ are given by $7 \over 5$,
+            and $17 \over 12$, do the changes as you move
+            between these two fit your intuition from $\phi^{-1}$?
+            (Hint: In general, it tends to be easier to disentangle
+            what's going on with points which are further from the origin.)
+            <quiz-answer>
+              For the approximants of $\sqrt 2$ given, something
+              different does happen, although you may or
+              may not have already built this into your
+              model. The distance between the two approximants
+              is sufficiently large that versions of the $7 \over 5$
+              approximant occur before $17 \over 12$ (specifically, the
+              points $(5,7)$ and $(10,14)$), meaning that rather than
+              one point hopping, as in the case of $\phi^{-1}$, we see
+              two points hopping, instead.
             </quiz-answer>
             <br/><br/>
           </div>
