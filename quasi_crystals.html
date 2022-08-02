@@ -469,7 +469,7 @@ function onLoad() {
   });
   const rawzterm = liveValue('rawz', ['z_slider'], 0, x => clamp(x, 0, 1));
 
-  const flagShowConvergents = makeFlag('conv', 'Show convergents');
+  const flagShowConvergents = makeFlag('aprx', 'Show approximants');
   const flagShowSteps = makeFlag('step', 'Show steps');
   const flagShowCrystal = makeFlag('crys', 'Show crystal');
   const flagUnitCellMode = makeFlag('unit', 'Unit cell mode');
@@ -516,6 +516,7 @@ function onLoad() {
 
   addBlogPage(['crys', 'step']);
   addBlogPage(['crys', 'step']);
+  addBlogPage(['crys', 'step', 'aprx']);
 
   const showBlog = index => blogPageUpdater[index]();
   document.getElementById('blog').addEventListener(
@@ -881,7 +882,7 @@ function onLoad() {
           }
         }
 
-        // Draw convergents, if enabled.
+        // Draw approximants, if enabled.
         if (flagShowConvergents.value) {
           for (let i = 1; i <= terms.length; ++i) {
             const [y, x] = getApproxFrac(terms, i);
@@ -979,7 +980,7 @@ class QuizAnswer extends HTMLElement {
   constructor() {
     super();
     this.answerHTML = this.innerHTML;
-    this.innerText = '[Hint]';
+    this.innerText = '[Discussion]';
     this.answerDiv = findCousinDivWithClass(this, 'quiz-answer');
     this.addEventListener('click', () => {
       if (shownQuizAnswer != this) {
@@ -1454,6 +1455,112 @@ b {
               origin. Hence, in the case of an irrational number,
               continuously changing the offset is equivalent to
               pinging us wildly across our crystal.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <h2>Approximants</h2>
+
+          <div class="questions">
+            <b>Q1)</b> Given the structure of a particular irrational
+            number (say $\phi^{-1}$), can you find a series of rational
+            gradients (and therefore periodic structures, known
+            as approximants) which tend towards $\phi^{-1}$ (you can do
+            this roughly, visually, or mathematically)?
+            <quiz-answer>
+              One answer to this is to base this off all the
+              truncated decimal expansions of $\phi^{-1}$, so:
+              $${1 \over 0},{0 \over 1},{6 \over 10},{61 \over 100},{618 \over 1000},{61803 \over 100000},...$$
+              (because why should I <i>not</i> throw $\inf$ in there?).<br/>
+              Which, cancelling common factors, gives:
+              $${1 \over 0},{0 \over 1},{3 \over 5},{61 \over 100},{309 \over 500},{61803 \over 100000},...$$
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q2)</b> Is this sequence unique?
+            <quiz-answer>
+              Series of rational numbers approaching $\phi^{-1}$
+              are far from unique: sequences don't even
+              need to get closer at every step, so there
+              are lots of ways one can safely add or remove
+              points from a sequence without damaging
+              its convergence.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> If I add the condition that we have to
+            get closer with <i>every</i> term added, and that we
+            never add a fraction with a higher denominator
+            if one with a lower denominator could do a
+            better job, how does that narrow down your choices?
+            <quiz-answer>
+              Two sequences which satisfy this condition for $\phi^{-1}$
+              can be expressed particularly nicely in terms of
+              the Fibonacci numbers.
+              $${1 \over 1},{1 \over 2},{2 \over 3},{3 \over 5},{5 \over 8},{8 \over 13},{13 \over 21},...$$
+              $${1 \over 1},{2 \over 3},{5 \over 8},{13 \over 21},...$$
+              In general, this condition will narrow down
+              your options a lot, but it will be far from
+              unique, so these aren't the only options you
+              could have picked. If you didn't find any sequences
+              like these, I'd suggest checking these out and
+              getting a sense of their properties. In particular,
+              the first one will be key later on, whilst the second
+              may provide an interesting lens with which to contrast
+              the decisions we take.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q4)</b> In what sense are these good approximations,
+            and why might not all ways to define 'closeness to our
+            limit' agree on whether or not we converge?
+            <quiz-answer>
+              Just as when we approximate irrational numbers, these
+              are good approximations in that areas 'closer to home'
+              (i.e. the first consecutive digits of a numerical
+              approximation, or letters of a word) settle on the
+              accurate values first, and the correct number in a row
+              increases as we increase the order of the approximation.
+              It's worth noting that the way in which we define
+              convergence isn't immediately obvious. If we define
+              this in terms of the proportion of the first period
+              which matches an equivalent position in the Fibonacci
+              word, then yes, this converges. But if we define this
+              in terms of calculating the total proportion of letters
+              matching between two series, then it becomes far less
+              obvious (to me, at least), that we <i>will</i> get arbitrarily
+              close to our limit within a finite number of steps.
+              The sort of non-uniform convergence we see here <i>will</i>
+              be good enough for us, but these questions are always
+              good to ask (especially with physicists, since we often
+              brush this kind of technical problem under the rug)!
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q5)</b> How does the distribution of approximants
+            change for other irrational numbers (say $\sqrt{2}$)?
+            <quiz-answer>
+              For $\phi^{-1}$, it seems like there's a nice (and maybe
+              even complete, in some sense, in the set that a
+              large class of other sets can be constructed from
+              it) set of approximants meeting the condition that
+              each gets progressively closer to $\phi^{-1}$, given
+              earlier by:
+              $${1 \over 1},{1 \over 2},{2 \over 3},{3 \over 5},{5 \over 8},{8 \over 13},{13 \over 21},...$$
+              And, if you try to find these on the graph, you'll
+              find they alternate. For $\sqrt{2}$, however, if we try to
+              find something similar, close to the origin, we find
+              a point which breaks the pattern of alternation:
+              $(3,4)$, or $4 \over 3$. We'll see later that the sequence for
+              $\phi^{-1}$ generalises nicely to other irrational numbers,
+              but should always remember that, <i>unlike</i> in the
+              case of $\phi^{-1}$, there in general may also be other
+              numbers which <i>could</i> fit into our sequence.
             </quiz-answer>
             <br/><br/>
           </div>
