@@ -7,6 +7,11 @@
 
 const tau = 2 * Math.PI;
 
+const viewSize = 5;
+const nodeSize = 0.02 * viewSize;
+const arrowAngle = 0.1 * tau;
+const arrowLen = 0.02 * viewSize;
+
 function swap(a, i, j) {
   const x = a[i];
   a[i] = a[j];
@@ -61,11 +66,12 @@ function onLoad() {
 window.addEventListener('load', onLoad);
 
 class GraphNode {
-  constructor(id, total, cid, group, cycle, px, py) {
+  constructor(id, total, cid, group, cycle, anti, px, py) {
     this.id = id;
     this.cid = cid;
     this.group = group;
     this.cycle = cycle;
+    this.anti = anti;
     this.links = new Set();
     this.px = px;
     this.py = py;
@@ -89,10 +95,10 @@ class Graph {
     this.selectedNodes = [];
     this.nodes = [];
     this.createNodes([
-      [0, 0, -2, 0, [1, 2, 3]], [1, 0, -0.5, 0.866, [3, 2, 0]],
-      [2, 0, -0.5, -0.866, [0, 1, 3]], [3, 0, -1, 0, [0, 2, 1]],
-      [5, 1, 2, 0, []], [6, 1, 0.5, 0.866, []],
-      [4, 1, 0.5, -0.866, []], [7, 1, 1, 0, []],
+      [0, 0, -2, 0, [1, 2, 3], 4], [1, 0, -0.5, 0.866, [3, 2, 0], 6],
+      [2, 0, -0.5, -0.866, [0, 1, 3], 5], [3, 0, -1, 0, [0, 2, 1], 7],
+      [5, 1, 2, 0, [5, 6, 7], 0], [6, 1, 0.5, 0.866, [7, 6, 4], 2],
+      [4, 1, 0.5, -0.866, [4, 5, 7], 1], [7, 1, 1, 0, [4, 6, 5], 3],
     ], [
       [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
       [4, 5], [4, 6], [4, 7], [5, 6], [5, 7], [6, 7],
@@ -102,8 +108,9 @@ class Graph {
   createNodes(nodeSpec, linkSpec) {
     this.nodes = [];
     for (let i = 0; i < nodeSpec.length; ++i) {
-      const [cid, group, px, py] = nodeSpec[i];
-      this.nodes.push(new GraphNode(i, nodeSpec.length, cid, group, px, py));
+      const [cid, group, px, py, cycle, anti] = nodeSpec[i];
+      this.nodes.push(new GraphNode(
+          i, nodeSpec.length, cid, group, cycle, anti, px, py));
     }
     for (let i = 0; i < linkSpec.length; ++i) {
       const [i0, i1] = linkSpec[i];
@@ -132,10 +139,35 @@ class Graph {
       }
     }
 
-    // Draw selected node halos.
+    // Draw selected node halos, cycles, and anti-nodes.
+    const rx = Math.cos(arrowAngle);
+    const ry = Math.sin(arrowAngle);
     for (const n of this.selectedNodes) {
       drawNode(tx(n.px), ty(n.py), '#FFF', 1.3);
       drawNode(tx(n.px), ty(n.py), '#000', 1.15);
+      const an = this.nodes[n.anti];
+      drawNode(tx(an.px), ty(an.py), '#444', 1.3);
+      drawNode(tx(an.px), ty(an.py), '#000', 1.15);
+      for (let i = 0; i < n.cycle.length; ++i) {
+        const m0 = this.nodes[n.cycle[i]];
+        const m1 = this.nodes[n.cycle[(i + 1) % n.cycle.length]];
+        const dx = m0.px - m1.px;
+        const dy = m0.py - m1.py;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const ux = dx / d;
+        const uy = dy / d;
+        const a0x = arrowLen * (ux * rx - uy * ry);
+        const a0y = arrowLen * (uy * rx + ux * ry);
+        const a1x = arrowLen * (ux * rx + uy * ry);
+        const a1y = arrowLen * (uy * rx - ux * ry);
+        const zx = m1.px + nodeSize * ux;
+        const zy = m1.py + nodeSize * uy;
+        drawLink(tx(m0.px), ty(m0.py), tx(zx), ty(zy), '#FFF');
+        drawLink(tx(zx), ty(zy), tx(zx + a0x), ty(zy + a0y), '#FFF');
+        drawLink(tx(zx), ty(zy), tx(zx + a1x), ty(zy + a1y), '#FFF');
+        drawLink(
+            tx(zx + a0x), ty(zy + a0y), tx(zx + a1x), ty(zy + a1y), '#FFF');
+      }
     }
 
     // Draw all the nodes.
@@ -171,10 +203,13 @@ class Graph {
       } else {
         const ming = this.nodes[mini].group;
         const find2 = this.selectedNodes.findIndex(n => n.group == ming);
-        if (find2 != -1) {
-          popSwap(this.selectedNodes, find2);
+        const find3 = this.selectedNodes.findIndex(n => n.group != ming);
+        if (find3 == -1 || this.selectedNodes[find3].anti != mini) {
+          if (find2 != -1) {
+            popSwap(this.selectedNodes, find2);
+          }
+          this.selectedNodes.push(this.nodes[mini]);
         }
-        this.selectedNodes.push(this.nodes[mini]);
       }
     } else {
       this.heldNode = null;
@@ -191,6 +226,20 @@ class Graph {
 
   onClickUp() {
     this.heldNode = null;
+  }
+
+  onKeyDown(e) {
+    if (e.key != ' ') return;
+    e.preventDefault();
+    if (this.selectedNodes.length < 2) return;
+    for (const n of this.selectedNodes) {
+      let p = this.nodes[n.cycle[n.cycle.length - 1]].cid;
+      for (const i of n.cycle) {
+        const q = this.nodes[i].cid;
+        this.nodes[i].cid = p;
+        p = q;
+      }
+    }
   }
 }
 
@@ -210,8 +259,6 @@ class Game {
   constructor(canvas) {
     this.graph = new Graph();
 
-    const viewSize = 5;
-    const nodeSize = 0.02 * viewSize;
     const ctx = setupCanvas(canvas, viewSize);
 
     canvas.addEventListener('mousedown', e => {
@@ -227,6 +274,7 @@ class Game {
     });
     canvas.addEventListener('mouseout', e => this.graph.onClickUp());
     canvas.addEventListener('mouseup', e => this.graph.onClickUp());
+    document.addEventListener('keydown', e => this.graph.onKeyDown(e));
 
     const drawCircle = (px, py, r, clr) => {
       ctx.fillStyle = clr;
@@ -301,111 +349,14 @@ a {
   color: #f5f5f5;
   font-family: monospace;
   font-size: 16px;
-}
-#game {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.game-setup-row {
-  display: flex;
-  flex-direction: row;
-  margin-top: 16px;
-}
-.game-heading {
-  font-size: 24px;
-  color: #ffc107;
-}
-.game-setup-name {
-  margin-right: 16px;
-}
-.game-setup-slider-number {
-  margin-right: 8px;
-}
-.game-setup-play-button {
-  margin-top: 16px;
-  cursor: pointer;
-  font-size: 20px;
-  color: #ff5722;
-}
-.game-wrapper {
   display: flex;
   flex-direction: row;
   gap: 16px;
 }
-.game-ui {
-  width: 300px;
-  display: flex;
-  flex-direction: column;
+#instructions {
+  max-width: 30%;
 }
-.game-status {
-  color: #ffc107;
-  font-size: 24px;
-}
-.ai-mood-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 8px;
-}
-.ai-mood {
-  font-size: 100px;
-}
-.game-ctrl-clr-row {
-  margin: 8px;
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.game-ctrl-clr, .game-ctrl-clr-ai {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-}
-.game-ctrl-clr {
-  cursor: pointer;
-}
-.game-ctrl-clr.selected {
-  width: 24px;
-  height: 24px;
-  border: 4px solid white;
-}
-.game-ctrl-row {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-.game-ctrl-fill {
-  color: #f44336;
-}
-.game-ctrl-fill {
-  cursor: pointer;
-  color: #ff5722;
-}
-.game-ctrl-error {
-  color: #f44336;
-}
-.hidden {
-  display: none;
-}
-.ai-test-table {
-  border-spacing: 0px;
-}
-.ai-test-table-heading-left {
-  border-left: 1px solid #424242;
-}
-.ai-test-table-heading-top {
-  border-top: 1px solid #424242;
-}
-.ai-test-table td {
-  border-bottom: 1px solid #424242;
-  border-right: 1px solid #424242;
-  padding: 4px 8px;
-  text-align: center;
-}
-.ai-test-table td.running {
-  background-color: #8bc34a;
+#game {
 }
 </style>
 </head>
@@ -415,7 +366,14 @@ a {
   <h1>Graph Puzzle</h1>
 </div>
 <div id="wrap">
-  <br/><br/>
+  <div id="instructions">
+    Each node has an inner color and an outer color. The goal is to get the two
+    colors of each node to match, by moving the inner colors around. The catch
+    is that the only move you can do is a bit weird. Select one node from each
+    group of four, and press space. The inner colors of the other 3 nodes in the
+    group will rotate in the direction of the arrows. One more restriction is
+    that you can't select two opposite nodes at the same time.
+  </div>
   <div id="game">
     <canvas id="view" width="800" height="800"></canvas>
   </div>
