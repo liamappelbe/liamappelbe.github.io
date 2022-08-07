@@ -422,12 +422,12 @@ function onLoad() {
     const div = newDiv(domAdvancedOptions, ['flag']);
     const check = newElement('input', div);
     check.setAttribute('type', 'checkbox');
-    if (initValue) check.setAttribute('checked', true);
+    check.checked = initValue;
     flag.setValue = value => {
       if (value) {
-        check.setAttribute('checked', true);
+        check.checked = true;
       } else {
-        check.removeAttribute('checked');
+        check.checked = false;
       }
       forceRedraw = true;
       flag.value = value;
@@ -1225,6 +1225,11 @@ b {
 .quiz-answer.shown {
   display: block;
 }
+.center {
+  width: 100%;
+  text-align: center;
+  display: inline-block;
+}
 </style>
 </head>
 <body>
@@ -1237,7 +1242,7 @@ b {
     <div id="left">
       <slide-show id="blog" button-layout="low">
         <span>
-          <h2>Rational Numbers and Periodic Crystals</h2>
+          <h2>Periodic Crystals</h2>
 
           You can click and drag the slope of the line and watch the crystal
           structures (bottom) and sequences (right) which form based on this.
@@ -1246,28 +1251,29 @@ b {
 
           <div class="questions">
             <b>Q1)</b> Can you make a periodic structure?
-            <quiz-answer>Try clicking on any of the grid points.</quiz-answer>
-            <br/><br/>
-
-            <b>Q2)</b> What sort of gradients give you periodic structures?
             <quiz-answer>
-              Since the lattice is periodic, the view from any point on the
-              lattice is the same as from any other. Hence, if a line leaves a
-              point (i.e., the origin), and hits another point, then the view
-              from the next point must be the same as that from the first point,
-              meaning the structure repeats itself until we hit the next point,
-              after which it repeats again, continuing indefinitely. Any line
-              that hits a lattice point must move an integer number of steps up,
-              and an integer number of steps along, meaning its gradient is of
-              the form $p \over q$, where $(q,p)$ are the coordinates of the
-              point we hit.
+              Try clicking on any of the grid points. Periodicity should be
+              easiest to see for points near the bottom left (the origin).
             </quiz-answer>
             <br/><br/>
 
-            <b>Q3)</b> What determines how many atoms appear in your crystal
-            before it begins to repeat.
+            <b>Q2)</b> What property of a gradient determines whether it forms
+            periodic structures?
             <quiz-answer>
-              As for the number of atoms in between - if we look at the
+              Rationality - i.e. the gradient being written as a fraction of
+              finite integers. Since the gradient is the number of steps up
+              divided by the number of steps along,
+              any line connecting two grid points has a rational gradient.
+              If we hit the point $(q,p)$ (starting from $(0,0)$), we get a
+              gradient of $\frac{p}{q}$, and the same holds in reverse:
+              a gradient of $\frac{p}{q}$ must hit $(q,p)$.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> How does the gradient determine how many atoms
+            appear in a periodic crystal before it begins to repeat?
+            <quiz-answer>
+              If we look at the
               staircase representation, we can see the total number of atoms
               is given by the number of steps up, plus the number along,
               meaning there will always be $p+q$ atoms per repetition
@@ -1277,7 +1283,7 @@ b {
           </div>
 
           If a line directly hits a lattice point, that fixes its gradient, so
-          at least some gradients can be represented by just a point.
+          at least <i>some</i> gradients can be represented by just a point.
           <br/><br/>
 
           <div class="questions">
@@ -1286,8 +1292,7 @@ b {
               The fraction $p \over q$, corresponding to hitting the point
               $(q,p)$, isn't unique - we could multiply top and bottom by
               an integer, and find another point the line hits
-              ($np \over nq$ and $(nq,np)$). This is another
-              way of showing the periodicity of this structure.
+              ($np \over nq$ and $(nq,np)$).
             </quiz-answer>
             <br/><br/>
 
@@ -1295,32 +1300,48 @@ b {
             it unique?
             <quiz-answer>
               If we want to find a <i>unique</i> point corresponding to any
-              gradient, we can always simplify this fraction by cancelling all
+              gradient, we can always simplify $\frac{p}{q}$ by cancelling all
               common factors between $p$ and $q$, corresponding to finding the
               first point we hit as we move out from the origin.
             </quiz-answer>
             <br/><br/>
 
             <b>Q6)</b> Do all possible gradients correspond to a point on the
-            lattice?
+            lattice in this way? What does this mean for forming non-periodic
+            crystals?
             <quiz-answer>
-              All this work <i>assumes</i> that we hit an atom in the first
-              place. But what if we pick a gradient which <i>isn't</i>
-              rational (meaning it's not a number which can be written
-              $p \over q$, where $p$ and $q$ are integers - say like
+              We know all rational gradients correspond to a point,
+              so the only remaining gradients to account for are
+              irrational ones (meaning they can't be written
+              $p \over q$, where $p$ and $q$ are finite integers - say like
               $\pi$, $\phi$, $\sqrt{2}$, or $\sqrt[7]{5}$)?
-              Well, if the line ever <i>did</i> touch a point, that would
-              mean it had a rational gradient - but we know it's an
-              irrational number, so it never does. Hence, it only
-              ever hits one atom (the one at the origin), and
-              it never repeats. Hence, we've found a deterministic
-              <i>non</i>-periodic structure. We haven't shown yet that it
-              is aperiodic (i.e., that it doesn't ever have large runs
-              of repeating words), which will be one of our major
-              goals in investigating these.
+              <br/>
+
+              Our 'point-based' representation requires that we hit a point
+              aside from $(0,0)$. But hitting any other point $(q,p)$ forces
+              the gradient to be $\frac{p}{q}$. Since this
+              can't be the case for irrational numbers,
+              irrational numbers never hit a point, and can't
+              be represented in this way.
+              <br/>
+
+              Since the graient needs to hit a point other than $(0,0)$
+              to be periodic, and these never do, irrational numbers
+              for non-periodic structures. This isn't enough to be a
+              quasicrystal though, so learning about the number of
+              consecutive repetitions of parts of a crystal will
+              therefore be a major focus for us.
             </quiz-answer>
             <br/><br/>
           </div>
+
+          We'll spend a lot of time investigating the link between
+          structures of different gradients. You can save an
+          anchor point by right-clicking, to which you can snap
+          the gradient later. Try right-clicking near a lattice
+          point, near the gradient, and far away from either. Lattice
+          points are also removed by right-clicking on them.
+          <br/><br/>
 
           <div class="quiz-answer"></div>
         </span>
@@ -1329,13 +1350,14 @@ b {
         <span>
           <h2>Offsets and Words</h2>
 
-          Before we go further, let's take a look at how the offset slider
-          affects the generated sequence.
+          Let's take a look at how the offset slider
+          affects the generated structure, and how structures
+          can be understood as a sequence of letters.
           <br/><br/>
 
           <div class="questions">
             <b>Q1)</b> Can you spot the relationship between the pattern of
-            atoms and the generated sequence of S's and L's?
+            atoms/steps and the sequence of 'S's and 'L's on the right?
             <quiz-answer>
               For gradients less than 1, we tend to label the atoms based
               on whether they correspond to short (S) or long (L) gaps.
@@ -1345,25 +1367,26 @@ b {
             </quiz-answer>
             <br/><br/>
 
-            <b>Q2)</b> Does this still hold if we increase the gradient past 45
-            degrees?
+            <b>Q2)</b> Does this still hold if we increase the gradient past 1?
             <quiz-answer>
-              When the gradient is 1, this classification poses a
-              problem - steps up and along are both the same length,
-              and for gradients greater than 1, steps up are now
+              When the gradient is 1, using 'S' for short segments
+              and 'L' for long segments poses a
+              problem: steps up and along are both the same length.
+              For gradients greater than 1, steps up are now
               the longer ones, and vice versa. In order to maintain
               some sense of continuity, however, we remain labelling
               steps up (such as the first point) with an S, even
               for gradients greater than 1. Practically, the exact
               spacing can be accounted for in other ways, and often
               isn't used, so the letters are mostly arbitrary.
-              In other words, think of S as steps up, and L as steps
-              along.
+              A more consistent definition is to, think of S as
+              steps up, and L as steps along.
             </quiz-answer>
             <br/><br/>
 
             <b>Q3)</b> Can you spot any rough pattern between the length of
-            runs of the same letter (known as its power), and the gradient?
+            runs of the same letter (known as that letter's power),
+            and the gradient?
             <quiz-answer>
               You might have also seen that the letter S will have
               a power of the gradient rounded either down or up.
@@ -1375,7 +1398,7 @@ b {
           </div>
 
           Since the structure of atoms is determined by this sequence of
-          letters, this sequence is quite important, and sometimes
+          letters, this sequence is quite important. Sometimes
           referred to as the 'word' for a particular gradient.
           <br/><br/>
 
@@ -1384,10 +1407,9 @@ b {
             something like $1 \over 3$. By how much do you have to change
             the offset before atoms begin to jump?
             <quiz-answer>
-              For a number of the form $p \over q$, we need to increase
+              For a fraction simplified to $p \over q$, we need to increase
               the offset to at least $1 \over q$ for the first hop to occur.
-              For irrational numbers, the distance we have to move
-              is infinitesimal. The graph of these distances is
+              The graph of these distances is
               known as
               <a target="_blank" href="https://en.wikipedia.org/wiki/Thomae%27s_function">Thomae's function</a>,
               or the popcorn function. To a physicist's eye, this function
@@ -1404,15 +1426,15 @@ b {
             <b>Q5)</b> Are atoms conserved as we change the offset?
             <quiz-answer>
               Atoms are, in fact, conserved (meaning this
-              can happen in real quasicrystals - it's called a 'phason') -
-              from the perspective of the 'step' argument, moving past a
+              can happen in real quasicrystals - it's called a 'phason').
+              From the perspective of the staircase, moving past a
               point corresponds from changing an along-then-up (i.e. LS)
               to an up-then-along (SL).
             </quiz-answer>
             <br/><br/>
           </div>
 
-          Now, try an irrational number - say something like $\phi^{-1}$
+          Now, try an irrational number - say something like $\phi^{-1}$.
           <br/><br/>
 
           <div class="questions">
@@ -1421,22 +1443,28 @@ b {
             could zoom as far out as we liked)?
             <quiz-answer>
               For irrational numbers, any finite movement,
-              however small, will correspond to a jump. Compared to
+              however small, will correspond to a jump - it might just
+              be really far away! Compared to
               rational numbers, where numbers of the form $p \over q$ change
-              after a shift by $1 \over q$, this can be thought of as
-              $p$ and $q$ being infinite, so ${1 \over q} = 0$.
+              after a shift by $1 \over q$, irrational numbers can
+              <i>roughly</i> be thought of as having infinite
+              $p$ and $q$, so ${1 \over q} = 0$.
             </quiz-answer>
             <br/><br/>
 
-            <b>Q7)</b> Are the first atoms to move near, or far? Why?
+            <b>Q7)</b> Are the first atoms to move near to the origin,
+            or far away? Why?
             <quiz-answer>
-              Hops also typically will occur far away, first. In the
-              case of irrational numbers, a rough argument for this
-              is that a change near the origin would require our
-              line crossing a point near the origin before any
+              Aside from the hop precisely at the origin,
+              for irrational numbers, the first hops are always
+              a long way away. A rough argument for this
+              is that a change in structure near the origin would
+              require, as we lift up our line, that it crosses
+              a point near the origin before any
               further away, implying that the best approximation
+              to the gradient
               is near the origin. However, this implies that
-              there exists a <i>best</i> rational approximation to a
+              there even <i>exists</i> a best rational approximation to a
               particular irrational number, and it should be fairly
               easy to convince yourself that given any rational
               approximation, we can always build another, better one.
@@ -1444,18 +1472,20 @@ b {
             <br/><br/>
 
             <b>Q8)</b> If I suggest that you can view a change in offset
-            as shifting the entire grid by an integer number of steps,
+            as moving our origin to a new latice point,
             am I right or wrong? Does your answer depend on whether
             or not the crystal is rational?
             <quiz-answer>
               As it turns out, only <i>certain</i> offsets correspond
               directly to a shift in our perspective. Specifically,
               it's those offsets which have <i>just</i> caused an atom to
-              jump - our line now crosses through the atom which
+              jump: our line now crosses through the atom which
               <i>just</i> jumped, and it's therefore equivalent to our
               origin. Hence, in the case of an irrational number,
+              where any finite movement produces jumps,
               continuously changing the offset is equivalent to
-              pinging us wildly across our crystal.
+              pinging us wildly across our infinite,
+              non-periodic, crystal.
             </quiz-answer>
             <br/><br/>
           </div>
@@ -1466,6 +1496,10 @@ b {
 
         <span>
           <h2>Approximants</h2>
+
+          Remember that you can mark and un-mark lattice
+          points by right-clicking to place an anchor, and
+          right-clicking the anchor to remove it.
 
           <div class="questions">
             <b>Q1)</b> Given the structure of a particular irrational
@@ -1490,6 +1524,11 @@ b {
               are lots of ways one can safely add or remove
               points from a sequence without damaging
               its convergence.
+              (That's not to say the points we could add are
+              <i>unconstrained</i> - if you added $\frac{1}{1}$
+              after every approximant to $\phi^{-1}$, there
+              would still be parts of your sequence which
+              <i>wouldn't</i> get closer, breaking convergence.)
             </quiz-answer>
             <br/><br/>
 
@@ -1512,33 +1551,45 @@ b {
               getting a sense of their properties. In particular,
               the first one will be key later on, whilst the second
               may provide an interesting lens with which to contrast
-              the decisions we take.
+              the decisions we take when introducing continued
+              fractions, later.
             </quiz-answer>
             <br/><br/>
 
-            <b>Q4)</b> In what sense are these good approximations,
+            <b>Q4)</b> [Something of an extension, for those interested
+            in adding rigor to the idea of strings 'converging']:
+            In what sense are these good approximations,
             and why might not all ways to define 'closeness to our
             limit' agree on whether or not we converge?
             <quiz-answer>
-              Just as when we approximate irrational numbers, these
-              are good approximations in that areas 'closer to home'
-              (i.e. the first consecutive digits of a numerical
-              approximation, or letters of a word) settle on the
-              accurate values first, and the correct number in a row
-              increases as we increase the order of the approximation.
-              It's worth noting that the way in which we define
-              convergence isn't immediately obvious. If we define
-              this in terms of the proportion of the first period
-              which matches an equivalent position in the Fibonacci
-              word, then yes, this converges. But if we define this
-              in terms of calculating the total proportion of letters
-              matching between two series, then it becomes far less
-              obvious (to me, at least), that we <i>will</i> get arbitrarily
-              close to our limit within a finite number of steps.
-              The sort of non-uniform convergence we see here <i>will</i>
-              be good enough for us, but these questions are always
-              good to ask (especially with physicists, since we often
-              brush this kind of technical problem under the rug)!
+              When we say a list of things converges to something,
+              we mean that, as we move throughout a list, we can say
+              that all future values in the list have a 'distance to
+              our limit' less than some number, and that, as we move
+              throughout our list, that 'distance' drops to zero.
+              Basing approximants around convergent gradients
+              essentially asks the question 'Within the first
+              period of our approximant, what's the length of the
+              longest continuous subsequence which matches the limit?',
+              defining 'distance to the limit' as the inverse of this
+              answer. For an example, compare the respective limit and
+              approximant
+              <br/><br/>
+              <span class="center"><b>SLSLLSL</b>SLLSLLSLSLLSL...</span>
+              <br/><br/>
+              <span class="center"><b>SLSLLSL</b>L|SLSLLSLL|...</span>
+              <br/><br/>
+              The bar denotes the periods of the approximant, and
+              the bold section is the longest continuous subsequence.
+              It has 7 letters, and hence the 'distance' is $\frac{1}{7}$.
+              If, instead, we defined the 'distance' based around asking
+              'What proportion of the infinite periodic sequence and
+              the limit match?', the question of convergence might be
+              far less clear, and certainly would be beyond the scope
+              of this introduction.
+              It's these sorts of details us physicists like to ignore
+              which really wind up the mathematicians, so they're good
+              things to look out for.
             </quiz-answer>
             <br/><br/>
 
@@ -1554,13 +1605,17 @@ b {
               $${1 \over 1},{1 \over 2},{2 \over 3},{3 \over 5},{5 \over 8},{8 \over 13},{13 \over 21},...$$
               And, if you try to find these on the graph, you'll
               find they alternate. For $\sqrt{2}$, however, if we try to
-              find something similar, close to the origin, we find
+              find something similar, we might find something like:
+              $$\frac{1}{1},\frac{3}{2},\frac{4}{3},\frac{7}{5},...$$
+              Which contains, close to the origin,
               a point which breaks the pattern of alternation:
               $(3,4)$, or $4 \over 3$. We'll see later that the sequence for
               $\phi^{-1}$ generalises nicely to other irrational numbers,
               but should always remember that, <i>unlike</i> in the
               case of $\phi^{-1}$, there in general may also be other
-              numbers which <i>could</i> fit into our sequence.
+              numbers which <i>could</i> fit into our
+              sequence, with different properties. They won't cause
+              us any problems, but their existence is worth remembering.
             </quiz-answer>
             <br/><br/>
           </div>
@@ -1572,24 +1627,29 @@ b {
         <span>
           <h2>Moving Between Approximants</h2>
 
-          We can now construct a series of approximants to ou
+          We can now construct a series of approximants to our
           quasicrystal, but that doesn't leave us better off,
           if the only way of calculating the next approximant
-          is by drawing another line. If we have to do that,
+          is by producing the staircase, or intersection construction,
+          for the approximant line. If we have to do that,
           we might as well go right back to drawing the line
-          for $\phi^{-1}$ and be done with this. To avoid this, we can
-          try to understand simply the <i>differences</i> between
-          successive approximants.<br/>
-          Rational approximants have the advantage of periodicity
+          for $\phi^{-1}$ and avoid calculations with any other
+          lines. However, what if we began by calculating an
+          incredibly simple approximant (say $\frac{1}{1}$
+          for $\pi$), and then just work out the <i>changes</i>
+          as we move between successive approximants?
+          <br/>
+          Unlike their infinite non-periodic limit, rational approximants
+          also have the advantage of periodicity
           - in order to understand an approximant's structure
-          <i>everywhere</i>, we only actually need to understand a
-          single period.
+          <i>everywhere</i>, we only actually need to understand
+          a single period, even if it does get very large.
           <br/><br/>
 
           <div class="questions">
             <b>Q1)</b> Consider slowly moving the graph from a
             rational point near the origin to any other further
-            out: Under what condition will a given atom hop?
+            out: When, visually, will a given atom hop?
             (Hint: This is similar to what we found when adjusting
             the offset earlier).
             <quiz-answer>
@@ -1601,20 +1661,18 @@ b {
             <b>Q2)</b> Where does the structure change the least?
             Is it close to the origin, or further away?
             <quiz-answer>
-              The number of lattice points close to the line is the
-              lowest near the origin, meaning it will cross the
-              fewest points and typically behave the most simply,
-              there, out of all the sections of the line we could
-              consider. So, if we want to understand the difference
-              in structure between the smaller and the larger
-              approximants, it would be a good idea to base
-              our understanding off of this section of the line.
+              As we saw earlier when varying the offset, the number of
+              lattice points close to the line is the
+              lowest near the origin, meaning changes to the gradient
+              will cross the
+              fewest points, such that changes in the gradient
+              are understood most simply, there.
             </quiz-answer>
             <br/><br/>
 
             <b>Q3)</b> Focusing now on the first period of the
             final structure, what determines how many changes
-            occur between the two lines (I.e., how many times
+            occur between the two lines (i.e., how many times
             do atoms jump position as we move?).
             <quiz-answer>
               The number of changes between the two lines
@@ -1623,9 +1681,11 @@ b {
               $17 \over 16$, both approximations to $\sqrt[12]{2}$, the
               frequency multiplier for a semitone on a
               typical piano), you will instantly push out
-              the staircase at all points equivalent to $1 \over 1$
+              the staircase at all points corresponding to the
+              first approximant, $1 \over 1$
               (i.e. $(n,n)$), whilst moving the gradient
-              downwards makes no instant change at these
+              downwards by a small amount makes no instant
+              change at these
               points (this is all simply based on how the
               staircase structure was defined). Otherwise,
               the number of changes from a smaller
@@ -1658,13 +1718,13 @@ b {
             <b>Q5)</b> Can you find another sequence where even
             fewer points change between each step?
             <quiz-answer>
-              Strictly speaking, yes, we can, but not in terms of
-              rational approximants, for these, at least one point
-              <i>will</i> change each time. However, we <i>can</i> still
-              simplify things by picking a series also with the property
-              that only one point changes each time, and which
-              also converges faster. It turns out we can choose
-              a strictly decreasing series of approximants, such
+              It turns out, at least one point always has to change
+              as we move from rational approximant to rational
+              approximant. However, we _can_ find a sequence with
+              this minimum number of points changing, but which
+              converges faster. As an example, what if we choose
+              approximants which converge from above, rather than
+              alternating, such
               as the other series we found earlier for $\phi^{-1}$:
               $${1 \over 1},{2 \over 3},{5 \over 8},{13 \over 21},...$$
 
@@ -1677,18 +1737,6 @@ b {
               The act of moving
               down to hit $8 \over 13$ changes one point, but moving back
               up to $13 \over 21$ undoes that change straight after.
-
-              If I'm being honest, focusing on this sequence makes
-              the maths for understanding this particular problem
-              with quasicrystals significantly easier, but isn't
-              as useful generally in number theory, hence why I'm
-              not focusing on it, here. I should also note that
-              another such sequence exists which approaches $\phi^{-1}$
-              from <i>below</i>:
-              $${0 \over 1},{1 \over 2},{3 \over 5},{8 \over 13},...$$
-              A similar property holds for this sequence, with a
-              similar argument - the sequence used above actually
-              just hops back and forth between these two series.
             </quiz-answer>
             <br/><br/>
 
@@ -1702,7 +1750,8 @@ b {
               different does happen, although you may or
               may not have already built this into your
               model. The distance between the two approximants
-              is sufficiently large that versions of the $7 \over 5$
+              is sufficiently large that two points corresponding to
+              the $7 \over 5$
               approximant occur before $17 \over 12$ (specifically, the
               points $(5,7)$ and $(10,14)$), meaning that rather than
               one point hopping, as in the case of $\phi^{-1}$, we see
