@@ -34,6 +34,7 @@ class SlideShowImpl {
     this.index = 0;
     this.slides = [];
     this.lowButtons = (node.getAttribute('button-layout') == 'low');
+    this.loop = (node.getAttribute('loop') != 'false');
 
     // Copy the children and remove them.
     const ch = [];
@@ -48,7 +49,8 @@ class SlideShowImpl {
     const btnWrap = this.lowButtons ? dotRow : slideRow;
 
     // Previous button.
-    newBtn(btnWrap, ['slide-show-button'], '<', () => this.prevSlide());
+    this.prevBtn =
+        newBtn(btnWrap, ['slide-show-button'], '<', () => this.prevSlide());
 
     // Wrap the children in some divs and re-add them.
     const slideWrap = newDiv(slideRow, ['slide-show-slides']);
@@ -64,7 +66,8 @@ class SlideShowImpl {
     }
 
     // Next button.
-    newBtn(btnWrap, ['slide-show-button'], '>', () => this.nextSlide());
+    this.nextBtn =
+        newBtn(btnWrap, ['slide-show-button'], '>', () => this.nextSlide());
 
     this.setSlide(0);
 
@@ -82,6 +85,17 @@ class SlideShowImpl {
         slide.wrap.style.display = 'none';
         slide.dot.classList.remove('active');
       }
+    }
+    if (!this.loop) {
+      const setBtn = (btn, enabled) => {
+        if (enabled) {
+          btn.classList.remove('disabled');
+        } else {
+          btn.classList.add('disabled');
+        }
+      };
+      setBtn(this.prevBtn, index > 0);
+      setBtn(this.nextBtn, index < (this.slides.length - 1));
     }
     this.node.dispatchEvent(new CustomEvent('change', {detail: index}));
   }

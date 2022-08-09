@@ -520,7 +520,7 @@ function onLoad() {
   addBlogPage(['crys', 'step', 'aprx']);
   addBlogPage(['crys', 'step', 'aprx', 'cont']);
   addBlogPage(['crys', 'step', 'aprx', 'rem']);
-  addBlogPage(['crys', 'step', 'aprx']);
+  addBlogPage(['crys', 'step', 'aprx', 'rem']);
 
   const showBlog = index => blogPageUpdater[index]();
   document.getElementById('blog').addEventListener(
@@ -1206,6 +1206,10 @@ slide-show.loaded {
   cursor: pointer;
   user-select: none;
 }
+.slide-show-button.disabled {
+  pointer-events: none;
+  opacity: 50%;
+}
 quiz-answer {
   cursor: pointer;
   color: #ff5722;
@@ -1243,8 +1247,9 @@ b {
 <div id="wrap">
   <div id="layout">
     <div id="left">
-      <slide-show id="blog" button-layout="low">
+      <slide-show id="blog" button-layout="low" loop="false">
         <span>
+          <!-- 1 -->
           <h2>Periodic Crystals</h2>
 
           You can click and drag the slope of the line and watch the crystal
@@ -1351,6 +1356,7 @@ b {
 
 
         <span>
+          <!-- 2 -->
           <h2>Offsets and Words</h2>
 
           Let's take a look at how the offset slider
@@ -1498,6 +1504,7 @@ b {
 
 
         <span>
+          <!-- 3 -->
           <h2>Approximants</h2>
 
           Remember that you can mark and un-mark lattice
@@ -1628,6 +1635,7 @@ b {
 
 
         <span>
+          <!-- 4 -->
           <h2>Moving Between Approximants</h2>
 
           We can now construct a series of approximants to our
@@ -1768,6 +1776,7 @@ b {
 
 
         <span>
+          <!-- 6a -->
           <h2>Proving we have Approximants</h2>
 
           Having introduced continued fractions, and suggested
@@ -1816,6 +1825,7 @@ b {
 
 
         <span>
+          <!-- 6b -->
           <h2>Proving we have Approximants (cont.)</h2>
 
           Remainder mode replaces a term in the continued
@@ -1888,6 +1898,7 @@ b {
 
 
         <span>
+          <!-- 7 -->
           <h2>Periodicity and Continued Fraction Coefficients</h2>
 
           <div class="questions">
@@ -1908,7 +1919,7 @@ b {
               structure of the next approximant is given by
               repeating the previous structure a certain number
               of times:
-              $$W_{n+1} \approx W_n \; \textrm{repeated} \; L_{n+1} \; \textrm{times}$$
+              $$W_{n+1} \approx \textrm{repeat} \; W_n \; \textrm{for} \; L_{n+1} \; \textrm{letters}$$
               These approximant points are very significant
               in the early iterations, if you check this for
               yourself, but once the length of the word starts
@@ -1962,7 +1973,7 @@ b {
               of 1, meaning that at most we can ever find
               3 consecutive repetitions of any part of it.
               The fact that it has such an upper bound
-              means that we’ve found a quasicrystal (it
+              means that we've found a quasicrystal (it
               happens to be a hugely relevant quasicrystal,
               too, central to patterns in the Penrose tiling).
               <br/><br/>
@@ -1972,10 +1983,10 @@ b {
               consecutive repetitions, by looking down the
               continued fraction, I can find a coefficient
               larger than that, corresponding to more consecutive
-              repetitions. As a result, there’s no upper bound
+              repetitions. As a result, there's no upper bound
               on the number of repetitions in the structure of
               $\frac{e-2}{3-e}$, meaning its resulting structure
-              isn’t aperiodic.
+              isn't aperiodic.
             </quiz-answer>
             <br/><br/>
 
@@ -1984,8 +1995,8 @@ b {
             truncated by a coefficient of $\infty$ (see below)?
             $$3+\frac{1}{7+\frac{1}{7+\frac{1}{\infty+...}}}=3.14$$
             <quiz-answer>
-              It doesn’t matter what follows the $\infty$
-              (as long as it’s positive or finite, anyway,
+              It doesn't matter what follows the $\infty$
+              (as long as it's positive or finite, anyway,
               which it will be for all continued fractions),
               since $\frac{1}{\infty+x}$ is definitely $0$. The reason this
               might be intuitively <i>useful</i> is that periodicity
@@ -1995,6 +2006,121 @@ b {
               infinite number of consecutive times by the same
               rules we use to judge maximum consecutive
               repetitions for irrational gradients.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <!-- 8 -->
+          <h2>Point Flipping</h2>
+
+          As we slowly change gradient from one approximant to
+          the next, we've, a few times now, seen that points
+          corresponding to approximants will experience
+          a flip (say from up-then-right (SL) to
+          right-then-up (LS)).
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q1)</b> What happens to these points when
+            we move along by two approximants? (If you
+            have been keeping track of what rounding up,
+            rather than down, when generating a continued
+            fraction, does, then think how this might
+            relate to that).
+            <quiz-answer>
+              As we move from, say, $\frac{2}{3}$ to $\frac{3}{5}$ in the
+              convergents of $\phi^{-1}$, we notice all the
+              structure of $\frac{2}{3}$ is retained perfectly,
+              aside from a single letter change corresponding
+              to us hitting $\frac{3}{5}$. However, the second we
+              move back up from $\frac{3}{5}$ to start moving towards
+              $\frac{5}{8}$, that point gets crossed again, this
+              time in the other direction. Intuitively,
+              we could imagine that, rather than hitting
+              $\frac{3}{5}$, we merely skim close to it, before
+              returning back, never quite touching it. As
+              a result, flipping points corresponding to
+              the approximants of $\frac{3}{5}$ never actually make a
+              difference. And the same will be true of
+              any point: since we always return closer to
+              $\phi^{-1}$ afterwards, meaning that the largest
+              number of points we could ever be dealing
+              with is simply $a_{n+1}$, the number of points
+              equivalent to our current convergent before
+              the next. As we find larger and larger
+              structures, these at most $a_{n+1}$ points
+              make up less and less of our overall
+              structure, meaning we can, hope to be able
+              to ignore it. (To be more precise, the
+              first point where occurs tends towards
+              being infinitely far away for irrational
+              numbers).
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q2)</b> Argue why, when we repeat this process
+            many times, the number of points remaining affected
+            should be bounded for quasicrystals, and that
+            thus we should, roughly, find every other
+            structure to be <i>increasingly</i> similar to:
+            $$W_{n+1} = \textrm{repeat} \; W_n \; \textrm{for} \; L_{n+1} \; \textrm{letters}$$
+            <quiz-answer>
+              Following on from the previous question, we simply
+              repeat the previous structure $W_n$ until we reach
+              the end of the first period of the next
+              structure, which is at $L_{n+1}$.
+              $$W_{n+1} = \textrm{repeat} \; W_n \; \textrm{for} \; L_{n+1} \; \textrm{letters}$$
+              The only difficulty arises from, as we've seen a
+              few times now, points corresponding to either the
+              current or previous convergent. Fortunately, we
+              just showed that the problems due to these points
+              don't accumulate, and so we only need to worry
+              about points corresponding to either this or the
+              previous convergent - in quasicrystals, the
+              distance between these two (and hence the number
+              of points corresponding to the simpler approximant)
+              is bounded, and so the proportion of such points
+              is $0$ as we tend to $\infty$.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> Given $L_{n+1}=a_{n+1}L_n+L_{n-1}$,
+            this corresponds to:
+            $$W_{n+1} = W_n^{a_{n+1}} \; (\textrm{truncate} \; W_n \; \textrm{after} \; L_{n-1} \; \textrm{letters})$$
+            Why does this then give:
+            $$W_{n+1} = W_n^{a_{n+1}}W_{n-1}$$
+            <quiz-answer>
+              For this final step, note that, since:
+              $$W_{n+1} = W_n^{a_{n+1}} \; (\textrm{truncate} \; W_n \; \textrm{after} \; L_{n-1} \; \textrm{letters})$$
+              then (just using $n-1$):
+              $$W_n = W_n^{a_n} \; (\textrm{truncate} \; W_{n-1} \; \textrm{after} \; L_{n-2} \; \textrm{letters})$$
+              Substituting one into the other:
+              $$W_{n+1} = W_n^{a_{n+1}} \; (\textrm{truncate} \; (W_n^{a_n} \; (\textrm{truncate} \; W_{n-1} \; \textrm{after} \; L_{n-2} \; \textrm{letters})) \; \textrm{after} \; L_{n-1} \; \textrm{letters})$$
+              This might not look much better, until we
+              note that we're truncating something which
+              begins with $W_{n-1}$ after $L_{n-1}$ letters. That's
+              exactly the length of $W_{n-1}$, and hence that
+              whole truncation just gives $W_{n-1}$:
+              $$W_{n+1} = W_n^{a_{n+1}}W_{n-1}$$
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q4)</b> In the case of $\phi^{-1}$, why might the
+            resulting lattice be called the 'Fibonacci lattice'?
+            <quiz-answer>
+              For $\phi^{-1}$, after the initial $a_0=0$, all
+              $a_n$ are equal to 1, meaning that we have:
+              $$W_{n+1} = W_nW_{n-1}$$
+              or, in other words, the next word is the
+              concatenation of the previous two, just as,
+              for the Fibonacci numbers, the next number
+              is the <i>sum</i> of the previous two (this also
+              means the length is always a Fibonacci number).
             </quiz-answer>
             <br/><br/>
           </div>
