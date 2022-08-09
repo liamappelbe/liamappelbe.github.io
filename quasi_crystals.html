@@ -518,6 +518,9 @@ function onLoad() {
   addBlogPage(['crys', 'step']);
   addBlogPage(['crys', 'step', 'aprx']);
   addBlogPage(['crys', 'step', 'aprx']);
+  addBlogPage(['crys', 'step', 'aprx', 'cont']);
+  addBlogPage(['crys', 'step', 'aprx', 'rem']);
+  addBlogPage(['crys', 'step', 'aprx']);
 
   const showBlog = index => blogPageUpdater[index]();
   document.getElementById('blog').addEventListener(
@@ -1756,6 +1759,242 @@ b {
               points $(5,7)$ and $(10,14)$), meaning that rather than
               one point hopping, as in the case of $\phi^{-1}$, we see
               two points hopping, instead.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <h2>Proving we have Approximants</h2>
+
+          Having introduced continued fractions, and suggested
+          that the truncated continued fractions would form a
+          useful set of approximants, all that we have left to
+          do is to show that, in fact, they do. The property
+          we'd like to demonstrate is that gradients between
+          two of our approximants always have a more
+          complicated fraction.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q1)</b> By editing the coefficients of the
+            continued fraction, convince yourself that, as you
+            move down the fraction, increasing the coefficients
+            alternately increases and decreases the value of
+            the continued fraction. Can you work out why this is?
+            <quiz-answer>
+              Increasing the first (or, I guess, zeroth)
+              coefficient of the continued fraction has a
+              fairly obvious effect - we're just increasing
+              a number out the front of the fraction:
+              $$a_0+m+\frac{1}{a_1+...}$$
+              will always increase as $m$ increases -
+              which holds even if $m$ isn't an integer.
+              If we add $m$ to $a_1$, which gives us:
+              $$a_0+\frac{1}{a_1+m+...}$$
+              increasing it increases something we're dividing by,
+              and so decreases the result. What if we go deeper?
+              Increasing $a_2$ gives:
+              $$a_0+\frac{1}{a_1+\frac{1}{a_2+m+...}}$$
+              Increasing $m$ increases the amount we're
+              dividing by in the fraction $\frac{1}{a_2+m+...}$,
+              decreasing it and $a_1+\frac{1}{a_2+m+...}$,
+              which in turn increases $\frac{1}{a_1+\frac{1}{a_2+m+...}}$.
+              And if we add it deeper, the pattern repeats -
+              every layer deeper we move, this same pattern
+              happens, and adding something to the coefficient
+              has the same alternating effect.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <h2>Proving we have Approximants (cont.)</h2>
+
+          Remainder mode replaces a term in the continued
+          fraction with a remainder $r$ which you can
+          edit to move between $0$ and $\infty$.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q2)</b> What's special about the value of the
+            continued fraction at $r=0$ and $r=\infty$?
+            <quiz-answer>
+              Consider:
+              $$C_2(r)=a_0+\frac{1}{a_1+\frac{1}{a_2+r}}$$
+              When $r=0$, this just gives us convergent number 2,
+              $C_2$. However, when $r \rightarrow \infty$,
+              $a_2+r \rightarrow \infty$, meaning that
+              $\frac{1}{a_2+r} \rightarrow 0$, leaving us with
+              $C_2(\infty) \rightarrow a_0+\frac{1}{a_1+0}=C_1$.
+              <br/><br/>
+              In other words, increasing $r$ sweeps out all
+              gradients between the two approximants.
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          When developing this, we had to choose a scaling
+          for the slider for $r$, over these next two questions,
+          consider why we picked the distribution of points we did.
+          <br/><br/>
+
+          <div class="questions">
+            <b>Q3)</b> Does the resulting gradient for any other
+            $r$ ever have a simpler fractional form (i.e. first
+            hitting a point closer to the origin than those
+            for $r=0$ and $r=\infty$)?
+            <quiz-answer>
+              Values of $r$ aside from $0$ and $\infty$ can
+              <i>never</i> result in a simpler form.
+              If $r$ has a fractional part, it simply adds
+              extra depth to the continued fraction,
+              forcing us to expand more terms, increasing
+              complexity. If $r$ is, instead, a positive
+              integer, increasing it increases the very
+              first term we multiply up, increasing the first
+              denominator and all which follow. No matter
+              what we pick, the resulting fraction is
+              more complicated.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q4)</b> As we move the remainder between $0$ and $\infty$,
+            what changes occur in the structure (as usual,
+            deduced from the first period) of the
+            approximant we added the remainder to?
+            <quiz-answer>
+              As the slider is moved from $0$ to $\infty$,
+              it never passes through a point between the
+              two approximants aside from points corresponding
+              to the approximants themselves, meaning the <i>only</i>
+              change is the instant we decrease from $\infty$
+              (in general, depending on the order of approximant
+              at which we dropped in the remainder, we might
+              instead get a change when we hit the point $r=0$).
+            </quiz-answer>
+            <br/><br/>
+          </div>
+
+          <div class="quiz-answer"></div>
+        </span>
+
+
+        <span>
+          <h2>Periodicity and Continued Fraction Coefficients</h2>
+
+          <div class="questions">
+            <b>Q1)</b> As we hop from approximant to approximant,
+            how can we work out the structure of the next
+            approximant from the previous, as well as from
+            the continued fraction?
+            <quiz-answer>
+              We've already discussed this a bit, but now we
+              have convergents available on which to base our
+              approximants, we can be a little more specific.
+              Most points don't shift as we move from approximant
+              $(q_1,p_1)$ to approximant $(q_2,p_2)$, aside from points
+              corresponding to one or other of the approximants
+              (either $(q_2,p_2)$, itself, or $(nq_1,np_1)$, for integer $n$
+              such that $nq_1 \lt q_2$, as we found previously). Aside
+              from these points (which we'll cover later), the
+              structure of the next approximant is given by
+              repeating the previous structure a certain number
+              of times:
+              $$W_{n+1} \approx W_n \; \textrm{repeated} \; L_{n+1} \; \textrm{times}$$
+              These approximant points are very significant
+              in the early iterations, if you check this for
+              yourself, but once the length of the word starts
+              getting larger, they become less and less significant.
+              In terms of scale, since the length of $W_n$ only
+              ever increases with $n$, which means that deeper
+              coefficients control the maximum power (number
+              of consecutive repetitions) of subsequences at
+              ever larger scales.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q2)</b> Thinking about your answer to the
+            previous question, how do the coefficients of a
+            continued fraction relate to the number of times
+            we find repetitions of different lengths?
+            <quiz-answer>
+              When we create $W_{n+1}$, the previous word ($W_n$)
+              will repeat $a_{n+1}$ times, before being cut-off
+              part way through the next repetition, meaning
+              that $W_n$ will repeat $a_{n+1}$ times consecutively.
+              In fact, it turns out it can actually repeat
+              more than this, but only twice more at most,
+              corresponding to getting lucky with the
+              structures which end up surrounding it on
+              both sides, which, although they do break
+              off the periodicity, may allow a single
+              additional repetition on each side. For
+              intuition, I'd suggest messing around with:
+              $$W_{n+1}=W_nW_{n-1}$$
+              $$W_0=\textrm{LS}$$
+              $$W_1=\textrm{LSL}$$
+              where you can find that LSL will be repeated at
+              most 3 times, for the same reason as above.
+              We'll find out later that this particular example
+              is actually equivalent to a quasicrystal
+              with a gradient of $\phi^{-1}$.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q3)</b> Aperiodicity requires that no part
+            of a structure, on any scale, repeats an arbitrarily
+            large number of times. Why does this make the
+            structure generated by $\phi^{-1}$ aperiodic? The continued
+            fraction for $\frac{e-2}{3-e}$ is given by
+            $$\frac{e-2}{3-e}=2+\frac{1}{1+\frac{1}{1+\frac{1}{4+\frac{1}{1+\frac{1}{1+\frac{1}{6+...}}}}}}$$
+            Is the structure generated by $e$ aperiodic?
+            <quiz-answer>
+              $\phi^{-1}$ is nice and aperiodic - its
+              continued fraction contains only coefficients
+              of 1, meaning that at most we can ever find
+              3 consecutive repetitions of any part of it.
+              The fact that it has such an upper bound
+              means that we’ve found a quasicrystal (it
+              happens to be a hugely relevant quasicrystal,
+              too, central to patterns in the Penrose tiling).
+              <br/><br/>
+              $\frac{e-2}{3-e}$ is not aperiodic, since it
+              has arbitrarily large coefficients. Hence,
+              whatever upper bound someone proposes for
+              consecutive repetitions, by looking down the
+              continued fraction, I can find a coefficient
+              larger than that, corresponding to more consecutive
+              repetitions. As a result, there’s no upper bound
+              on the number of repetitions in the structure of
+              $\frac{e-2}{3-e}$, meaning its resulting structure
+              isn’t aperiodic.
+            </quiz-answer>
+            <br/><br/>
+
+            <b>Q4)</b> Why might it sometimes be useful to view
+            rational numbers as having a continued fraction
+            truncated by a coefficient of $\infty$ (see below)?
+            $$3+\frac{1}{7+\frac{1}{7+\frac{1}{\infty+...}}}=3.14$$
+            <quiz-answer>
+              It doesn’t matter what follows the $\infty$
+              (as long as it’s positive or finite, anyway,
+              which it will be for all continued fractions),
+              since $\frac{1}{\infty+x}$ is definitely $0$. The reason this
+              might be intuitively <i>useful</i> is that periodicity
+              at particular scales is determined by continued
+              fraction coefficient. A coefficient of $\infty$ for
+              rational numbers makes it clear they repeat an
+              infinite number of consecutive times by the same
+              rules we use to judge maximum consecutive
+              repetitions for irrational gradients.
             </quiz-answer>
             <br/><br/>
           </div>
