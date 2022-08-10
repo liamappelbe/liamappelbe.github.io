@@ -619,7 +619,7 @@ function onLoad() {
     const [n, d] = getApproxFrac(terms, getApproxContFracTerms(), zn, zd);
     emptyDiv(domApproxFrac);
     if (isInSimpleFracEditMode()) {
-      const makeText = (cls, val, minVal, onChange) => {
+      const makeText = (val, minVal, onChange) => {
         const inp = newElement('input', domApproxFrac, ['approx-frac-edit']);
         inp.value = val;
         inp.addEventListener('change', () => {
