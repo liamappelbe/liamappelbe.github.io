@@ -531,10 +531,10 @@ function onLoad() {
     });
   };
 
-  addBlogPage(['crys', 'step']);
-  addBlogPage(['crys', 'step']);
-  addBlogPage(['crys', 'step', 'aprx']);
-  addBlogPage(['crys', 'step', 'aprx']);
+  addBlogPage(['crys', 'step', 'simp']);
+  addBlogPage(['crys', 'step', 'simp']);
+  addBlogPage(['crys', 'step', 'simp']);
+  addBlogPage(['crys', 'step', 'simp']);
   addBlogPage(['crys', 'step', 'aprx', 'cont']);
   addBlogPage(['crys', 'step', 'aprx', 'rem']);
   addBlogPage(['crys', 'step', 'aprx']);
@@ -1374,7 +1374,7 @@ s-g:hover {
           structures of different gradients. You can save an
           anchor point by right-clicking, to which you can snap
           the gradient later. Try right-clicking near a lattice
-          point, near the gradient, and far away from either. Lattice
+          point, near the gradient, and far away from either. Anchor
           points are also removed by right-clicking on them.
           <br/><br/>
 
@@ -1804,8 +1804,6 @@ s-g:hover {
             and $17 \over 12$, do the changes as you move
             between these two fit your intuition from
             <s-g x="p">$\phi^{-1}$</s-g>?
-            (Hint: In general, it tends to be easier to disentangle
-            what's going on with points which are further from the origin.)
             <quiz-answer>
               For the approximants of
               <s-g x="1.414213562373095">$\sqrt{2}$</s-g>
@@ -1891,12 +1889,13 @@ s-g:hover {
             continued fraction at $r=0$ and $r=\infty$?
             <quiz-answer>
               Consider:
-              $$C_2(r)=a_0+\frac{1}{a_1+\frac{1}{a_2+r}}$$
-              When $r=0$, this just gives us convergent number 2,
-              $C_2$. However, when $r \rightarrow \infty$,
+              $$F_2(r)=a_0+\frac{1}{a_1+\frac{1}{a_2+r}}$$
+              When $r=0$, this just gives us
+              the second convergent fraction,
+              $F_2$. However, when $r \rightarrow \infty$,
               $a_2+r \rightarrow \infty$, meaning that
               $\frac{1}{a_2+r} \rightarrow 0$, leaving us with
-              $C_2(\infty) \rightarrow a_0+\frac{1}{a_1+0}=C_1$.
+              $F_2(\infty) \rightarrow a_0+\frac{1}{a_1+0}=F_1$.
               <br/><br/>
               In other words, increasing $r$ sweeps out all
               gradients between the two approximants.
