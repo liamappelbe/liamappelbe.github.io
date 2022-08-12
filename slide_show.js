@@ -35,6 +35,8 @@ class SlideShowImpl {
     this.slides = [];
     this.lowButtons = (node.getAttribute('button-layout') == 'low');
     this.loop = (node.getAttribute('loop') != 'false');
+    const next = node.getAttribute('next');
+    const prev = node.getAttribute('prev');
 
     // Copy the children and remove them.
     const ch = [];
@@ -50,7 +52,7 @@ class SlideShowImpl {
 
     // Previous button.
     this.prevBtn =
-        newBtn(btnWrap, ['slide-show-button'], '<', () => this.prevSlide());
+        newBtn(btnWrap, ['slide-show-button'], prev, () => this.prevSlide());
 
     // Wrap the children in some divs and re-add them.
     const slideWrap = newDiv(slideRow, ['slide-show-slides']);
@@ -67,7 +69,7 @@ class SlideShowImpl {
 
     // Next button.
     this.nextBtn =
-        newBtn(btnWrap, ['slide-show-button'], '>', () => this.nextSlide());
+        newBtn(btnWrap, ['slide-show-button'], next, () => this.nextSlide());
 
     this.setSlide(0);
 

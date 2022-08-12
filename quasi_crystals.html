@@ -1193,13 +1193,10 @@ slide-show.loaded {
   align-items: center;
   gap: 8px;
 }
-.slide-show-slide-row {
+.slide-show-slide-row,
+.slide-show-slides,
+.slide-show-slide-wrap {
   width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
 }
 .slide-show-dot-row {
   width: 100%;
@@ -1261,6 +1258,10 @@ s-g {
 s-g:hover {
   color: #d1c4e9;
 }
+.blog-youtube {
+  display: flex;
+  justify-content: center;
+}
 </style>
 </head>
 <body>
@@ -1271,7 +1272,18 @@ s-g:hover {
 <div id="wrap">
   <div id="layout">
     <div id="left">
-      <slide-show id="blog" button-layout="low" loop="false">
+      <slide-show id="blog" button-layout="low" loop="false"
+          prev="Prev <" next="> Next">
+        <div class="blog-youtube">
+          <youtube-embed src="3UErP7P5JHk"></youtube-embed>
+        </div>
+
+
+        <div class="blog-youtube">
+          <youtube-embed src="5A2LUx89d20"></youtube-embed>
+        </div>
+
+
         <span>
           <!-- 1 -->
           <h2>Periodic Crystals</h2>
@@ -1826,6 +1838,16 @@ s-g:hover {
         </span>
 
 
+        <div class="blog-youtube">
+          <youtube-embed src="4ClmhtmQajo"></youtube-embed>
+        </div>
+
+
+        <div class="blog-youtube">
+          <youtube-embed src="PE7Qas8Kct4"></youtube-embed>
+        </div>
+
+
         <span>
           <!-- 6a -->
           <h2>Proving we have Approximants</h2>
@@ -2196,10 +2218,11 @@ s-g:hover {
         </span>
 
 
-        <!-- <div>
-          YouTube embed:<br/>
-          <youtube-embed src="AaQD-cyXH2A"></youtube-embed>
-        </div> -->
+        <div class="blog-youtube">
+          <youtube-embed src="c0hJkdQ_ilM"></youtube-embed>
+        </div>
+
+
       </slide-show>
     </div>
     <div id="middle">
