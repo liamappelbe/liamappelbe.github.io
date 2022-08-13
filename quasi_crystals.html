@@ -495,6 +495,8 @@ function onLoad() {
   const domWord = document.getElementById('word');
   const domZSliderWrap = document.getElementById('z_slider_wrap');
   const domCoeffSliderWrap = document.getElementById('coeff_slider_wrap');
+  const domAppMiddle = document.getElementById('middle');
+  const domAppRight = document.getElementById('right');
 
   class SetGradient extends HTMLElement {
     constructor() {
@@ -514,30 +516,44 @@ function onLoad() {
   customElements.define('s-g', SetGradient);
 
   const blogPageUpdater = [];
-  const addBlogPage = (flags, liveValues) => {
-    const flg = new Set(flags);
-    const lvs = new Map(liveValues);
-    blogPageUpdater.push(() => {
-      for (const [id, flag] of allFlags.entries()) {
-        flag.setValue(flg.has(id));
-      }
-      for (const [id, lv] of allLiveValues.entries()) {
-        if (lvs.has(id)) {
-          lv.value = lvs.get(id);
+  const addBlogPage = (showApp, flags, liveValues) => {
+      const flg = new Set(flags);
+      const lvs = new Map(liveValues);
+      blogPageUpdater.push(() => {
+        if (showApp) {
+          for (const [id, flag] of allFlags.entries()) {
+            flag.setValue(flg.has(id));
+          }
+          for (const [id, lv] of allLiveValues.entries()) {
+            if (lvs.has(id)) {
+              lv.value = lvs.get(id);
+            } else {
+              lv.reset();
+            }
+          }
+          domAppMiddle.classList.remove('hidden');
+          domAppRight.classList.remove('hidden');
         } else {
-          lv.reset();
+          domAppMiddle.classList.add('hidden');
+          domAppRight.classList.add('hidden');
         }
-      }
-    });
+      });
   };
 
-  addBlogPage(['crys', 'step', 'simp']);
-  addBlogPage(['crys', 'step', 'simp']);
-  addBlogPage(['crys', 'step', 'simp']);
-  addBlogPage(['crys', 'step', 'simp']);
-  addBlogPage(['crys', 'step', 'aprx', 'cont']);
-  addBlogPage(['crys', 'step', 'aprx', 'rem']);
-  addBlogPage(['crys', 'step', 'aprx']);
+  addBlogPage(false);
+  addBlogPage(false);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'simp']);
+  addBlogPage(true, ['crys', 'step', 'aprx', 'cont']);
+  addBlogPage(true, ['crys', 'step', 'aprx', 'rem']);
+  addBlogPage(true, ['crys', 'step', 'aprx']);
+  addBlogPage(true, ['crys', 'step', 'aprx']);
+  addBlogPage(false);
+  addBlogPage(false);
 
   const showBlog = index => blogPageUpdater[index]();
   document.getElementById('blog').addEventListener(
@@ -1267,7 +1283,7 @@ s-g:hover {
 <body>
 <div id="head">
   <a id="index" href="index.html">&lt;</a>
-  <h1>Quasicrystals</h1>
+  <h1>Number Theory and Quasicrystals</h1>
 </div>
 <div id="wrap">
   <div id="layout">
@@ -2223,13 +2239,18 @@ s-g:hover {
         </div>
 
 
+        <div class="blog-youtube">
+          <youtube-embed src="qjJlJe3Z6EM"></youtube-embed>
+        </div>
+
+
       </slide-show>
     </div>
-    <div id="middle">
+    <div id="middle" class="hidden">
       <canvas id="view" width="800" height="800"></canvas>
       <canvas id="crystal_view" width="800" height="40" class="hidden"></canvas>
     </div>
-    <div id="right">
+    <div id="right" class="hidden">
       Gradient: <input type="text" id="in_grad"/>
       <input type="range" id="ins_grad" min="0" max="1" step="0.001"/><br/>
       Offset: <input type="text" id="in_off"/>
