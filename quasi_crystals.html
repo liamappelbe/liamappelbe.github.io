@@ -996,9 +996,10 @@ window.addEventListener('load', onLoad);
 class YouTubeEmbed extends HTMLElement {
   constructor() {
     super();
+    const isBig = this.getAttribute('size') == 'big';
     const iframe = newElement('iframe', this);
-    iframe.setAttribute('width', 560);
-    iframe.setAttribute('height', 315);
+    iframe.setAttribute('width', isBig ? 1000 : 560);
+    iframe.setAttribute('height', isBig ? 563 : 315);
     iframe.setAttribute(
         'src', 'https://www.youtube.com/embed/' + this.getAttribute('src'));
     iframe.setAttribute('title', 'YouTube video player');
@@ -1291,12 +1292,12 @@ s-g:hover {
       <slide-show id="blog" button-layout="low" loop="false"
           prev="Prev <" next="> Next">
         <div class="blog-youtube">
-          <youtube-embed src="3UErP7P5JHk"></youtube-embed>
+          <youtube-embed src="3UErP7P5JHk" size="big"></youtube-embed>
         </div>
 
 
         <div class="blog-youtube">
-          <youtube-embed src="5A2LUx89d20"></youtube-embed>
+          <youtube-embed src="5A2LUx89d20" size="big"></youtube-embed>
         </div>
 
 
@@ -2235,12 +2236,12 @@ s-g:hover {
 
 
         <div class="blog-youtube">
-          <youtube-embed src="c0hJkdQ_ilM"></youtube-embed>
+          <youtube-embed src="c0hJkdQ_ilM" size="big"></youtube-embed>
         </div>
 
 
         <div class="blog-youtube">
-          <youtube-embed src="qjJlJe3Z6EM"></youtube-embed>
+          <youtube-embed src="qjJlJe3Z6EM" size="big"></youtube-embed>
         </div>
 
 
