@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Number Wall</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+/*
+
+ a
+bcd
+ o
+
+bd + ao = c2
+o = (c2 - bd) / a
+
+
+When a is 0:
+
+  e
+  f
+gh0ij
+  c
+  o
+
+gi2 + h2j = ec2 + f2o
+o = (gi2 + h2j - ec2) / f2
+
+
+When f is also 0, 0s will form a square:
+
+  yyyy
+ xxxxxx
+yx0000xy
+yx0000xy
+yx0000xy
+yx0000xy
+ xaaaax
+  bbbb
+
+Calculate a's from x's:
+x > X > x
+v       ^
+Y       Z
+v       ^
+x > A > x
+
+All 4 sides of the square will form a geometric sequence. Multipliers (X,Y,Z,A)
+are all rational, and related like this:
+YZ =  XA  A =  YZ/X  if square of 0s has an even size
+YZ = -XA  A = -YZ/X  if square of 0s has an odd size
+
+Calculate b's using x's, y's, and a's, and the multipliers from before:
+  f>
+  e>
+hg0000
+vv0000
+  0000^^
+  0000cd
+    <a
+    <b
+
+Yf/e - Xh/g = Zb/a - Ad/c
+b = (Yf/e - Xh/g + Ad/c)a/Z
+
+*/
+
+
+let wallWidth = 30;
+let wallHeight = 30;
+let wall = null;
+let testMode = true;
+
+let domWall = null;
+let domColorMod = null;
+let domColorModVal = null;
+let domSeqSel = null;
+
+function safeBigInt(x) {
+  try {
+    return BigInt(x);
+  } catch (e) {}
+  return null;
+}
+
+function safeGet(node, defaultValue = null) {
+  return safeBigInt(node.value) ?? defaultValue;
+}
+
+function clamp(x, lo, hi) {
+  return x <= lo ? lo : (x >= hi ? hi : x);
+}
+
+function lerp(x0, x1, k) {
+  return x0 * (1 - k) + x1 * k;
+}
+
+function genSeed() {
+  let x = 0n;
+  for (let i = 0; i < 16; ++i) {
+    x <<= 8n;
+    x |= BigInt(~~(0x100 * Math.random()));
+  }
+  return x;
+}
+
+class Random {
+  constructor(seed = null) {
+    this.x = BigInt(seed ?? genSeed());
+  }
+  rand() {
+    const r = Number(this.x & 0xFFFFFFFFn);
+    for (let i = 0; i < 32; ++i) {
+      const b = (this.x >> 128n) ^ (this.x >> 126n) ^ (this.x >> 101n) ^
+          (this.x >> 99n);
+      this.x = (this.x >> 1n) | ((b & 1n) << 127n);
+    }
+    return r / (1 << 16) / (1 << 16);
+  }
+  randf(h = 1, l = 0) {
+    return l + this.rand() * (h - l);
+  }
+  randi(h = 1, l = 0) {
+    return Math.floor(this.randf(h + 1, l));
+  }
+}
+
+class Primes {
+  constructor() {
+    this._p = [2n, 3n, 5n, 7n];
+    this._n = 9n;
+  }
+  internalIsPrime(oddN) {
+    for (let i = 1;; ++i) {
+      const p = i < this._p.length ? this._p[i] : this.addPrime();
+      if (p * p > oddN) return true;
+      if (oddN % p == 0) return false;
+    }
+  }
+  addPrime() {
+    while (true) {
+      this._n += 2n;
+      if (this.internalIsPrime(this._n)) {
+        this._p.push(this._n);
+        return this._n;
+      }
+    }
+  }
+  getPrime(i) {
+    while (this._p.length <= i) this.addPrime();
+    return this._p[i];
+  }
+}
+
+const primes = new Primes();
+
+class Frac {
+  constructor(u, v, skipReduction = false) {
+    console.assert(v != 0, u, v);
+    if (u == 0) {
+      this.u = 0n;
+      this.v = 1n;
+      return;
+    }
+    this.u = BigInt(v < 0 ? -u : u);
+    this.v = BigInt(v < 0 ? -v : v);
+    if (!skipReduction) this.reduce();
+  }
+
+  reduce() {
+    const negative = this.u < 0;
+    let u = negative ? -this.u : this.u;
+    let v = this.v;
+    if (u % v == 0) {
+      u /= v;
+      v = 1n;
+    } else if (v % u == 0) {
+      v /= u;
+      u = 1n;
+    } else {
+      for (let i = 0; ; ++i) {
+        const p = primes.getPrime(i);
+        const p2 = p * p;
+        if ((p2 > u && p2 > v) || p > u || p > v) break;
+        while (u % p == 0 && v % p == 0) {
+          u /= p;
+          v /= p;
+        }
+      }
+    }
+    this.u = negative ? -u : u;
+    this.v = v;
+  }
+
+  mul(o) {
+    // Assuming this and o are already reduced, the only reducing that needs to
+    // happen looks like (ab/c)*(d/ae), which we can do like (d/c)*(ab/ae).
+    // This is a win because (ab/ae) is faster to reduce than (adb/ace), as it
+    // lets us reduce before we multiply.
+    const x = new Frac(this.u, o.v);
+    const y = new Frac(o.u, this.v);
+    return new Frac(x.u * y.u, x.v * y.v, true);
+  }
+
+  add(o) {
+    // If the denominators of this and o are ax and ay, then the new denominator
+    // can be axy, with the numerators being multiplied by y and x respectively.
+    // We still have to reduce the final fraction, but this saves a bit of work.
+    const z = new Frac(this.v, o.v);
+    return new Frac(this.u * z.v + o.u * z.u, this.v * z.v);
+  }
+
+  neg() { return new Frac(-this.u, this.v, true); }
+  inv() { return new Frac(this.v, this.u, true); }
+  div(o) { return this.mul(o.inv()); }
+  sub(o) { return this.add(o.neg()); }
+  equals(o) { return this.u == o.u && this.v == o.v; }
+
+  intMul(x) {
+    const ux = x * this.u;
+    console.assert(ux % this.v == 0, this, x);
+    return ux / this.v;
+  }
+
+  toInt() {
+    console.assert(this.v == 1);
+    return this.u;
+  }
+}
+
+function cache1D(fn) {
+  const cache = new Map();
+  return (i) => {
+    if (!cache.has(i)) cache.set(i, fn(i));
+    return cache.get(i);
+  };
+}
+
+function cache2D(fn) {
+  const cache = new Map();
+  return (ri, ci) => {
+    if (!cache.has(ri)) cache.set(ri, new Map());
+    const row = cache.get(ri);
+    if (!row.has(ci)) row.set(ci, fn(ri, ci));
+    return row.get(ci);
+  };
+}
+
+class Window {
+  constructor(boundUp = false, boundLeft = false, boundRight = false) {
+    this.rlo = null;
+    this.rhi = null;
+    this.clo = null;
+    this.chi = null;
+    this.x = null;
+    this.y = null;
+    this.z = null;
+    this.a = null;
+    this.boundUp = boundUp;
+    this.boundDown = false;
+    this.boundLeft = boundLeft;
+    this.boundRight = boundRight;
+  }
+
+  minSize() {
+    return Math.max(this.rhi - this.rlo, this.chi - this.clo);
+  }
+
+  updateBounds() {
+    const s = this.minSize();
+    if (this.boundUp) this.rhi = this.rlo + s;
+    if (this.boundDown) this.rlo = this.rhi - s;
+    if (this.boundLeft) this.chi = this.clo + s;
+    if (this.boundRight) this.clo = this.chi - s;
+    if (this.boundLeft && this.boundRight) {
+      this.boundUp = this.boundDown = (this.boundUp || this.boundDown);
+    }
+    if (this.boundUp && this.boundDown) {
+      this.boundLeft = this.boundRight = (this.boundLeft || this.boundRight);
+    }
+  }
+
+  add(ri, ci) {
+    if (this.rlo == null || ri < this.rlo) this.rlo = ri;
+    if (this.rhi == null || ri > this.rhi) this.rhi = ri;
+    if (this.clo == null || ci < this.clo) this.clo = ci;
+    if (this.chi == null || ci > this.chi) this.chi = ci;
+    this.updateBounds();
+  }
+
+  isInside(ri, ci) {
+    if (ri >= this.rlo && ri <= this.rhi &&
+        ci >= this.clo && ci <= this.chi) {
+      return 1;  // Definitely inside.
+    }
+    if (this.boundLeft && this.boundRight && this.boundUp && this.boundDown) {
+      return 0;  // Definitely outside.
+    }
+    return -1;  // Unknown.
+  }
+
+  expandHorizontally(cellFn) {
+    console.assert(!this.boundLeft || !this.boundRight);
+    const expandRight = this.boundLeft;
+    const ciexp = expandRight ? this.chi + 1 : this.clo - 1;
+    if (cellFn(this.rlo, ciexp) == 0) {
+      this.add(this.rlo, ciexp);
+    } else {
+      if (expandRight) {
+        this.boundRight = true;
+      } else {
+        this.boundLeft = true;
+      }
+      this.updateBounds();
+    }
+  }
+
+  toString(cellFn) {
+    let s = `(${this.rlo}, ${this.clo}) -> (${this.rhi}, ${this.chi})\n`;
+    for (let ri = this.rlo - 2; ri <= this.rhi + 2; ++ri) {
+      for (let ci = this.clo - 2; ci <= this.chi + 2; ++ci) {
+        if (ri <= this.rhi) {
+          s += cellFn(ri, ci);
+        } else if (ci >= this.clo && ci <= this.chi) {
+          s += '?';
+        } else if (
+            ri == this.rhi + 1 && (ci == this.clo - 1 || ci == this.chi + 1)) {
+          s += cellFn(ri, ci);
+        } else {
+          s += ' ';
+        }
+        s += '\t';
+      }
+      s += '\n';
+    }
+    return s;
+  }
+
+  fillMultipliers(cellFn) {
+    console.assert(
+        this.boundLeft && this.boundRight && this.boundUp && this.boundDown);
+    if (this.a != null) return;
+    const fn = (rlo, clo, rhi, chi, dr, dc) => {
+      let m = null;
+      let r = rlo;
+      let c = clo;
+      let v = cellFn(r, c);
+      while (true) {
+        const nr = r + dr;
+        const nc = c + dc;
+        const nv = cellFn(nr, nc);
+        const nm = new Frac(nv, v);
+        if (m == null) {
+          m = nm;
+          if (!testMode) break;
+        } else {
+          console.assert(m.equals(nm), m, nm);
+        }
+        r = nr;
+        c = nc;
+        v = nv;
+        if (r == rhi && c == chi) break;
+      }
+      return m;
+    };
+    this.x = fn(this.rlo - 1, this.clo - 1, this.rlo - 1, this.chi + 1, 0, 1);
+    this.y = fn(this.rlo - 1, this.clo - 1, this.rhi + 1, this.clo - 1, 1, 0);
+    this.z = fn(this.rhi + 1, this.chi + 1, this.rlo - 1, this.chi + 1, -1, 0);
+    this.a = this.y.mul(this.z).div(this.x);
+    if (this.minSize() % 2 == 1) this.a = this.a.neg();
+  }
+
+  horseshoeRule(ri, ci, cellFn) {
+    console.assert(
+        this.boundLeft && this.boundRight && this.boundUp && this.boundDown);
+    this.fillMultipliers(cellFn);
+    if (ri == this.rhi + 1) {
+      return this.a.intMul(cellFn(ri, ci - 1));
+    } else {
+      console.assert(ri == this.rhi + 2);
+      const dc = this.chi - ci;
+      const a = new Frac(cellFn(this.rhi + 1, this.chi - dc), 1);
+      const c = new Frac(cellFn(this.rhi - dc, this.chi + 1), 1);
+      const d = new Frac(cellFn(this.rhi - dc, this.chi + 2), 1);
+      const e = new Frac(cellFn(this.rlo - 1, this.clo + dc), 1);
+      const f = new Frac(cellFn(this.rlo - 2, this.clo + dc), 1);
+      const g = new Frac(cellFn(this.rlo + dc, this.clo - 1), 1);
+      const h = new Frac(cellFn(this.rlo + dc, this.clo - 2), 1);
+      return (
+          this.y.mul(f).div(e).sub(
+          this.x.mul(h).div(g)).add(
+          this.a.mul(d).div(c))
+        ).mul(a).div(this.z).toInt();
+    }
+  }
+}
+
+function makeWallGenerator(inputRowFn) {
+  let cellFn = null, winFn = null;
+  const firstWinInColumn = new Map();
+  const upperWin = new Window();
+
+  const winFnInner = (ri, ci) => {
+    // We want to walk to find the upper right corner of the window. But it's
+    // possible that this is a lower infinite window. So first, walk up until
+    // we find the top edge of the window.
+    const winUp = winFn(ri - 1, ci);
+    if (winUp != null) return winUp;
+
+    // Next, check if there are any known windows on this row, so that we can
+    // dedupe with them.
+    if (!firstWinInColumn.has(ri)) {
+      // This is the first window on this row, so start a new window.
+      return new Window(true);
+    }
+
+    // Walk towards that window (could be to our left or right). If we hit a
+    // wall, this is a seperate window. If we hit a window, dedupe with it.
+    const dc = firstWinInColumn.get(ri) < ci ? -1 : 1;
+    const winLr = winFn(ri, ci + dc);
+    if (winLr != null) return winLr;
+
+    // The cell in the direction of the first window is a wall. So start a
+    // new window.
+    return new Window(true, dc == -1, dc == 1);
+  };
+
+  winFn = cache2D((ri, ci) => {
+    // The upper window is infinite, so need to special case it.
+    if (ri <= -3) return upperWin;
+
+    // Check that this is actually a window cell.
+    if (cellFn(ri, ci) != 0) return null;
+
+    // Main window hunting logic.
+    const win = winFnInner(ri, ci);
+    win.add(ri, ci);
+
+    // Update the firstWinInColumn.
+    if (!firstWinInColumn.has(ri)) firstWinInColumn.set(ri, ci);
+
+    return win;
+  });
+
+  cellFn = cache2D((ri, ci) => {
+    if (ri <= -3) return 0n;
+    if (ri == -2) return 1n;
+    if (ri == -1) return BigInt(inputRowFn(ci));
+
+    const a = cellFn(ri - 2, ci);
+    const c = cellFn(ri - 1, ci);
+    if (a != 0) {
+      // Cross rule.
+      const b = cellFn(ri - 1, ci - 1);
+      const d = cellFn(ri - 1, ci + 1);
+      return (c * c - b * d) / a;
+    }
+
+    const f = cellFn(ri - 3, ci);
+    if (f != 0) {
+      // Long cross rule.
+      const e = cellFn(ri - 4, ci);
+      const g = cellFn(ri - 2, ci - 2);
+      const h = cellFn(ri - 2, ci - 1);
+      const i = cellFn(ri - 2, ci + 1);
+      const j = cellFn(ri - 2, ci + 2);
+      return (g * i * i + h * h * j - e * c * c) / (f * f);
+    }
+
+    // Find the window that a and f are in.
+    const win = winFn(ri - 2, ci);
+    console.assert(win != null);
+    console.assert(win != upperWin);
+    console.assert(win == winFn(ri - 2, ci));
+    console.assert(win.boundUp);
+    while (true) {
+      // Are we inside the window? If so, return 0.
+      const inside = win.isInside(ri, ci);
+      if (inside == 1) return 0n;
+      if (inside == 0) break;
+
+      // If we don't know yet, expand the window left or right.
+      win.expandHorizontally(cellFn);
+    }
+
+    // Horseshoe rule.
+    return win.horseshoeRule(ri, ci, cellFn);
+  });
+  return cellFn;
+}
+
+function newElement(type, parent, classes = [], text = null) {
+  const n = document.createElement(type);
+  if (text != null) n.innerText = text;
+  for (const cls of classes) n.classList.add(cls);
+  if (parent != null) parent.appendChild(n);
+  return n;
+}
+
+function newDiv(parent, classes = [], text = null) {
+  return newElement('div', parent, classes, text);
+}
+
+function newTextEdit(parent, classes = [], initValue = null) {
+  const n = newElement('input', parent, classes);
+  n.type = 'text';
+  n.value = initValue;
+  return n;
+}
+
+function emptyDiv(n) {
+  while (n.hasChildNodes()) n.removeChild(n.lastChild);
+}
+
+let fibGenerator = null;
+fibGenerator = cache1D((i) => {
+  if (i == 0) return 0;
+  if (i == 1) return 1;
+  if (i > 0) return fibGenerator(i - 1) + fibGenerator(i - 2);
+  return fibGenerator(i + 2) - fibGenerator(i + 1);
+});
+
+function squareGenerator(i) { return i * i; }
+function pagodaImpl(n) { return (n & ((n & -n) << 1)) ? 1 : 0; }
+function pagodaGenerator(n) { return pagodaImpl(n + 1) - pagodaImpl(n - 1); }
+
+class RandomSequence {
+  constructor() {
+    this.rand = new Random();
+    this.seq = [];
+  }
+  get(i) {
+    const j = i >= 0 ? 2 * i : -2 * i - 1;
+    while (j >= this.seq.length) this.seq.push(this.rand.randi(10, -10));
+    return this.seq[j];
+  }
+}
+
+const randSeq = new RandomSequence();
+function getSequenceGenerator() {
+  if (domSeqSel.value == 'Fibonacci') return fibGenerator;
+  if (domSeqSel.value == 'Squares') return squareGenerator;
+  if (domSeqSel.value == 'Pagoda') return pagodaGenerator;
+  if (domSeqSel.value == 'Random') return (i) => randSeq.get(i);
+}
+
+const gradient = [
+  [0, 0, 0],
+  [94, 53, 177],
+  [233, 30, 99],
+  [255, 87, 34],
+  [255, 193, 7],
+  [255, 241, 118],
+];
+function modColorGradient(x) {
+  const y = x * (gradient.length - 1);
+  const i = clamp(Math.floor(y), 0, gradient.length - 1);
+  const j = clamp(i + 1, 0, gradient.length - 1);
+  const f = y - i;
+  const r = lerp(gradient[i][0], gradient[j][0], f);
+  const g = lerp(gradient[i][1], gradient[j][1], f);
+  const b = lerp(gradient[i][2], gradient[j][2], f);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+let userInputs = [];
+function buildWall(inputs) {
+  if (inputs == null) {
+    inputs = userInputs = [];
+  }
+
+  emptyDiv(domWall);
+  const sequenceGenerator = getSequenceGenerator();
+  const colorMod = safeGet(domColorMod, 1n);
+  domColorModVal.innerText = colorMod == 1 ? 'Off' : colorMod;
+  if (colorMod > 1) {
+    domWall.classList.add('colorModEnabled');
+  } else {
+    domWall.classList.remove('colorModEnabled');
+  }
+
+  const withInputs = (fn) => (i) => safeBigInt(inputs[i]) ?? fn(i);
+  const wallGen = makeWallGenerator(withInputs(sequenceGenerator));
+  const wallVals = [];
+  for (let ri = -1; ri < wallHeight; ++ri) {
+    const row = [];
+    for (let ci = 0; ci < wallWidth; ++ci) {
+      row.push(wallGen(ri, ci));
+    }
+    wallVals.push(row);
+  }
+
+  // Truncate the wall so there's only one all-zero row at the end.
+  for (let ri = wallVals.length - 1; ri > 1; --ri) {
+    if (!wallVals[ri].every((e) => e == 0)) break;
+    if (ri + 1 < wallVals.length) {
+      console.assert(ri + 2 == wallVals.length);
+      wallVals.pop();
+    }
+  }
+
+  for (let rip1 = 0; rip1 < wallVals.length; ++rip1) {
+    const row = newDiv(domWall, ['row']);
+    for (let ci = 0; ci < wallWidth; ++ci) {
+      const val = wallVals[rip1][ci];
+      const isBig = val <= -100 || val >= 100;
+      const shownVal = isBig ? 'big' : val;
+      if (rip1 == 0) {
+        const cell = newTextEdit(row, ['cell', 'in'], val);
+        cell.addEventListener('change', () => {
+          userInputs[ci] = safeGet(cell);
+          buildWall(userInputs);
+        });
+      } else {
+        const cell = newDiv(row, ['cell', 'out'], shownVal);
+        cell.title = val;
+        if (colorMod > 1) {
+          const div = Number(colorMod) - 1;
+          const modVal = Number(((val % colorMod) + colorMod) % colorMod) / div;
+          cell.style.backgroundColor = modColorGradient(modVal);
+        }
+      }
+    }
+  }
+}
+
+function onLoad() {
+  domWall = document.getElementById('wall');
+  domColorMod = document.getElementById('colorMod');
+  domColorModVal = document.getElementById('colorModVal');
+  domSeqSel = document.getElementById('sequenceSelect');
+  buildWall(null);
+  domColorMod.addEventListener('change', () => buildWall(userInputs));
+  domSeqSel.addEventListener('change', () => buildWall(null));
+}
+window.addEventListener('load', onLoad);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+#left {
+  max-width: 400px;
+  width: 25%;
+}
+#right {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-around;
+}
+.shh {
+  opacity: 15%;
+}
+.wall {
+  display: flex;
+  width: 100%;
+}
+.row {
+  height: 24px;
+  display: flex;
+  border-right: 1px solid #424242;
+}
+.cell {
+  width: 32px;
+  padding: 1px;
+  border-bottom: 1px solid #424242;
+  border-left: 1px solid #424242;
+  border-top: 0;
+  border-right: 0;
+}
+.colorModEnabled .cell.out {
+  color: #aaaaaa66;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Number Wall</h1>
+</div>
+<div id="wrap">
+  <div id="left">
+    Number walls are a tool for analyzing integer sequences. Input any sequence
+    you want in the editable row, and the other rows of numbers will be computed
+    according to the cross rule (by solving for D):<br/><br/>
+
+    <img src="res/cross_rule.svg"/><br/><br/>
+
+    There are other more elaborate rules for cases where zeros make the cross
+    rule useless (when C is 0). For more details, see this
+    <a href="https://youtu.be/NO1_-qptr6c">Mathologer video</a>.<br/><br/>
+
+    UI note: For numbers that don't fit, I just write "big", but you can hover
+    over the cell to see the actual value.<br/><br/>
+
+    Sequence:
+    <select id="sequenceSelect">
+      <option value="Fibonacci">Fibonacci</option>
+      <option value="Squares">Squares</option>
+      <option value="Pagoda">Pagoda</option>
+      <option value="Random">Random</option>
+    </select>
+    <br/><br/>
+
+    <!--
+    Using the number wall, we can deduce a recurrence relation for the sequence:
+    <br/><br/>
+
+    The predicted next values are:
+    <br/><br/> -->
+
+    Color modulo:
+    <span id="colorModVal">Off</span>
+    <input type="range" id="colorMod" min="1" max="10" value="1"/>
+    <br/><br/>
+
+    <span class="shh">and after aaaaaaall<br/>you're my number waaaaaaall</span>
+  </div>
+  <div id="right">
+    <div id="wall"></div>
+  </div>
+</div>
+</body>
+</html>
