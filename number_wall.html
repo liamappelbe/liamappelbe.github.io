@@ -211,10 +211,15 @@ class Frac {
   }
 
   neg() { return new Frac(-this.u, this.v, true); }
+  abs() { return this.isNeg() ? this.neg() : this; }
   inv() { return new Frac(this.v, this.u, true); }
   div(o) { return this.mul(o.inv()); }
   sub(o) { return this.add(o.neg()); }
   equals(o) { return this.u == o.u && this.v == o.v; }
+  isZero() { return this.u == 0; }
+  isOne() { return this.u == this.v; }
+  isNeg() { return this.u < 0; }
+  isFrac() { return true; }
 
   intMul(x) {
     const ux = x * this.u;
@@ -226,6 +231,155 @@ class Frac {
     console.assert(this.v == 1);
     return this.u;
   }
+
+  toString() {
+    let s = '' + this.u;
+    if (this.v != 1) s += '/' + this.v;
+    return s;
+  }
+}
+
+class Polynomial {
+  constructor(coeffs) {
+    this.a = coeffs;
+    console.assert(this.a.every((e) => e.isFrac()));
+    while (this.a.length > 0 && this.a[this.a.length - 1].isZero()) {
+      this.a.pop();
+    }
+  }
+
+  toInt() {
+    console.assert(this.a.length <= 1);
+    return this.a.length == 0 ? 0n : this.a[0].toInt();
+  }
+
+  mul(o) {
+    const b = [];
+    for (let i = 0; i < this.a.length; ++i) {
+      for (let j = 0; j < o.a.length; ++j) {
+        const k = i + j;
+        const y = this.a[i].mul(o.a[j]);
+        if (k >= b.length) {
+          console.assert(k == b.length);
+          b.push(y);
+        } else {
+          b[k] = b[k].add(y);
+        }
+      }
+    }
+    return new Polynomial(b);
+  }
+
+  add(o) {
+    const b = [];
+    const an = this.a.length;
+    const on = o.a.length;
+    const n = an > on ? an : on;
+    for (let i = 0; i < n; ++i) {
+      b.push(i < an ? (i < on ? this.a[i].add(o.a[i]) : this.a[i]) : o.a[i]);
+    }
+    return new Polynomial(b);
+  }
+
+  isZero() { return this.a.length == 0; }
+  sub(o) { return this.add(o.neg()); }
+  neg() { return new Polynomial(this.a.map(f => f.neg())); }
+  isPoly() { return true; }
+
+  equals(o) {
+    if (this.a.length != o.a.length) return false;
+    for (let i = 0; i < this.a.length; ++i) {
+      if (!this.a[i].equals(o.a[i])) return false;
+    }
+    return true;
+  }
+
+  divExpectFrac(o) {
+    // Divide by a polynomial. Expect a simple fraction result.
+    console.assert(o.isPoly());
+    console.assert(!o.isZero());
+    if (this.isZero()) return this;
+    console.assert(this.a.length == o.a.length);
+    const y = this.a[0].div(o.a[0]);
+    if (testMode) {
+      for (let i = 1; i < this.a.length; ++i) {
+        const z = this.a[i].div(o.a[i]);
+        console.assert(y.equals(z));
+      }
+    }
+    return y;
+  }
+
+  divExpectPoly(o) {
+    // Divide by a polynomial. Expect a polynomial result.
+    console.assert(o.isPoly());
+    console.assert(!o.isZero());
+    if (this.isZero()) return this;
+    const q = this.a.map(e => new Frac(0, 1));
+    const r = this.a.map(e => e);
+    // Maintain the invariant that o * q + r == this.
+    const rlen = () => {
+      for (let i = r.length - 1; i >= 0; --i) {
+        if (!r[i].isZero()) return i + 1;
+      }
+      return 0;
+    };
+    const on = o.a.length - 1;
+    const oc = o.a[on];
+    while (rlen() >= o.a.length) {
+      const rn = rlen() - 1;
+      const t = r[rn].div(oc);
+      const tn = rn - on;
+      console.assert(tn >= 0);
+      q[tn] = q[tn].add(t);
+      for (let i = 0; i <= on; ++i) {
+        const m = t.mul(o.a[i]);
+        const mn = i + tn;
+        console.assert(mn < r.length);
+        r[mn] = r[mn].sub(m);
+      }
+    }
+    console.assert(rlen() == 0);
+    return new Polynomial(q);
+  }
+
+  fracDiv(o) {
+    // Divide by a fraction.
+    console.assert(o.isFrac());
+    return new Polynomial(this.a.map(f => f.div(o)));
+  }
+
+  fracMul(o) {
+    // Multiply by a fraction.
+    console.assert(o.isFrac());
+    return new Polynomial(this.a.map(f => f.mul(o)));
+  }
+
+  toString() {
+    if (this.a.length == 0) return '0';
+    let s = '';
+    for (let i = 0; i < this.a.length; ++i) {
+      let f = this.a[i];
+      if (f.isZero()) continue;
+      if (s.length > 0) {
+        s += f.isNeg() ? ' - ' : ' + ';
+        f = f.abs();
+      }
+      if (i == 0 || !f.isOne()) s += f.toString();
+      if (i > 0) s += 'x';
+      if (i > 1) s += '^' + i;
+    }
+    return s;
+  }
+}
+
+function intToPoly(x) {
+  return new Polynomial([new Frac(BigInt(x), 1)]);
+}
+
+function fracToPoly(f) {
+  console.assert(f.isFrac());
+  return new Polynomial([f]);
 }
 
 function cache1D(fn) {
@@ -320,12 +474,12 @@ class Window {
     for (let ri = this.rlo - 2; ri <= this.rhi + 2; ++ri) {
       for (let ci = this.clo - 2; ci <= this.chi + 2; ++ci) {
         if (ri <= this.rhi) {
-          s += cellFn(ri, ci);
+          s += cellFn(ri, ci).toString();
         } else if (ci >= this.clo && ci <= this.chi) {
           s += '?';
         } else if (
             ri == this.rhi + 1 && (ci == this.clo - 1 || ci == this.chi + 1)) {
-          s += cellFn(ri, ci);
+          s += cellFn(ri, ci).toString();
         } else {
           s += ' ';
         }
@@ -349,7 +503,7 @@ class Window {
         const nr = r + dr;
         const nc = c + dc;
         const nv = cellFn(nr, nc);
-        const nm = new Frac(nv, v);
+        const nm = nv.divExpectFrac(v);
         if (m == null) {
           m = nm;
           if (!testMode) break;
@@ -375,22 +529,22 @@ class Window {
         this.boundLeft && this.boundRight && this.boundUp && this.boundDown);
     this.fillMultipliers(cellFn);
     if (ri == this.rhi + 1) {
-      return this.a.intMul(cellFn(ri, ci - 1));
+      return cellFn(ri, ci - 1).fracMul(this.a);
     } else {
       console.assert(ri == this.rhi + 2);
       const dc = this.chi - ci;
-      const a = new Frac(cellFn(this.rhi + 1, this.chi - dc), 1);
-      const c = new Frac(cellFn(this.rhi - dc, this.chi + 1), 1);
-      const d = new Frac(cellFn(this.rhi - dc, this.chi + 2), 1);
-      const e = new Frac(cellFn(this.rlo - 1, this.clo + dc), 1);
-      const f = new Frac(cellFn(this.rlo - 2, this.clo + dc), 1);
-      const g = new Frac(cellFn(this.rlo + dc, this.clo - 1), 1);
-      const h = new Frac(cellFn(this.rlo + dc, this.clo - 2), 1);
+      const a = cellFn(this.rhi + 1, this.chi - dc);
+      const c = cellFn(this.rhi - dc, this.chi + 1);
+      const d = cellFn(this.rhi - dc, this.chi + 2);
+      const e = cellFn(this.rlo - 1, this.clo + dc);
+      const f = cellFn(this.rlo - 2, this.clo + dc);
+      const g = cellFn(this.rlo + dc, this.clo - 1);
+      const h = cellFn(this.rlo + dc, this.clo - 2);
       return (
-          this.y.mul(f).div(e).sub(
-          this.x.mul(h).div(g)).add(
-          this.a.mul(d).div(c))
-        ).mul(a).div(this.z).toInt();
+          f.fracMul(this.y).divExpectPoly(e).sub(
+          h.fracMul(this.x).divExpectPoly(g)).add(
+          d.fracMul(this.a).divExpectPoly(c))
+        ).mul(a).fracDiv(this.z);
     }
   }
 }
@@ -430,7 +584,7 @@ function makeWallGenerator(inputRowFn) {
     if (ri <= -3) return upperWin;
 
     // Check that this is actually a window cell.
-    if (cellFn(ri, ci) != 0) return null;
+    if (!cellFn(ri, ci).isZero()) return null;
 
     // Main window hunting logic.
     const win = winFnInner(ri, ci);
@@ -443,28 +597,31 @@ function makeWallGenerator(inputRowFn) {
   });
 
   cellFn = cache2D((ri, ci) => {
-    if (ri <= -3) return 0n;
-    if (ri == -2) return 1n;
-    if (ri == -1) return BigInt(inputRowFn(ci));
+    if (ri <= -3) return intToPoly(0n);
+    if (ri == -2) return intToPoly(1n);
+    if (ri == -1) return inputRowFn(ci);
 
     const a = cellFn(ri - 2, ci);
     const c = cellFn(ri - 1, ci);
-    if (a != 0) {
+    if (!a.isZero()) {
       // Cross rule.
       const b = cellFn(ri - 1, ci - 1);
       const d = cellFn(ri - 1, ci + 1);
-      return (c * c - b * d) / a;
+      return (c.mul(c).sub(b.mul(d))).divExpectPoly(a);
     }
 
     const f = cellFn(ri - 3, ci);
-    if (f != 0) {
+    if (!f.isZero()) {
       // Long cross rule.
       const e = cellFn(ri - 4, ci);
       const g = cellFn(ri - 2, ci - 2);
       const h = cellFn(ri - 2, ci - 1);
       const i = cellFn(ri - 2, ci + 1);
       const j = cellFn(ri - 2, ci + 2);
-      return (g * i * i + h * h * j - e * c * c) / (f * f);
+      return (g.mul(i).mul(i).add(
+              h.mul(h).mul(j)).sub(
+              e.mul(c).mul(c))
+          ).divExpectPoly(f.mul(f));
     }
 
     // Find the window that a and f are in.
@@ -476,7 +633,7 @@ function makeWallGenerator(inputRowFn) {
     while (true) {
       // Are we inside the window? If so, return 0.
       const inside = win.isInside(ri, ci);
-      if (inside == 1) return 0n;
+      if (inside == 1) return intToPoly(0n);
       if (inside == 0) break;
 
       // If we don't know yet, expand the window left or right.
@@ -580,18 +737,19 @@ function buildWall(inputs) {
   }
 
   const withInputs = (fn) => (i) => safeBigInt(inputs[i]) ?? fn(i);
-  const wallGen = makeWallGenerator(withInputs(sequenceGenerator));
+  const inputConv = (fn) => (i) => intToPoly(fn(i));
+  const wallGen = makeWallGenerator(inputConv(withInputs(sequenceGenerator)));
   const wallVals = [];
   for (let ri = -1; ri < wallHeight; ++ri) {
     const row = [];
     for (let ci = 0; ci < wallWidth; ++ci) {
-      row.push(wallGen(ri, ci));
+      row.push(wallGen(ri, ci).toInt());
     }
     wallVals.push(row);
   }
 
   // Truncate the wall so there's only one all-zero row at the end.
-  for (let ri = wallVals.length - 1; ri > 1; --ri) {
+  for (let ri = wallVals.length - 1; ri >= 1; --ri) {
     if (!wallVals[ri].every((e) => e == 0)) break;
     if (ri + 1 < wallVals.length) {
       console.assert(ri + 2 == wallVals.length);
