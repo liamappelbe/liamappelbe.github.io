@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>PubMed Test</title>
-<link rel="icon" href="res/favicon.ico">
+<link rel="icon" href="../res/favicon.ico">
 <script>
 const kPubMedApiSuffix = [
   'tool=tiusic.com',
@@ -17,7 +17,7 @@ const kAllowedAbstractJournals = [
 const kTableOfContentsClass = 'sticky_heading';
 </script>
 <script src="pubmed_abstracts.js"></script>
-<script src="table_of_contents.js"></script>
+<script src="../table_of_contents.js"></script>
 <style>
 body {
   background-color: #212121;
@@ -93,7 +93,7 @@ pub-med .pub-med-copy {
   margin-left: 0.5em;
   padding-left: 0.8em;
   cursor: pointer;
-  background-image: url(vetupdates/cite%20icon.svg);
+  background-image: url(res/cite_icon.svg);
   background-size: contain;
   background-repeat: no-repeat;
   position: relative;
@@ -191,7 +191,7 @@ pub-med[new] .pub-med-title::before {
   position: fixed;
   top: 10px;
   right: 10px;
-  background-image: url(vetupdates/scroll_top_icon.svg);
+  background-image: url(res/scroll_top_icon.svg);
 }
 .scroll_to_top_button.enabled {
   display: initial;
@@ -200,7 +200,7 @@ pub-med[new] .pub-med-title::before {
 </head>
 <body>
 <div id="head">
-  <a id="index" href="index.html">&lt;</a>
+  <a id="index" href="../index.html">&lt;</a>
   <h1>PubMed API Test</h1>
 </div>
 <div id="wrap" class="row">
