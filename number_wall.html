@@ -75,6 +75,9 @@ let domWall = null;
 let domColorMod = null;
 let domColorModVal = null;
 let domSeqSel = null;
+let domRecur = null;
+let domRecurFormula = null;
+let domRecurVals = null;
 
 function safeBigInt(x) {
   try {
@@ -281,6 +284,8 @@ class Polynomial {
     return new Polynomial(b);
   }
 
+  degree() { return this.a.length == 0 ? 0 : this.a.length - 1; }
+  term(i) { return i < this.a.length ? this.a[i] : 0; }
   isZero() { return this.a.length == 0; }
   sub(o) { return this.add(o.neg()); }
   neg() { return new Polynomial(this.a.map(f => f.neg())); }
@@ -316,7 +321,7 @@ class Polynomial {
     console.assert(!o.isZero());
     if (this.isZero()) return this;
     const q = this.a.map(e => new Frac(0, 1));
-    const r = this.a.map(e => e);
+    const r = this.a.slice();
     // Maintain the invariant that o * q + r == this.
     const rlen = () => {
       for (let i = r.length - 1; i >= 0; --i) {
@@ -358,7 +363,7 @@ class Polynomial {
   toString() {
     if (this.a.length == 0) return '0';
     let s = '';
-    for (let i = 0; i < this.a.length; ++i) {
+    for (let i = this.a.length - 1; i >= 0; --i) {
       let f = this.a[i];
       if (f.isZero()) continue;
       if (s.length > 0) {
@@ -371,10 +376,43 @@ class Polynomial {
     }
     return s;
   }
+
+  toRecurrenceString(rn) {
+    if (this.a.length == 0) return '0';
+    let s = '';
+    for (let i = this.a.length - 1; i >= 0; --i) {
+      let f = this.a[i];
+      if (f.isZero()) continue;
+      if (s.length > 0) {
+        s += f.isNeg() ? ' - ' : ' + ';
+        f = f.abs();
+      }
+      if (!f.isOne()) s += f.toString();
+      s += 'Sn-' + (rn - i);
+    }
+    return s;
+  }
+
+  applyRecurrence(seq, rn, from, to) {
+    const o = [];
+    const s = (i) => i < from ? seq(i) : o[i - from];
+    for (let i = from; i < to; ++i) {
+      let y = 0;
+      for (let j = 0; j < rn; ++j) {
+        y += this.term(rn - 1 - j) * s(i - 1 - j);
+      }
+      o.push(y);
+    }
+    return o;
+  }
 }
 
-function intToPoly(x) {
-  return new Polynomial([new Frac(BigInt(x), 1)]);
+function intToPoly(x0) {
+  return new Polynomial([new Frac(BigInt(x0), 1)]);
+}
+
+function linearPoly(x0, x1) {
+  return new Polynomial([new Frac(BigInt(x0), 1), new Frac(BigInt(x1), 1)]);
 }
 
 function fracToPoly(f) {
@@ -678,6 +716,7 @@ fibGenerator = cache1D((i) => {
 });
 
 function squareGenerator(i) { return i * i; }
+function cubeGenerator(i) { return i * i * i; }
 function pagodaImpl(n) { return (n & ((n & -n) << 1)) ? 1 : 0; }
 function pagodaGenerator(n) { return pagodaImpl(n + 1) - pagodaImpl(n - 1); }
 
@@ -697,8 +736,10 @@ const randSeq = new RandomSequence();
 function getSequenceGenerator() {
   if (domSeqSel.value == 'Fibonacci') return fibGenerator;
   if (domSeqSel.value == 'Squares') return squareGenerator;
+  if (domSeqSel.value == 'Cubes') return cubeGenerator;
   if (domSeqSel.value == 'Pagoda') return pagodaGenerator;
   if (domSeqSel.value == 'Random') return (i) => randSeq.get(i);
+  if (domSeqSel.value == 'Zeros') return (i) => 0;
 }
 
 const gradient = [
@@ -727,7 +768,8 @@ function buildWall(inputs) {
   }
 
   emptyDiv(domWall);
-  const sequenceGenerator = getSequenceGenerator();
+  const withInputs = (fn) => (i) => safeBigInt(inputs[i]) ?? fn(i);
+  const sequenceGenerator = withInputs(getSequenceGenerator());
   const colorMod = safeGet(domColorMod, 1n);
   domColorModVal.innerText = colorMod == 1 ? 'Off' : colorMod;
   if (colorMod > 1) {
@@ -736,9 +778,8 @@ function buildWall(inputs) {
     domWall.classList.remove('colorModEnabled');
   }
 
-  const withInputs = (fn) => (i) => safeBigInt(inputs[i]) ?? fn(i);
   const inputConv = (fn) => (i) => intToPoly(fn(i));
-  const wallGen = makeWallGenerator(inputConv(withInputs(sequenceGenerator)));
+  const wallGen = makeWallGenerator(inputConv(sequenceGenerator));
   const wallVals = [];
   for (let ri = -1; ri < wallHeight; ++ri) {
     const row = [];
@@ -749,11 +790,13 @@ function buildWall(inputs) {
   }
 
   // Truncate the wall so there's only one all-zero row at the end.
-  for (let ri = wallVals.length - 1; ri >= 1; --ri) {
-    if (!wallVals[ri].every((e) => e == 0)) break;
-    if (ri + 1 < wallVals.length) {
-      console.assert(ri + 2 == wallVals.length);
+  let finalWallRow = wallHeight;
+  for (let rip1 = wallVals.length - 1; rip1 >= 1; --rip1) {
+    if (!wallVals[rip1].every((e) => e == 0)) break;
+    if (rip1 + 1 < wallVals.length) {
+      console.assert(rip1 + 2 == wallVals.length);
       wallVals.pop();
+      finalWallRow = rip1 - 2;
     }
   }
 
@@ -780,6 +823,25 @@ function buildWall(inputs) {
       }
     }
   }
+
+  if (finalWallRow == wallHeight) {
+    domRecur.classList.add('hidden');
+  } else {
+    // Run the wall generator using polynomial inputs, to get the recurrence.
+    const polyInputConv = (fn) => (i) => linearPoly(fn(i), -fn(i - 1));
+    const wallPolyGen = makeWallGenerator(polyInputConv(sequenceGenerator));
+    // The recurrence polynomial is any element of the final row. Choose the
+    // cell on the diagonal, so that we avoid cells off the edge of the grid.
+    const recurrence = wallPolyGen(finalWallRow, finalWallRow);
+    const rn = recurrence.degree();
+    const r2 = recurrence.isZero() ? recurrence : new Polynomial(
+        recurrence.a.slice(0, rn)).fracDiv(recurrence.term(rn).neg());
+
+    domRecur.classList.remove('hidden');
+    domRecurFormula.innerText = 'Sn = ' + r2.toRecurrenceString(rn);
+    domRecurVals.innerText = r2.applyRecurrence(
+        sequenceGenerator, rn, wallWidth, wallWidth + 8).join(', ');
+  }
 }
 
 function onLoad() {
@@ -787,6 +849,9 @@ function onLoad() {
   domColorMod = document.getElementById('colorMod');
   domColorModVal = document.getElementById('colorModVal');
   domSeqSel = document.getElementById('sequenceSelect');
+  domRecur = document.getElementById('recur');
+  domRecurFormula = document.getElementById('recurFormula');
+  domRecurVals = document.getElementById('recurVals');
   buildWall(null);
   domColorMod.addEventListener('change', () => buildWall(userInputs));
   domSeqSel.addEventListener('change', () => buildWall(null));
@@ -871,6 +936,15 @@ a {
 .colorModEnabled .cell.out {
   color: #aaaaaa66;
 }
+.hidden {
+  display: none;
+}
+#recurFormula {
+  color: #8bc34a;
+}
+#recurVals {
+  color: #2196f3;
+}
 </style>
 </head>
 <body>
@@ -897,17 +971,28 @@ a {
     <select id="sequenceSelect">
       <option value="Fibonacci">Fibonacci</option>
       <option value="Squares">Squares</option>
+      <option value="Cubes">Cubes</option>
       <option value="Pagoda">Pagoda</option>
       <option value="Random">Random</option>
+      <option value="Zeros">Zeros</option>
     </select>
     <br/><br/>
 
-    <!--
-    Using the number wall, we can deduce a recurrence relation for the sequence:
-    <br/><br/>
+    <div id="recur">
+      Using the number wall, we can deduce a recurrence relation for the
+      sequence:
+      <div id="recurFormula"></div>
+      <br/>
 
-    The predicted next values are:
-    <br/><br/> -->
+      The predicted next values are:
+      <div id="recurVals"></div>
+      <br/>
+    </div>
+    <div id="noRecur">
+      The number wall doesn't converge to zeros. Either there is no simple
+      recurrence relation, or we haven't evaluated enough of the wall.
+      <br/><br/>
+    </div>
 
     Color modulo:
     <span id="colorModVal">Off</span>
