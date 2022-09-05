@@ -100,6 +100,16 @@ function lerp(x0, x1, k) {
   return x0 * (1 - k) + x1 * k;
 }
 
+function gcd(a, b) {
+  if (a < b) return gcd(b, a);
+  while (b > 0) {
+    const c = a % b;
+    a = b;
+    b = c;
+  }
+  return a;
+}
+
 function genSeed() {
   let x = 0n;
   for (let i = 0; i < 16; ++i) {
@@ -130,35 +140,6 @@ class Random {
   }
 }
 
-class Primes {
-  constructor() {
-    this._p = [2n, 3n, 5n, 7n];
-    this._n = 9n;
-  }
-  internalIsPrime(oddN) {
-    for (let i = 1;; ++i) {
-      const p = i < this._p.length ? this._p[i] : this.addPrime();
-      if (p * p > oddN) return true;
-      if (oddN % p == 0) return false;
-    }
-  }
-  addPrime() {
-    while (true) {
-      this._n += 2n;
-      if (this.internalIsPrime(this._n)) {
-        this._p.push(this._n);
-        return this._n;
-      }
-    }
-  }
-  getPrime(i) {
-    while (this._p.length <= i) this.addPrime();
-    return this._p[i];
-  }
-}
-
-const primes = new Primes();
-
 class Frac {
   constructor(u, v, skipReduction = false) {
     console.assert(v != 0, u, v);
@@ -174,27 +155,10 @@ class Frac {
 
   reduce() {
     const negative = this.u < 0;
-    let u = negative ? -this.u : this.u;
-    let v = this.v;
-    if (u % v == 0) {
-      u /= v;
-      v = 1n;
-    } else if (v % u == 0) {
-      v /= u;
-      u = 1n;
-    } else {
-      for (let i = 0; ; ++i) {
-        const p = primes.getPrime(i);
-        const p2 = p * p;
-        if ((p2 > u && p2 > v) || p > u || p > v) break;
-        while (u % p == 0 && v % p == 0) {
-          u /= p;
-          v /= p;
-        }
-      }
-    }
-    this.u = negative ? -u : u;
-    this.v = v;
+    const u = negative ? -this.u : this.u;
+    const w = gcd(u, this.v);
+    this.u = (negative ? -u : u) / w;
+    this.v = this.v / w;
   }
 
   mul(o) {
@@ -234,7 +198,8 @@ class Frac {
   }
 
   intMod(n) {
-    return new Frac(((this.u % n) + n) % n, this.v, true);
+    const nv = this.v * n;
+    return new Frac(((this.u % nv) + nv) % nv, this.v, true);
   }
 
   toInt() {
@@ -837,7 +802,7 @@ function buildWall(inputs) {
       const str = val.toString();
       const isBig = str.length > 3;
       const shownVal = isBig ? 'big' : str;
-      if (false) {//rip1 == 0) {
+      if (rip1 == 0) {
         const cell = newTextEdit(row, ['cell', 'in'], str);
         cell.addEventListener('change', () => {
           userInputs[ci] = safeGet(cell);
