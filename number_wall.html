@@ -841,6 +841,12 @@ function buildWall(inputs) {
   }
 }
 
+function growWall(dr, dc) {
+  wallHeight = clamp(wallHeight + dr, 1, 100);
+  wallWidth = clamp(wallWidth + dc, 1, 100);
+  buildWall(userInputs);
+}
+
 function onLoad() {
   domWall = document.getElementById('wall');
   domColorMod = document.getElementById('colorMod');
@@ -946,6 +952,11 @@ a {
 #recurVals {
   color: #2196f3;
 }
+.button {
+  color: #ffc107;
+  cursor: pointer;
+  user-select: none;
+}
 </style>
 </head>
 <body>
@@ -983,6 +994,13 @@ a {
     Color modulo:
     <span id="colorModVal">Off</span>
     <input type="range" id="colorMod" min="1" max="10" value="1"/>
+    <br/><br/>
+
+    Grow/shrink wall:
+    <span class="button" onclick="growWall(-1, 0)">&#x1F845;</span>
+    <span class="button" onclick="growWall(1, 0)">&#x1F847;</span>
+    <span class="button" onclick="growWall(0, 1)">&#x1F846;</span>
+    <span class="button" onclick="growWall(0, -1)">&#x1F844;</span>
     <br/><br/>
 
     <div id="recur">
