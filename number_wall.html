@@ -78,6 +78,8 @@ let domSeqSel = null;
 let domRecur = null;
 let domRecurFormula = null;
 let domRecurVals = null;
+let domNoRecur = null;
+let domCustom = null;
 
 function safeBigInt(x) {
   try {
@@ -223,6 +225,7 @@ class Frac {
   isOne() { return this.u == this.v; }
   isNeg() { return this.u < 0; }
   isFrac() { return true; }
+  isInt() { return this.v == 1; }
 
   intMul(x) {
     const ux = x * this.u;
@@ -230,9 +233,17 @@ class Frac {
     return ux / this.v;
   }
 
+  intMod(n) {
+    return new Frac(((this.u % n) + n) % n, this.v, true);
+  }
+
   toInt() {
-    console.assert(this.v == 1);
+    console.assert(this.v == 1, this.u, this.v);
     return this.u;
+  }
+
+  toNum() {
+    return Number(this.u) / Number(this.v);
   }
 
   toString() {
@@ -249,11 +260,6 @@ class Polynomial {
     while (this.a.length > 0 && this.a[this.a.length - 1].isZero()) {
       this.a.pop();
     }
-  }
-
-  toInt() {
-    console.assert(this.a.length <= 1);
-    return this.a.length == 0 ? 0n : this.a[0].toInt();
   }
 
   mul(o) {
@@ -284,6 +290,12 @@ class Polynomial {
     return new Polynomial(b);
   }
 
+  toFrac() {
+    console.assert(this.a.length <= 1);
+    return this.a.length == 0 ? new Frac(0n, 1n, true) : this.a[0];
+  }
+
+  toInt() { return this.toFrac().toInt(); }
   degree() { return this.a.length == 0 ? 0 : this.a.length - 1; }
   term(i) { return i < this.a.length ? this.a[i] : 0; }
   isZero() { return this.a.length == 0; }
@@ -618,6 +630,7 @@ function makeWallGenerator(inputRowFn) {
   };
 
   winFn = cache2D((ri, ci) => {
+    // console.log('winFn', ri, ci);
     // The upper window is infinite, so need to special case it.
     if (ri <= -3) return upperWin;
 
@@ -634,7 +647,7 @@ function makeWallGenerator(inputRowFn) {
     return win;
   });
 
-  cellFn = cache2D((ri, ci) => {
+  const cellFnInner = (ri, ci) => {
     if (ri <= -3) return intToPoly(0n);
     if (ri == -2) return intToPoly(1n);
     if (ri == -1) return inputRowFn(ci);
@@ -680,6 +693,11 @@ function makeWallGenerator(inputRowFn) {
 
     // Horseshoe rule.
     return win.horseshoeRule(ri, ci, cellFn);
+  };
+  cellFn = cache2D((ri, ci) => {
+    const val = cellFnInner(ri, ci);
+    // console.log('cellFn', ri, ci, val.toString());
+    return val;
   });
   return cellFn;
 }
@@ -717,6 +735,7 @@ fibGenerator = cache1D((i) => {
 
 function squareGenerator(i) { return i * i; }
 function cubeGenerator(i) { return i * i * i; }
+function pow2Generator(i) { return 1n << BigInt(Math.abs(i)); }
 function pagodaImpl(n) { return (n & ((n & -n) << 1)) ? 1 : 0; }
 function pagodaGenerator(n) { return pagodaImpl(n + 1) - pagodaImpl(n - 1); }
 
@@ -732,11 +751,22 @@ class RandomSequence {
   }
 }
 
+function customGenerator(eqn) {
+  const fn = new Function('n', `return ${eqn};`);
+  return (i) => fn(i);
+}
+
 const randSeq = new RandomSequence();
 function getSequenceGenerator() {
+  if (domSeqSel.value == 'Custom') {
+    domCustom.classList.remove('hidden');
+    return customGenerator(domCustom.value);
+  }
+  domCustom.classList.add('hidden');
   if (domSeqSel.value == 'Fibonacci') return fibGenerator;
   if (domSeqSel.value == 'Squares') return squareGenerator;
   if (domSeqSel.value == 'Cubes') return cubeGenerator;
+  if (domSeqSel.value == 'Pow2') return pow2Generator;
   if (domSeqSel.value == 'Pagoda') return pagodaGenerator;
   if (domSeqSel.value == 'Random') return (i) => randSeq.get(i);
   if (domSeqSel.value == 'Zeros') return (i) => 0;
@@ -770,9 +800,9 @@ function buildWall(inputs) {
   emptyDiv(domWall);
   const withInputs = (fn) => (i) => safeBigInt(inputs[i]) ?? fn(i);
   const sequenceGenerator = withInputs(getSequenceGenerator());
-  const colorMod = safeGet(domColorMod, 1n);
-  domColorModVal.innerText = colorMod == 1 ? 'Off' : colorMod;
-  if (colorMod > 1) {
+  const clrMod = safeGet(domColorMod, 1n);
+  domColorModVal.innerText = clrMod == 1 ? 'Off' : clrMod;
+  if (clrMod > 1) {
     domWall.classList.add('colorModEnabled');
   } else {
     domWall.classList.remove('colorModEnabled');
@@ -784,7 +814,7 @@ function buildWall(inputs) {
   for (let ri = -1; ri < wallHeight; ++ri) {
     const row = [];
     for (let ci = 0; ci < wallWidth; ++ci) {
-      row.push(wallGen(ri, ci).toInt());
+      row.push(wallGen(ri, ci).toFrac());
     }
     wallVals.push(row);
   }
@@ -792,7 +822,7 @@ function buildWall(inputs) {
   // Truncate the wall so there's only one all-zero row at the end.
   let finalWallRow = wallHeight;
   for (let rip1 = wallVals.length - 1; rip1 >= 1; --rip1) {
-    if (!wallVals[rip1].every((e) => e == 0)) break;
+    if (!wallVals[rip1].every((e) => e.isZero())) break;
     if (rip1 + 1 < wallVals.length) {
       console.assert(rip1 + 2 == wallVals.length);
       wallVals.pop();
@@ -804,20 +834,20 @@ function buildWall(inputs) {
     const row = newDiv(domWall, ['row']);
     for (let ci = 0; ci < wallWidth; ++ci) {
       const val = wallVals[rip1][ci];
-      const isBig = val <= -100 || val >= 100;
-      const shownVal = isBig ? 'big' : val;
-      if (rip1 == 0) {
-        const cell = newTextEdit(row, ['cell', 'in'], val);
+      const str = val.toString();
+      const isBig = str.length > 3;
+      const shownVal = isBig ? 'big' : str;
+      if (false) {//rip1 == 0) {
+        const cell = newTextEdit(row, ['cell', 'in'], str);
         cell.addEventListener('change', () => {
           userInputs[ci] = safeGet(cell);
           buildWall(userInputs);
         });
       } else {
         const cell = newDiv(row, ['cell', 'out'], shownVal);
-        cell.title = val;
-        if (colorMod > 1) {
-          const div = Number(colorMod) - 1;
-          const modVal = Number(((val % colorMod) + colorMod) % colorMod) / div;
+        cell.title = str;
+        if (clrMod > 1) {
+          const modVal = Number(val.intMod(clrMod).toNum()) / Number(clrMod);
           cell.style.backgroundColor = modColorGradient(modVal);
         }
       }
@@ -826,6 +856,7 @@ function buildWall(inputs) {
 
   if (finalWallRow == wallHeight) {
     domRecur.classList.add('hidden');
+    domNoRecur.classList.remove('hidden');
   } else {
     // Run the wall generator using polynomial inputs, to get the recurrence.
     const polyInputConv = (fn) => (i) => linearPoly(fn(i), -fn(i - 1));
@@ -838,6 +869,7 @@ function buildWall(inputs) {
         recurrence.a.slice(0, rn)).fracDiv(recurrence.term(rn).neg());
 
     domRecur.classList.remove('hidden');
+    domNoRecur.classList.add('hidden');
     domRecurFormula.innerText = 'Sn = ' + r2.toRecurrenceString(rn);
     domRecurVals.innerText = r2.applyRecurrence(
         sequenceGenerator, rn, wallWidth, wallWidth + 8).join(', ');
@@ -852,9 +884,12 @@ function onLoad() {
   domRecur = document.getElementById('recur');
   domRecurFormula = document.getElementById('recurFormula');
   domRecurVals = document.getElementById('recurVals');
+  domNoRecur = document.getElementById('noRecur');
+  domCustom = document.getElementById('custom');
   buildWall(null);
   domColorMod.addEventListener('change', () => buildWall(userInputs));
   domSeqSel.addEventListener('change', () => buildWall(null));
+  domCustom.addEventListener('change', () => buildWall(userInputs));
 }
 window.addEventListener('load', onLoad);
 </script>
@@ -916,9 +951,10 @@ a {
 .shh {
   opacity: 15%;
 }
-.wall {
+#wall {
   display: flex;
-  width: 100%;
+  flex-direction: column;
+  border-top: 1px solid #424242;
 }
 .row {
   height: 24px;
@@ -954,8 +990,8 @@ a {
 </div>
 <div id="wrap">
   <div id="left">
-    Number walls are a tool for analyzing integer sequences. Input any sequence
-    you want in the editable row, and the other rows of numbers will be computed
+    Number walls are a tool for analyzing integer sequences. The sequence is
+    input into the top row, and the other rows of numbers are calculated
     according to the cross rule (by solving for D):<br/><br/>
 
     <img src="res/cross_rule.svg"/><br/><br/>
@@ -974,8 +1010,14 @@ a {
       <option value="Cubes">Cubes</option>
       <option value="Pagoda">Pagoda</option>
       <option value="Random">Random</option>
-      <option value="Zeros">Zeros</option>
+      <option value="Custom">Custom JS</option>
     </select>
+    <input type="text" id="custom" value="n ^ 4"/>
+    <br/><br/>
+
+    Color modulo:
+    <span id="colorModVal">Off</span>
+    <input type="range" id="colorMod" min="1" max="10" value="1"/>
     <br/><br/>
 
     <div id="recur">
@@ -993,11 +1035,6 @@ a {
       recurrence relation, or we haven't evaluated enough of the wall.
       <br/><br/>
     </div>
-
-    Color modulo:
-    <span id="colorModVal">Off</span>
-    <input type="range" id="colorMod" min="1" max="10" value="1"/>
-    <br/><br/>
 
     <span class="shh">and after aaaaaaall<br/>you're my number waaaaaaall</span>
   </div>
