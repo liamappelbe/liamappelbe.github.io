@@ -35,8 +35,8 @@ class SlideShowImpl {
     this.slides = [];
     this.lowButtons = (node.getAttribute('button-layout') == 'low');
     this.loop = (node.getAttribute('loop') != 'false');
-    const next = node.getAttribute('next');
-    const prev = node.getAttribute('prev');
+    const next = node.getAttribute('next') ?? '>';
+    const prev = node.getAttribute('prev') ?? '<';
 
     // Copy the children and remove them.
     const ch = [];
