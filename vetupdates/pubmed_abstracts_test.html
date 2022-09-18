@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PubMed Abstracts Test</title>
+<link rel="icon" href="../res/favicon.ico">
+<script>
+const kPubMedApiSuffix = [
+  'tool=tiusic.com',
+  'email=liamappelbe@gmail.com',
+  'api_key=52cee269b1c8feb878019fa2dccc04a22909',
+].join('&');
+const kAllowedAbstractJournals = [];
+module = {};
+</script>
+<script src="pubmed_abstracts.js"></script>
+<script src="pubmed_abstracts_test.js"></script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+#log {
+  display: flex;
+  flex-direction: column;
+}
+.log-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+.log-tag {
+  width: 100px;
+}
+.error::before {
+  content: "ERROR:";
+  color: #f44336;
+}
+.warn::before {
+  content: "WARNING:";
+  color: #ec407a;
+}
+.info::before {
+  content: "INFO:";
+  color: #2196f3;
+}
+.win::before {
+  content: "SUCCESS:";
+  color: #8bc34a;
+}
+.log-msg {
+  flex-grow: 1;
+}
+
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>PubMed Abstracts Test</h1>
+</div>
+<div id="wrap">
+  <div id="log">
+  </div>
+</div>
+</body>
+</html>

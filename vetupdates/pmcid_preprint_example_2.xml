@@ -1,0 +1,1142 @@
+<article xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ali="http://www.niso.org/schemas/ali/1.0/" article-type="brief-report" dtd-version="1.3">
+  <?properties open_access?>
+  <processing-meta base-tagset="archiving" mathml-version="3.0" table-model="xhtml" tagset-family="jats">
+    <restricted-by>pmc</restricted-by>
+  </processing-meta>
+  <front>
+    <journal-meta>
+      <journal-id journal-id-type="nlm-ta">Intensive Care Med</journal-id>
+      <journal-id journal-id-type="iso-abbrev">Intensive Care Med</journal-id>
+      <journal-title-group>
+        <journal-title>Intensive Care Medicine</journal-title>
+      </journal-title-group>
+      <issn pub-type="ppub">0342-4642</issn>
+      <issn pub-type="epub">1432-1238</issn>
+      <publisher>
+        <publisher-name>Springer Berlin Heidelberg</publisher-name>
+        <publisher-loc>Berlin/Heidelberg</publisher-loc>
+      </publisher>
+    </journal-meta>
+    <article-meta>
+      <article-id pub-id-type="pmid">35932335</article-id>
+      <article-id pub-id-type="pmc">9362613</article-id>
+      <article-id pub-id-type="publisher-id">6761</article-id>
+      <article-id pub-id-type="doi">10.1007/s00134-022-06761-7</article-id>
+      <article-categories>
+        <subj-group subj-group-type="heading">
+          <subject>Lasting Legacy in Intensive Care Medicine</subject>
+        </subj-group>
+      </article-categories>
+      <title-group>
+        <article-title>Everything you need to know about deresuscitation</article-title>
+      </title-group>
+      <contrib-group>
+        <contrib contrib-type="author" corresp="yes">
+          <contrib-id contrib-id-type="orcid">http://orcid.org/0000-0002-1816-5255</contrib-id>
+          <name>
+            <surname>Malbrain</surname>
+            <given-names>Manu L. N. G.</given-names>
+          </name>
+          <address>
+            <email>manu.malbrain@telenet.be</email>
+          </address>
+          <xref ref-type="aff" rid="Aff1">1</xref>
+          <xref ref-type="aff" rid="Aff2">2</xref>
+          <xref ref-type="aff" rid="Aff3">3</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Martin</surname>
+            <given-names>Greg</given-names>
+          </name>
+          <xref ref-type="aff" rid="Aff4">4</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Ostermann</surname>
+            <given-names>Marlies</given-names>
+          </name>
+          <xref ref-type="aff" rid="Aff5">5</xref>
+        </contrib>
+        <aff id="Aff1"><label>1</label><institution-wrap><institution-id institution-id-type="GRID">grid.411484.c</institution-id><institution-id institution-id-type="ISNI">0000 0001 1033 7158</institution-id><institution>First Department of Anaesthesiology and Intensive Therapy, </institution><institution>Medical University of Lublin, </institution></institution-wrap>Lublin, Poland </aff>
+        <aff id="Aff2"><label>2</label><institution-wrap><institution-id institution-id-type="GRID">grid.513150.3</institution-id><institution>International Fluid Academy, </institution></institution-wrap>Lovenjoel, Belgium </aff>
+        <aff id="Aff3"><label>3</label>Medical Data Management, Medaman, Geel, Belgium </aff>
+        <aff id="Aff4"><label>4</label><institution-wrap><institution-id institution-id-type="GRID">grid.189967.8</institution-id><institution-id institution-id-type="ISNI">0000 0001 0941 6502</institution-id><institution>Division of Pulmonary, Allergy, Critical Care and Sleep Medicine, </institution><institution>Emory University School of Medicine, </institution></institution-wrap>Atlanta, Georgia USA </aff>
+        <aff id="Aff5"><label>5</label><institution-wrap><institution-id institution-id-type="GRID">grid.13097.3c</institution-id><institution-id institution-id-type="ISNI">0000 0001 2322 6764</institution-id><institution>Department of Critical Care, </institution><institution>King’s College London, Guy’s &amp; St Thomas’ Hospital, </institution></institution-wrap>London, UK </aff>
+      </contrib-group>
+      <pub-date pub-type="epub">
+        <day>6</day>
+        <month>8</month>
+        <year>2022</year>
+      </pub-date>
+      <pub-date pub-type="pmc-release">
+        <day>6</day>
+        <month>8</month>
+        <year>2022</year>
+      </pub-date>
+      <fpage>1</fpage>
+      <lpage>6</lpage>
+      <history>
+        <date date-type="received">
+          <day>12</day>
+          <month>4</month>
+          <year>2022</year>
+        </date>
+        <date date-type="accepted">
+          <day>24</day>
+          <month>5</month>
+          <year>2022</year>
+        </date>
+      </history>
+      <permissions>
+        <copyright-statement>© The Author(s) 2022</copyright-statement>
+        <license>
+          <ali:license_ref specific-use="textmining" content-type="ccbynclicense">https://creativecommons.org/licenses/by-nc/4.0/</ali:license_ref>
+          <license-p><bold>Open Access</bold>This article is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License, which permits any non-commercial use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit <ext-link ext-link-type="uri" xlink:href="https://creativecommons.org/licenses/by-nc/4.0/">http://creativecommons.org/licenses/by-nc/4.0/</ext-link>.</license-p>
+        </license>
+      </permissions>
+    </article-meta>
+  </front>
+  <body>
+    <sec id="Sec1">
+      <title>Why deresuscitation?</title>
+      <p id="Par1">While fluid administration is one of the most common therapeutic interventions in critical care, it carries high potential for harm as overzealous fluid resuscitation may lead to glycocalix degradation and endothelial injury. Fluids should be regarded as drugs with specific indications, contraindications, and potential adverse effects. The renewed concept of “fluid stewardship” [<xref ref-type="bibr" rid="CR1">1</xref>], analogous to antibiotic stewardship, focusses on the 4 D’s (drug, dose, duration, and de-escalation), the 4 questions (when to start and when to stop fluid therapy, and when to start and when to stop fluid removal), the 4 indications (resuscitation, maintenance, replacement and nutrition), and the conceptual ROSE model describing 4 fluid phases (resuscitation, optimization, stabilization and evacuation, Fig. <xref rid="Fig1" ref-type="fig">1</xref>, Panel A) [<xref ref-type="bibr" rid="CR2">2</xref>].<fig id="Fig1"><label>Fig. 1</label><caption><p>The 4 phases conceptual model and deleterious effects of fluid accumulation syndrome. Panel <bold>A</bold> The four-hit model of shock with evolution of patients’ cumulative fluid volume status over time during the five phases of resuscitation: Resuscitation (R), Optimization (O), Stabilization (S), and Evacuation (E) (ROSE), followed by a possible risk of Hypoperfusion in case of too aggressive deresuscitation. On admission patients are often hypovolemic, followed by normovolemia after fluid resuscitation (escalation or EAFM, early adequate fluid management), and possible fluid overload, again followed by a phase returning to normovolemia with de-escalation via achieving zero fluid balance or late conservative fluid management (LCFM) and followed by late goal directed fluid removal (LGFR) or deresuscitation. In case of hypovolemia, O<sub>2</sub> cannot get into the tissue because of convective problems, in case of hypervolemia O<sub>2</sub> cannot get into the tissue because of diffusion problems related to interstitial and pulmonary edema, gut edema (ileus and abdominal hypertension). *Volumetric preload indicators like GEDVI, LVEDAI, or RVEDVI are preferred over barometric ones like CVP or PAOP. **Vasopressor can be started or increased to maintain MAP/APP above 55/45 during deresuscitation phase. <sup>#</sup>Can only be measured via Swan-Ganz pulmonary artery catheter (PAC) and became obsolete. Panel <bold>B</bold> Potential consequences of fluid accumulation syndrome (formerly known as fluid overload) and GIPS (global increased permeability syndrome) on end-organ function. Figures adapted from Malbrain et al. with permission, according to the Open Access CC BY Licence 4.0 [<xref ref-type="bibr" rid="CR2">2</xref>, <xref ref-type="bibr" rid="CR7">7</xref>]. <italic>ACS</italic> abdominal compartment syndrome, <italic>APP</italic> abdominal perfusion pressure = MAP-IAP, <italic>BIA</italic> bio-electrical impedance analysis, <italic>CARS</italic> cardio-abdominal-renal syndrome, <italic>CI</italic> cardiac index, <italic>CLI</italic> capillary leak index (serum CRP divided by serum albumin), <italic>CO</italic> cardiac output, <italic>COP</italic> colloid oncotic pressure, <italic>CPP</italic> cerebral perfusion pressure, <italic>CS</italic> compartment syndrome, <italic>CVP</italic> central venous pressure, <italic>ECW/ICW</italic> extracellular/intracellular water, <italic>EVLWI</italic> extra-vascular lung water index, <italic>FAS</italic> fluid accumulation syndrome, <italic>GEDVI</italic> global end-diastolic volume index, <italic>GEF</italic> global ejection fraction, <italic>GFR</italic> glomerular filtration rate, <italic>IAH</italic> intra-abdominal hypertension, <italic>IAP</italic> intra-abdominal pressure, <italic>ICG-PDR</italic> indocyanine green plasma disappearance rate, <italic>ICH</italic> intracranial hypertension, <italic>ICP</italic> intracranial pressure, <italic>ICS</italic> intracranial compartment syndrome, <italic>IOP</italic> intra-ocular pressure, <italic>IVCCI</italic> inferior vena cava collapsibility index,<italic> LVEDAI</italic> left ventricular end-diastolic area index,<italic> MAP</italic> mean arterial pressure, <italic>OCS</italic> ocular compartment syndrome, <italic>PAOP</italic> pulmonary artery occlusion pressure, <italic>PF</italic> P<sub>a</sub>O<sub>2</sub> over FiO<sub>2</sub> ratio, <italic>pHi</italic> gastric tonometry, <italic>PLR</italic> passive leg raising, <italic>PPV</italic> pulse pressure variation, <italic>PVPI</italic> pulmonary vascular permeability index, <italic>RVEDVI</italic> right ventricular end-diastolic volume index, <italic>RVR</italic> renal vascular resistance, <italic>S</italic><sub><italic>cv</italic></sub><italic>O</italic><sub><italic>2</italic></sub> central venous oxygen saturation, <italic>SSCG</italic> surviving sepsis campaign guidelines, <italic>S</italic><sub><italic>v</italic></sub><italic>O</italic><sub><italic>2</italic></sub> mixed venous oxygen saturation, <italic>SV</italic> stroke volume, <italic>SVV</italic> stroke volume variation, <italic>V</italic><sub><italic>E</italic></sub> volume excess (from baseline body weight),<italic> VExUS</italic> venous congestion by ultrasound</p></caption><graphic xlink:href="134_2022_6761_Fig1a_HTML" id="MO1"/><graphic xlink:href="134_2022_6761_Fig1b_HTML" id="MO100"/></fig></p>
+    </sec>
+    <sec id="Sec2">
+      <title>What is deresuscitation?</title>
+      <p id="Par2">The term deresuscitation was coined in 2014 [<xref ref-type="bibr" rid="CR3">3</xref>] and defined as active fluid removal in patients with fluid overload using drugs and/or ultrafiltration (UF). The term ‘de-escalation’ relates more to reducing the amount and rate of previously started fluid administration [<xref ref-type="bibr" rid="CR4">4</xref>]. There is no clear or unique definition of fluid overload in the literature and some suggest that it is an all or nothing phenomenon associated with worse outcomes [<xref ref-type="bibr" rid="CR3">3</xref>, <xref ref-type="bibr" rid="CR5">5</xref>], defined as 10% body weight fluid accumulation (dividing the cumulative fluid balance in liters by the patient’s baseline body weight and multiplying by 100). We suggest to avoid the term fluid overload as this may misleadingly refer to intravascular hypervolemia [<xref ref-type="bibr" rid="CR6">6</xref>] and propose the term fluid accumulation (FA) instead. FA denotes a pathologic state of overhydration associated with clinical impact and worse outcomes which may vary depending on age, comorbidity and phase of illness. It can be estimated by different methods: change in daily body weight, cumulative fluid balance, or bio-electrical impedance analysis with body composition. It may occur with concomitant intravascular hypovolemia, normovolemia and hypervolemia and may or may not be associated with interstitial edema. Fluid accumulation describes a continuum and no specific threshold of fluid balance alone can define fluid accumulation across all individuals. Fluid accumulation syndrome (FAS) describes the presence of any % of fluid accumulation or fluid overload with negative impact on end-organ function (Fig. <xref rid="Fig1" ref-type="fig">1</xref>, Panel B) which may or may not be associated with global increased permeability syndrome (GIPS) [<xref ref-type="bibr" rid="CR7">7</xref>].</p>
+    </sec>
+    <sec id="Sec3">
+      <title>When to start deresuscitation?</title>
+      <p id="Par3">As soon as salvage resuscitation has been completed, de-escalation should begin, aiming for a zero fluid balance (passively, by decreasing fluid intake). Deresuscitation should be considered when FA negatively impacts organ function. Close monitoring is key to identifying patients who benefit from fluid removal. Triggers include clinical signs (increased weight, positive fluid balance), laboratory parameters (hemodilution), radiological signs (B-lines, pleural effusion, low inferior vena cava collapsibility index) [<xref ref-type="bibr" rid="CR8">8</xref>] altered cardiopulmonary function (absence of fluid responsiveness, increased filling pressures and volumetric preload, low pulse pressure variation) and measures of end-organ function.</p>
+      <p id="Par4">Potentially promising techniques exist that may serve as triggers and safety limits for deresuscitation. In critically ill patients receiving renal replacement therapy (RRT), the absence of preload dependence pre-RRT, as determined by a negative passive leg raising (PLR) test, predicted tolerance of fluid removal [<xref ref-type="bibr" rid="CR9">9</xref>]. In 123 critically ill patients, increased extra-vascular lung water index (EVLWI) and failure to lower EVLWI were associated with increased mortality and longer duration of ventilation [<xref ref-type="bibr" rid="CR10">10</xref>]. Use of a protocol including blood volume analysis with calculation of total circulating blood volume by albumin-marked isotope dilution technique resulted in a 66% reduction in mortality, 20% reduction in length of stay (LOS), 36 h earlier treatment decisions and change of treatment strategy in 44% (reduced fluid and diuretic administration in 50% of cases) [<xref ref-type="bibr" rid="CR11">11</xref>]. A 5% increase in volume excess from baseline, measured by bio-electrical impedance analysis, was associated with increased mortality in a retrospective study of 101 critically ill patients [<xref ref-type="bibr" rid="CR12">12</xref>]. Another study in 125 patients showed that the hydration status measured by bio-electrical impedance vector analysis (BIVA) seems to predict mortality risk in intensive care unit (ICU) patients better than the conventional method of fluid balance recording [<xref ref-type="bibr" rid="CR13">13</xref>]. Recently, the venous congestion by point-of-care-ultrasound (VExUS) score gained attention as a technique to assess fluid status at the bedside [<xref ref-type="bibr" rid="CR14">14</xref>]. Venous congestion as a contributor to organ failure can also be demonstrated by the impact of right ventricular dysfunction on inferior vena cava, portal, hepatic, and renal veins using echocardiography [<xref ref-type="bibr" rid="CR15">15</xref>].</p>
+    </sec>
+    <sec id="Sec4">
+      <title>How to deresuscitate?</title>
+      <p id="Par5">In principle, parameters achieved during the stabilization phase should be maintained during deresuscitation. Prevention (fluid restriction) and de-escalation come first and clinicians should be aware that most fluids given are not given for resuscitation purposes (only 6%) but rather for maintenance (25%), nutrition (33%) and drug administration (fluid creep) (33%) [<xref ref-type="bibr" rid="CR16">16</xref>]. Measures to remove excess fluid can be pharmacologic (drugs) and non-pharmacologic (net UF), combined with fluid restriction. Provided some kidney function is preserved, diuretics are usually tried first, either as monotherapy or in combination. The options are summarized in supplementary Table 1 and include loop diuretics (furosemide, bumetanide), carbonic anhydrase inhibitor (acetazolamide), mineralocorticoid receptor antagonist (spironolactone), thiazides or thiazide-like drugs (indapamide). In case of low serum albumin levels (&lt; 30 g/L) or low serum total protein levels (&lt; 60 g/L), hyper-oncotic albumin 20–25% can be added for synergistic effect [<xref ref-type="bibr" rid="CR17">17</xref>, <xref ref-type="bibr" rid="CR18">18</xref>]. The combination of positive end-expiratory pressure (PEEP, in cmH<sub>2</sub>O, set at the level of intra-abdominal pressure (IAP) in mmHg), followed by hyper-oncotic albumin (up to albumin levels of 30 g/L) and furosemide resulted in a negative cumulative fluid balance, a reduction of EVLWI and IAP, and improved clinical outcomes in a matched cohort of 114 critically ill patients with hyperpermeability pulmonary edema [<xref ref-type="bibr" rid="CR19">19</xref>]. However, caution is necessary when using hyper-oncotic human albumin solution to facilitate restrictive fluid therapy. Current evidence stems mostly from observational studies, and more randomized trials are needed to better establish a personalized approach to fluid management [<xref ref-type="bibr" rid="CR20">20</xref>].</p>
+      <p id="Par6">Diuretic failure is defined as inability to generate adequate diuresis to achieve the target negative fluid balance (diuretic resistance) or as the occurrence of important side effects. Diuretic resistance is primarily based on variable gastrointestinal absorption, poor kidney function or interactions with other drugs. Mechanical fluid removal should be considered when fluid overload has not responded to diuretics, cannot be corrected safely or in situations where diuretics are unlikely to be effective. Different types of mechanical fluid removal can be utilized for deresuscitation, including slow continuous ultrafiltration (SCUF) and intermittent or continuous RRT. The primary modality for fluid removal in all techniques is UF. In 11 critically ill patients receiving RRT, 1.9 L net fluid removal lowered IAP, EVLWI and global end-diastolic volume index (GEDVI) significantly [<xref ref-type="bibr" rid="CR21">21</xref>].</p>
+      <p id="Par7">Although excess fluid should be removed without hemodynamic compromise, occasionally it may be necessary to accept an increase in catecholamine support to facilitate fluid removal and improve critical physiological parameters such as oxygenation.</p>
+    </sec>
+    <sec id="Sec5">
+      <title>When to stop deresuscitation?</title>
+      <p id="Par8">Deresuscitation should be stopped when the goal is met (i.e. benefit has been achieved) or when safety concerns arise. This goal can be fluid-related (neutral balance), physiologic (e.g. central venous pressure, CVP) or clinical (improved oxygenation, extubation). However, there is no one single valid marker that indicates when euvolaemia has been achieved.</p>
+      <p id="Par9">During UF, hypotension may occur when the rate of removal of plasma exceeds the refilling capacity of compensatory fluid movement from the extra-vascular compartments. In stable patients undergoing intermittent haemodialysis, the fluid refill rate is 2 to 6 ml/kg per hour but may exceed 10 ml/kg per hour at high rates of ultrafiltration [<xref ref-type="bibr" rid="CR22">22</xref>]. Since transcapillary refill rate depends on oncotic pressure, vascular integrity and blood pressure, it is reduced during critical illness [<xref ref-type="bibr" rid="CR23">23</xref>]. A recent study showed that in critically ill adults receiving continuous veno-venous hemodiafiltration for acute kidney injury, the rate of net UF at which mortality is increased seemed to be from 1.75 ml/kg/h and certainly from 2.8 ml/kg/h upwards [<xref ref-type="bibr" rid="CR24">24</xref>]. The decision to change from mechanical fluid removal to diuretics or vice versa should be guided by clinical volume status, organ function, spontaneous diuresis and perceived trajectories.</p>
+    </sec>
+    <sec id="Sec6">
+      <title>So what is next?</title>
+      <p id="Par10">Research is required to investigate strategies to maintain and improve tissue perfusion and organ function while mitigating FAS. This includes the need to identify sensitive and accurate markers of intravascular volume status. Further research should also identify the optimal rates of fluid removal in specific patient groups, tools to predict the consequences of fluid removal, and investigate the role of adjunctive therapies (e.g. albumin) and vasopressors to support fluid removal versus the harm from prolonged fluid accumulation. Aggregation and integration of large-scale (realworld) physiological and clinical data will lend itself to data science techniques such as artificial intelligence and machine learning that can in real-time accurately measure FAS and account for patient characteristics such as illness severity and chronic co-morbidities to identify the optimal method, timing and rate of fluid removal for individual patients.</p>
+    </sec>
+    <sec id="Sec7">
+      <title>Wrap it up—take home messages</title>
+      <p id="Par11">One of the most common interventions in critically ill patients is assessment of fluid status and prescription of fluid administration or removal. Both interventions have potential for harm and benefit, thus they should be regarded as drugs and managed according to the principles of fluid stewardship [<xref ref-type="bibr" rid="CR25">25</xref>]. While stewardship and deresuscitation are important, we must avoid the pendulum swinging back to lead hypovolemic patients to inappropriately receive diuretics (as was the case during the first wave of the coronavirus disease 2019 (COVID-19) pandemic). Deresuscitation should never be too fast, too long or too aggressive. Deciding when to start and stop deresuscitation is key to improving patient outcomes, and research is ongoing to identify the best parameters to guide fluid removal in critically ill patients [<xref ref-type="bibr" rid="CR26">26</xref>, <xref ref-type="bibr" rid="CR27">27</xref>]. While waiting for the results of the RADAR-2 and CLASSIC trials, prevention of FA and de-escalation of fluid therapy remain the most effective strategies to avoid deresuscitation.</p>
+    </sec>
+    <sec sec-type="supplementary-material">
+      <title>Supplementary Information</title>
+      <sec id="Sec50">
+        <p>Below is the link to the electronic supplementary material.<supplementary-material content-type="local-data" id="MOESM1"><media xlink:href="134_2022_6761_MOESM1_ESM.docx"><caption><p>Supplementary file1 (DOCX 22 kb)</p></caption></media></supplementary-material></p>
+      </sec>
+    </sec>
+  </body>
+  <back>
+    <fn-group>
+      <fn>
+        <p>
+          <bold>Publisher's Note</bold>
+        </p>
+        <p>Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.</p>
+      </fn>
+    </fn-group>
+    <notes>
+      <title>Declarations</title>
+      <notes notes-type="COI-statement">
+        <title>Conflicts of interest</title>
+        <p>MLNGM is co-founder, past-President and current Treasurer of WSACS (The Abdominal Compartment Society, <ext-link ext-link-type="uri" xlink:href="http://www.wsacs.org">http://www.wsacs.org</ext-link>). He is member of the medical advisory Board of Pulsion Medical Systems (part of Getinge group), Serenno Medical, Potrero Medical, and Baxter, and consults for BBraun, Becton Dickinson, ConvaTec, Spiegelberg, and Holtech Medical. He is co-founder and President of the International Fluid Academy (IFA). The IFA (<ext-link ext-link-type="uri" xlink:href="http://www.fluidacademy.org">http://www.fluidacademy.org</ext-link>) is integrated within the not-for-profit charitable organization iMERiT, International Medical Education and Research Initiative, under Belgian law. MO has received speaker honoraria and research funding from Fresenius Medical and Baxter and is a member of an advisory board for NxStage and Pfizer. GM has served on research or medical advisory boards or conducted funded research from Genentech, Grifols, Regeneron and Siemens.</p>
+      </notes>
+    </notes>
+    <ref-list id="Bib1">
+      <title>References</title>
+      <ref id="CR1">
+        <label>1.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>ML</given-names>
+            </name>
+            <name>
+              <surname>Mythen</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Rice</surname>
+              <given-names>TW</given-names>
+            </name>
+            <name>
+              <surname>Wuyts</surname>
+              <given-names>S</given-names>
+            </name>
+          </person-group>
+          <article-title>It is time for improved fluid stewardship</article-title>
+          <source>ICU Manag Pract</source>
+          <year>2018</year>
+          <volume>18</volume>
+          <issue>3</issue>
+          <fpage>158</fpage>
+          <lpage>162</lpage>
+        </element-citation>
+      </ref>
+      <ref id="CR2">
+        <label>2.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>MLNG</given-names>
+            </name>
+            <name>
+              <surname>Langer</surname>
+              <given-names>T</given-names>
+            </name>
+            <name>
+              <surname>Annane</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Gattinoni</surname>
+              <given-names>L</given-names>
+            </name>
+            <name>
+              <surname>Elbers</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Hahn</surname>
+              <given-names>RG</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Intravenous fluid therapy in the perioperative and critical care setting: Executive summary of the International Fluid Academy (IFA)</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2020</year>
+          <volume>10</volume>
+          <issue>1</issue>
+          <fpage>64</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13613-020-00679-3</pub-id>
+          <pub-id pub-id-type="pmid">32449147</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR3">
+        <label>3.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>ML</given-names>
+            </name>
+            <name>
+              <surname>Marik</surname>
+              <given-names>PE</given-names>
+            </name>
+            <name>
+              <surname>Witters</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Cordemans</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>Kirkpatrick</surname>
+              <given-names>AW</given-names>
+            </name>
+            <name>
+              <surname>Roberts</surname>
+              <given-names>DJ</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Fluid overload, de-resuscitation, and outcomes in critically ill or injured patients: a systematic review with suggestions for clinical practice</article-title>
+          <source>Anaesthesiol Intensive Ther</source>
+          <year>2014</year>
+          <volume>46</volume>
+          <issue>5</issue>
+          <fpage>361</fpage>
+          <lpage>380</lpage>
+          <pub-id pub-id-type="doi">10.5603/AIT.2014.0060</pub-id>
+          <pub-id pub-id-type="pmid">25432556</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR4">
+        <label>4.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Hoste</surname>
+              <given-names>EA</given-names>
+            </name>
+            <name>
+              <surname>Maitland</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Brudney</surname>
+              <given-names>CS</given-names>
+            </name>
+            <name>
+              <surname>Mehta</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Vincent</surname>
+              <given-names>JL</given-names>
+            </name>
+            <name>
+              <surname>Yates</surname>
+              <given-names>D</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Four phases of intravenous fluid therapy: a conceptual model</article-title>
+          <source>Br J Anaesth</source>
+          <year>2014</year>
+          <volume>113</volume>
+          <issue>5</issue>
+          <fpage>740</fpage>
+          <lpage>747</lpage>
+          <pub-id pub-id-type="doi">10.1093/bja/aeu300</pub-id>
+          <pub-id pub-id-type="pmid">25204700</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR5">
+        <label>5.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Silversides</surname>
+              <given-names>JA</given-names>
+            </name>
+            <name>
+              <surname>Major</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Ferguson</surname>
+              <given-names>AJ</given-names>
+            </name>
+            <name>
+              <surname>Mann</surname>
+              <given-names>EE</given-names>
+            </name>
+            <name>
+              <surname>McAuley</surname>
+              <given-names>DF</given-names>
+            </name>
+            <name>
+              <surname>Marshall</surname>
+              <given-names>JC</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Conservative fluid management or deresuscitation for patients with sepsis or acute respiratory distress syndrome following the resuscitation phase of critical illness: a systematic review and meta-analysis</article-title>
+          <source>Intensive Care Med</source>
+          <year>2017</year>
+          <volume>43</volume>
+          <issue>2</issue>
+          <fpage>155</fpage>
+          <lpage>170</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-016-4573-3</pub-id>
+          <pub-id pub-id-type="pmid">27734109</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR6">
+        <label>6.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Vincent</surname>
+              <given-names>JL</given-names>
+            </name>
+            <name>
+              <surname>Pinsky</surname>
+              <given-names>MR</given-names>
+            </name>
+          </person-group>
+          <article-title>We should avoid the term "fluid overload"</article-title>
+          <source>Crit Care</source>
+          <year>2018</year>
+          <volume>22</volume>
+          <issue>1</issue>
+          <fpage>214</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13054-018-2141-7</pub-id>
+          <pub-id pub-id-type="pmid">30205826</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR7">
+        <label>7.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>MLNG</given-names>
+            </name>
+            <name>
+              <surname>Van Regenmortel</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Saugel</surname>
+              <given-names>B</given-names>
+            </name>
+            <name>
+              <surname>De Tavernier</surname>
+              <given-names>B</given-names>
+            </name>
+            <name>
+              <surname>Van Gaal</surname>
+              <given-names>P-J</given-names>
+            </name>
+            <name>
+              <surname>Joannes-Boyau</surname>
+              <given-names>O</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Principles of fluid management and stewardship in septic shock: it is time to consider the four D’s and the four phases of fluid therapy</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2018</year>
+          <volume>8</volume>
+          <issue>1</issue>
+          <fpage>66</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13613-018-0402-x</pub-id>
+          <pub-id pub-id-type="pmid">29789983</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR8">
+        <label>8.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Martin</surname>
+              <given-names>GS</given-names>
+            </name>
+            <name>
+              <surname>Ely</surname>
+              <given-names>EW</given-names>
+            </name>
+            <name>
+              <surname>Carroll</surname>
+              <given-names>FE</given-names>
+            </name>
+            <name>
+              <surname>Bernard</surname>
+              <given-names>GR</given-names>
+            </name>
+          </person-group>
+          <article-title>Findings on the portable chest radiograph correlate with fluid balance in critically ill patients</article-title>
+          <source>Chest</source>
+          <year>2002</year>
+          <volume>122</volume>
+          <issue>6</issue>
+          <fpage>2087</fpage>
+          <lpage>2095</lpage>
+          <pub-id pub-id-type="doi">10.1378/chest.122.6.2087</pub-id>
+          <pub-id pub-id-type="pmid">12475852</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR9">
+        <label>9.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Monnet</surname>
+              <given-names>X</given-names>
+            </name>
+            <name>
+              <surname>Cipriani</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Camous</surname>
+              <given-names>L</given-names>
+            </name>
+            <name>
+              <surname>Sentenac</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Dres</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Krastinova</surname>
+              <given-names>E</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>The passive leg raising test to guide fluid removal in critically ill patients</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2016</year>
+          <volume>6</volume>
+          <issue>1</issue>
+          <fpage>46</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13613-016-0149-1</pub-id>
+          <pub-id pub-id-type="pmid">27207178</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR10">
+        <label>10.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Cordemans</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>De laet</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>van Regenmortel</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Schoonheydt</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Dits</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Huber</surname>
+              <given-names>W</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Fluid management in critically ill patients: the role of extravascular lung water, abdominal hypertension, capillary leak and fluid balance</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2012</year>
+          <volume>2</volume>
+          <issue>Suppl 1</issue>
+          <fpage>S1</fpage>
+          <pub-id pub-id-type="doi">10.1186/2110-5820-2-S1-S1</pub-id>
+          <pub-id pub-id-type="pmid">22873410</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR11">
+        <label>11.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Yu</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Pei</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Moran</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Edwards</surname>
+              <given-names>KD</given-names>
+            </name>
+            <name>
+              <surname>Domingo</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Steinemann</surname>
+              <given-names>S</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>A prospective randomized trial using blood volume analysis in addition to pulmonary artery catheter, compared with pulmonary artery catheter alone, to guide shock resuscitation in critically ill surgical patients</article-title>
+          <source>Shock</source>
+          <year>2011</year>
+          <volume>35</volume>
+          <issue>3</issue>
+          <fpage>220</fpage>
+          <lpage>228</lpage>
+          <pub-id pub-id-type="doi">10.1097/SHK.0b013e3181fc9178</pub-id>
+          <pub-id pub-id-type="pmid">20926981</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR12">
+        <label>12.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Cleymaet</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Scheinok</surname>
+              <given-names>T</given-names>
+            </name>
+            <name>
+              <surname>Maes</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Stas</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>L</given-names>
+            </name>
+            <name>
+              <surname>De Laet</surname>
+              <given-names>I</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Prognostic value of bioelectrical impedance analysis for assessment of fluid overload in ICU patients: a pilot study</article-title>
+          <source>Anaesthesiol Intensive Ther</source>
+          <year>2021</year>
+          <volume>53</volume>
+          <issue>1</issue>
+          <fpage>10</fpage>
+          <lpage>17</lpage>
+          <pub-id pub-id-type="doi">10.5114/ait.2021.103526</pub-id>
+          <pub-id pub-id-type="pmid">33625819</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR13">
+        <label>13.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Samoni</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Vigo</surname>
+              <given-names>V</given-names>
+            </name>
+            <name>
+              <surname>Resendiz</surname>
+              <given-names>LI</given-names>
+            </name>
+            <name>
+              <surname>Villa</surname>
+              <given-names>G</given-names>
+            </name>
+            <name>
+              <surname>De Rosa</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Nalesso</surname>
+              <given-names>F</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Impact of hyperhydration on the mortality risk in critically ill patients admitted in intensive care units: comparison between bioelectrical impedance vector analysis and cumulative fluid balance recording</article-title>
+          <source>Crit Care</source>
+          <year>2016</year>
+          <volume>20</volume>
+          <fpage>95</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13054-016-1269-6</pub-id>
+          <pub-id pub-id-type="pmid">27060079</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR14">
+        <label>14.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Rola</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Miralles-Aguiar</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Argaiz</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Beaubien-Souligny</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Haycock</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Karimov</surname>
+              <given-names>T</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Clinical applications of the venous excess ultrasound (VExUS) score: conceptual review and case series</article-title>
+          <source>Ultrasound J</source>
+          <year>2021</year>
+          <volume>13</volume>
+          <issue>1</issue>
+          <fpage>32</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13089-021-00232-8</pub-id>
+          <pub-id pub-id-type="pmid">34146184</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR15">
+        <label>15.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Beaubien-Souligny</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Rola</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Haycock</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Bouchard</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Lamarche</surname>
+              <given-names>Y</given-names>
+            </name>
+            <name>
+              <surname>Spiegel</surname>
+              <given-names>R</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Quantifying systemic congestion with Point-Of-Care ultrasound: development of the venous excess ultrasound grading system</article-title>
+          <source>Ultrasound J</source>
+          <year>2020</year>
+          <volume>12</volume>
+          <issue>1</issue>
+          <fpage>16</fpage>
+          <pub-id pub-id-type="doi">10.1186/s13089-020-00163-w</pub-id>
+          <pub-id pub-id-type="pmid">32270297</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR16">
+        <label>16.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Van Regenmortel</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Verbrugghe</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Roelant</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Van den Wyngaert</surname>
+              <given-names>T</given-names>
+            </name>
+            <name>
+              <surname>Jorens</surname>
+              <given-names>PG</given-names>
+            </name>
+          </person-group>
+          <article-title>Maintenance fluid therapy and fluid creep impose more significant fluid, sodium, and chloride burdens than resuscitation fluids in critically ill patients: a retrospective study in a tertiary mixed ICU population</article-title>
+          <source>Intensive Care Med</source>
+          <year>2018</year>
+          <volume>44</volume>
+          <issue>4</issue>
+          <fpage>409</fpage>
+          <lpage>417</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-018-5147-3</pub-id>
+          <pub-id pub-id-type="pmid">29589054</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR17">
+        <label>17.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Martin</surname>
+              <given-names>GS</given-names>
+            </name>
+            <name>
+              <surname>Moss</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Wheeler</surname>
+              <given-names>AP</given-names>
+            </name>
+            <name>
+              <surname>Mealer</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Morris</surname>
+              <given-names>JA</given-names>
+            </name>
+            <name>
+              <surname>Bernard</surname>
+              <given-names>GR</given-names>
+            </name>
+          </person-group>
+          <article-title>A randomized, controlled trial of furosemide with or without albumin in hypoproteinemic patients with acute lung injury</article-title>
+          <source>Crit Care Med</source>
+          <year>2005</year>
+          <volume>33</volume>
+          <issue>8</issue>
+          <fpage>1681</fpage>
+          <lpage>1687</lpage>
+          <pub-id pub-id-type="doi">10.1097/01.CCM.0000171539.47006.02</pub-id>
+          <pub-id pub-id-type="pmid">16096441</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR18">
+        <label>18.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Martin</surname>
+              <given-names>GS</given-names>
+            </name>
+            <name>
+              <surname>Mangialardi</surname>
+              <given-names>RJ</given-names>
+            </name>
+            <name>
+              <surname>Wheeler</surname>
+              <given-names>AP</given-names>
+            </name>
+            <name>
+              <surname>Dupont</surname>
+              <given-names>WD</given-names>
+            </name>
+            <name>
+              <surname>Morris</surname>
+              <given-names>JA</given-names>
+            </name>
+            <name>
+              <surname>Bernard</surname>
+              <given-names>GR</given-names>
+            </name>
+          </person-group>
+          <article-title>Albumin and furosemide therapy in hypoproteinemic patients with acute lung injury</article-title>
+          <source>Crit Care Med</source>
+          <year>2002</year>
+          <volume>30</volume>
+          <issue>10</issue>
+          <fpage>2175</fpage>
+          <lpage>2182</lpage>
+          <pub-id pub-id-type="doi">10.1097/00003246-200210000-00001</pub-id>
+          <pub-id pub-id-type="pmid">12394941</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR19">
+        <label>19.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Cordemans</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>De laet</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Van Regenmortel</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Schoonheydt</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Dits</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Martin</surname>
+              <given-names>G</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Aiming for a negative fluid balance in patients with acute lung injury and increased intra-abdominal pressure: a pilot study looking at the effects of PAL-treatment</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2012</year>
+          <volume>2</volume>
+          <issue>Suppl 1</issue>
+          <fpage>S15</fpage>
+          <pub-id pub-id-type="doi">10.1186/2110-5820-2-S1-S15</pub-id>
+          <pub-id pub-id-type="pmid">22873416</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR20">
+        <label>20.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Wiedermann</surname>
+              <given-names>CJ</given-names>
+            </name>
+          </person-group>
+          <article-title>Phases of fluid management and the roles of human albumin solution in perioperative and critically ill patients</article-title>
+          <source>Curr Med Res Opin</source>
+          <year>2020</year>
+          <volume>36</volume>
+          <issue>12</issue>
+          <fpage>1961</fpage>
+          <lpage>1973</lpage>
+          <pub-id pub-id-type="doi">10.1080/03007995.2020.1840970</pub-id>
+          <pub-id pub-id-type="pmid">33090028</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR21">
+        <label>21.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>De laet</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Deeren</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Schoonheydt</surname>
+              <given-names>K</given-names>
+            </name>
+          </person-group>
+          <article-title>Renal replacement therapy with net fluid removal lowers intra-abdominal pressure and volumetric indices in critically ill patients</article-title>
+          <source>Ann Intensive Care</source>
+          <year>2012</year>
+          <volume>2</volume>
+          <issue>Suppl 1</issue>
+          <fpage>S20</fpage>
+          <pub-id pub-id-type="doi">10.1186/2110-5820-2-S1-S20</pub-id>
+          <pub-id pub-id-type="pmid">23282287</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR22">
+        <label>22.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Mitsides</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Pietribiasi</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Waniewski</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Brenchley</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Mitra</surname>
+              <given-names>S</given-names>
+            </name>
+          </person-group>
+          <article-title>Transcapillary refilling rate and its determinants during haemodialysis with standard and high ultrafiltration rates</article-title>
+          <source>Am J Nephrol</source>
+          <year>2019</year>
+          <volume>50</volume>
+          <issue>2</issue>
+          <fpage>133</fpage>
+          <lpage>143</lpage>
+          <pub-id pub-id-type="doi">10.1159/000501407</pub-id>
+          <pub-id pub-id-type="pmid">31288231</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR23">
+        <label>23.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Dull</surname>
+              <given-names>RO</given-names>
+            </name>
+            <name>
+              <surname>Hahn</surname>
+              <given-names>RG</given-names>
+            </name>
+          </person-group>
+          <article-title>Transcapillary refill: the physiology underlying fluid reabsorption</article-title>
+          <source>J Trauma Acute Care Surg</source>
+          <year>2021</year>
+          <volume>90</volume>
+          <issue>2</issue>
+          <fpage>e31</fpage>
+          <lpage>e39</lpage>
+          <pub-id pub-id-type="doi">10.1097/TA.0000000000003013</pub-id>
+          <pub-id pub-id-type="pmid">33491937</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR24">
+        <label>24.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Murugan</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Kerti</surname>
+              <given-names>SJ</given-names>
+            </name>
+            <name>
+              <surname>Chang</surname>
+              <given-names>CH</given-names>
+            </name>
+            <name>
+              <surname>Gallagher</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Clermont</surname>
+              <given-names>G</given-names>
+            </name>
+            <name>
+              <surname>Palevsky</surname>
+              <given-names>PM</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Association of net ultrafiltration rate with mortality among critically ill adults with acute kidney injury receiving continuous venovenous hemodiafiltration: a secondary analysis of the randomized evaluation of normal vs augmented level (RENAL) of renal replacement therapy trial</article-title>
+          <source>JAMA Netw Open</source>
+          <year>2019</year>
+          <volume>2</volume>
+          <issue>6</issue>
+          <fpage>e195418</fpage>
+          <pub-id pub-id-type="doi">10.1001/jamanetworkopen.2019.5418</pub-id>
+          <pub-id pub-id-type="pmid">31173127</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR25">
+        <label>25.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Silversides</surname>
+              <given-names>JA</given-names>
+            </name>
+            <name>
+              <surname>Perner</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Malbrain</surname>
+              <given-names>ML</given-names>
+            </name>
+          </person-group>
+          <article-title>Liberal versus restrictive fluid therapy in critically ill patients</article-title>
+          <source>Intensive Care Med</source>
+          <year>2019</year>
+          <volume>45</volume>
+          <issue>10</issue>
+          <fpage>1440</fpage>
+          <lpage>1442</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-019-05713-y</pub-id>
+          <pub-id pub-id-type="pmid">31399779</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR26">
+        <label>26.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Silversides</surname>
+              <given-names>JA</given-names>
+            </name>
+            <name>
+              <surname>McMullan</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Emerson</surname>
+              <given-names>LM</given-names>
+            </name>
+            <name>
+              <surname>Bradbury</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Bannard-Smith</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Szakmany</surname>
+              <given-names>T</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Feasibility of conservative fluid administration and deresuscitation compared with usual care in critical illness: the Role of Active Deresuscitation After Resuscitation-2 (RADAR-2) randomised clinical trial</article-title>
+          <source>Intensive Care Med</source>
+          <year>2022</year>
+          <volume>48</volume>
+          <issue>2</issue>
+          <fpage>190</fpage>
+          <lpage>200</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-021-06596-8</pub-id>
+          <pub-id pub-id-type="pmid">34913089</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR27">
+        <label>27.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Meyhoff</surname>
+              <given-names>TS</given-names>
+            </name>
+            <name>
+              <surname>Hjortrup</surname>
+              <given-names>PB</given-names>
+            </name>
+            <name>
+              <surname>Moller</surname>
+              <given-names>MH</given-names>
+            </name>
+            <name>
+              <surname>Wetterslev</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Lange</surname>
+              <given-names>T</given-names>
+            </name>
+            <name>
+              <surname>Kjaer</surname>
+              <given-names>MN</given-names>
+            </name>
+            <etal/>
+          </person-group>
+          <article-title>Conservative vs liberal fluid therapy in septic shock (CLASSIC) trial-Protocol and statistical analysis plan</article-title>
+          <source>Acta Anaesthesiol Scand</source>
+          <year>2019</year>
+          <volume>63</volume>
+          <issue>9</issue>
+          <fpage>1262</fpage>
+          <lpage>1271</lpage>
+          <pub-id pub-id-type="doi">10.1111/aas.13434</pub-id>
+          <pub-id pub-id-type="pmid">31276193</pub-id>
+        </element-citation>
+      </ref>
+    </ref-list>
+  </back>
+</article>

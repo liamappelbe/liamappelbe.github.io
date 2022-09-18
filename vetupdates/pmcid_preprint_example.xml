@@ -1,0 +1,1003 @@
+<article xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ali="http://www.niso.org/schemas/ali/1.0/" article-type="brief-report" dtd-version="1.3">
+  <?properties open_access?>
+  <processing-meta base-tagset="archiving" mathml-version="3.0" table-model="xhtml" tagset-family="jats">
+    <restricted-by>pmc</restricted-by>
+  </processing-meta>
+  <front>
+    <journal-meta>
+      <journal-id journal-id-type="nlm-ta">Intensive Care Med</journal-id>
+      <journal-id journal-id-type="iso-abbrev">Intensive Care Med</journal-id>
+      <journal-title-group>
+        <journal-title>Intensive Care Medicine</journal-title>
+      </journal-title-group>
+      <issn pub-type="ppub">0342-4642</issn>
+      <issn pub-type="epub">1432-1238</issn>
+      <publisher>
+        <publisher-name>Springer Berlin Heidelberg</publisher-name>
+        <publisher-loc>Berlin/Heidelberg</publisher-loc>
+      </publisher>
+    </journal-meta>
+    <article-meta>
+      <article-id pub-id-type="pmid">36038712</article-id>
+      <article-id pub-id-type="pmc">9422935</article-id>
+      <article-id pub-id-type="publisher-id">6850</article-id>
+      <article-id pub-id-type="doi">10.1007/s00134-022-06850-7</article-id>
+      <article-categories>
+        <subj-group subj-group-type="heading">
+          <subject>Lasting Legacy in Intensive Care Medicine</subject>
+        </subj-group>
+      </article-categories>
+      <title-group>
+        <article-title>Thromboprophylaxis in critical care</article-title>
+      </title-group>
+      <contrib-group>
+        <contrib contrib-type="author" corresp="yes">
+          <contrib-id contrib-id-type="orcid">http://orcid.org/0000-0003-0895-6800</contrib-id>
+          <name>
+            <surname>Helms</surname>
+            <given-names>Julie</given-names>
+          </name>
+          <address>
+            <email>Julie.helms@chru-strasbourg.fr</email>
+          </address>
+          <xref ref-type="aff" rid="Aff1">1</xref>
+          <xref ref-type="aff" rid="Aff2">2</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Middeldorp</surname>
+            <given-names>Saskia</given-names>
+          </name>
+          <xref ref-type="aff" rid="Aff3">3</xref>
+          <xref ref-type="aff" rid="Aff4">4</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Spyropoulos</surname>
+            <given-names>Alex C.</given-names>
+          </name>
+          <xref ref-type="aff" rid="Aff5">5</xref>
+          <xref ref-type="aff" rid="Aff6">6</xref>
+          <xref ref-type="aff" rid="Aff7">7</xref>
+        </contrib>
+        <aff id="Aff1"><label>1</label><institution-wrap><institution-id institution-id-type="GRID">grid.11843.3f</institution-id><institution-id institution-id-type="ISNI">0000 0001 2157 9291</institution-id><institution>Université de Strasbourg (UNISTRA), Faculté de Médecine; Hôpitaux universitaires de Strasbourg, Service de Médecine Intensive-Réanimation, Nouvel Hôpital Civil, </institution></institution-wrap>Strasbourg, France </aff>
+        <aff id="Aff2"><label>2</label>INSERM (French National Institute of Health and Medical Research), UMR 1260, Regenerative Nanomedicine (RNM), FMTS, Strasbourg, France </aff>
+        <aff id="Aff3"><label>3</label><institution-wrap><institution-id institution-id-type="GRID">grid.10417.33</institution-id><institution-id institution-id-type="ISNI">0000 0004 0444 9382</institution-id><institution>Department of Internal Medicine and Radboud Institute of Health Sciences (RIHS), </institution></institution-wrap>Nijmegen, The Netherlands </aff>
+        <aff id="Aff4"><label>4</label><institution-wrap><institution-id institution-id-type="GRID">grid.10417.33</institution-id><institution-id institution-id-type="ISNI">0000 0004 0444 9382</institution-id><institution>Radboud University Medical Center, </institution></institution-wrap>Nijmegen, The Netherlands </aff>
+        <aff id="Aff5"><label>5</label><institution-wrap><institution-id institution-id-type="GRID">grid.512756.2</institution-id><institution-id institution-id-type="ISNI">0000 0004 0370 4759</institution-id><institution>The Donald and Barbara Zucker School of Medicine at Hofstra/Northwell, </institution></institution-wrap>Hempstead, USA </aff>
+        <aff id="Aff6"><label>6</label><institution-wrap><institution-id institution-id-type="GRID">grid.250903.d</institution-id><institution-id institution-id-type="ISNI">0000 0000 9566 0634</institution-id><institution>Institute of Health System Science, The Feinstein Institutes for Medical Research, </institution></institution-wrap>Manhasset, USA </aff>
+        <aff id="Aff7"><label>7</label><institution-wrap><institution-id institution-id-type="GRID">grid.415895.4</institution-id><institution-id institution-id-type="ISNI">0000 0001 2215 7314</institution-id><institution>Anticoagulation and Clinical Thrombosis Services, </institution><institution>Northwell Health at Lenox Hill Hospital, </institution></institution-wrap>130 E 77th St, New York, NY 10075 USA </aff>
+      </contrib-group>
+      <pub-date pub-type="epub">
+        <day>29</day>
+        <month>8</month>
+        <year>2022</year>
+      </pub-date>
+      <fpage>1</fpage>
+      <lpage>4</lpage>
+      <history>
+        <date date-type="received">
+          <day>13</day>
+          <month>6</month>
+          <year>2022</year>
+        </date>
+        <date date-type="accepted">
+          <day>29</day>
+          <month>7</month>
+          <year>2022</year>
+        </date>
+      </history>
+      <permissions>
+        <copyright-statement>© Springer-Verlag GmbH Germany, part of Springer Nature 2022</copyright-statement>
+        <license>
+          <license-p>This article is made available via the PMC Open Access Subset for unrestricted research re-use and secondary analysis in any form or by any means with acknowledgement of the original source. These permissions are granted for the duration of the World Health Organization (WHO) declaration of COVID-19 as a global pandemic.</license-p>
+        </license>
+      </permissions>
+    </article-meta>
+  </front>
+  <body>
+    <p id="Par1">Venous thromboembolism (VTE) in critically ill patients may be a life-threatening complication increasing duration of mechanical ventilation and stay in the intensive care unit (ICU). Both early diagnosis and effective and safe thromboprophylaxis are, therefore, daily challenges. Despite its major clinical impact, the risk of VTE in ICU has long been poorly characterized (Suppl. Figure 1), and high-quality evidence comparing pharmacologic and mechanical VTE prophylaxis strategies is still limited.</p>
+    <p id="Par2">Although the anticoagulant effect of heparin was elucidated in 1939, it only became used from the 1950s to prevent VTE in post-surgical patients. In 1960, a landmark trial established heparin to be effective in reducing mortality from pulmonary embolism (PE), as only surgical options were considered previously [<xref ref-type="bibr" rid="CR1">1</xref>]. Low-molecular-weight heparin (LMWH) was discovered in the 1980s and improved thromboprophylaxis through more consistent pharmacokinetics/pharmacodynamic, simplified dosing, reduced bleeding, and less frequent heparin-induced thrombocytopenia than with unfractionated heparin (UFH) [<xref ref-type="bibr" rid="CR2">2</xref>].</p>
+    <sec id="Sec2">
+      <title>Which pharmacological thromboprophylaxis for critically ill patients?</title>
+      <p id="Par3">With regard to type of prophylaxis, LMWH might have superior efficacy compared to UFH in medical and surgical critically ill patients. PROTECT [<xref ref-type="bibr" rid="CR3">3</xref>] is the largest RCT to date to compare LMWH (dalteparin, 5000 IU/day) and UFH (5000 IU/12 h) in 3764 critically ill patients, of whom 90% were mechanically ventilated. Patients at very high risk of bleeding were excluded. Dalteparin did not decrease the rate of proximal deep vein thrombosis (DVT) compared to UFH, but the rate of PE was significantly lower with dalteparin (1.3% vs. 2.3%) (HR 0.51; 95% CI 0.30–0.88; <italic>p</italic> = 0.01), without difference in major bleeding or in-hospital death. Also, LMWH was more effective than low-dose heparin in preventing VTE after major trauma [<xref ref-type="bibr" rid="CR4">4</xref>].</p>
+      <p id="Par4">In a recent systematic review including 13 randomized controlled trials (RCTs) (9619 critically ill patients) and comparing the efficacy and safety of thromboprophylaxis in ICU, the authors showed with a moderate certainty that LMWH reduced the rate of DVT compared to UFH (OR 0.72 [95% CI 0.46–0.98]) and with a high certainty that it reduced the rate of DVT compared to control (OR 0.59 [95% CrI: 0.33–0.90]; high certainty), while UFH may reduce DVT compared to control (OR 0.82 [95% CrI: 0.47–1.37]) with a low certainty of evidence [<xref ref-type="bibr" rid="CR5">5</xref>]. In this meta-analysis, the effect of LMWH compared to UFH on PE is uncertain, because of very low-quality of evidence.</p>
+      <p id="Par5">Consistent with clinical studies which seem to provide a superior efficacy of LMWH compared to UFH, without an increase in bleeding complications, the European and American guidelines [<xref ref-type="bibr" rid="CR2">2</xref>, <xref ref-type="bibr" rid="CR6">6</xref>] recommend pharmacological prophylaxis with LMWH over UFH in critically ill patients (Grade 1B) (Fig. <xref rid="Fig1" ref-type="fig">1</xref>). For patients with severe renal insufficiency, the guidelines suggest the use of UFH (Grade 2C), dalteparin (Grade 2B) or reduced doses of enoxaparin (Grade 2C) and monitoring of anti-Xa activity (Grade 2C). The guidelines also suggest no prophylaxis or the use of intermittent pneumatic compression in patients with a platelet count less than 50,000/mm<sup>3</sup> or a high risk of bleeding (Grade 2C) and the careful use of pharmacological prophylaxis in patients with severe liver failure.<fig id="Fig1"><label>Fig. 1</label><caption><p>Thromboprophylaxis in the critically ill. Grading of the recommendations are based on the European guidelines on perioperative venous thromboembolism prophylaxis in Intensive Care [<xref ref-type="bibr" rid="CR6">6</xref>] and on mechanical thromboprophylaxis [<xref ref-type="bibr" rid="CR8">8</xref>], and on the most recent guidelines on the use of anticoagulation for thromboprophylaxis in patients with COVID-19 from the International Society of Thrombosis and Haemostasis (ISTH) [<xref ref-type="bibr" rid="CR15">15</xref>].<italic> COVID-19</italic> coronavirus disease 2019, <italic>GCS</italic> graduated compression stockings, <italic>HIT</italic> heparin-induced thrombocytopenia, <italic>IPC</italic> Intermittent Pneumatic Compression, <italic>LMWH</italic> low-molecular weight heparin, <italic>RCTs</italic> randomized controlled trials, <italic>UFH</italic> unfractionated heparin</p></caption><graphic xlink:href="134_2022_6850_Fig1_HTML" id="MO1"/></fig></p>
+    </sec>
+    <sec id="Sec3">
+      <title>Mechanical thromboprophylaxis in critically ill patients</title>
+      <p id="Par6">The place of mechanical thromboprophylaxis is still debated [<xref ref-type="bibr" rid="CR5">5</xref>]. In the PREVENT trial [<xref ref-type="bibr" rid="CR7">7</xref>], the use of adjunctive compression devices in addition to pharmacologic prophylaxis did not result in a reduction in DVT compared to pharmacologic prophylaxis alone. Consistently, the aforementioned meta-analysis [<xref ref-type="bibr" rid="CR5">5</xref>] showed that compressive devices might reduce the risk of DVT compared to a control group made of a composite of no prophylaxis, placebo, or compression stockings only (OR 0.85 [95% CrI: 0.50–1.50]), although certainty evidence was low.</p>
+      <p id="Par7">The European guidelines recommend against the use of graduated compression stockings alone without pharmacological thromboprophylaxis for prevention of VTE in patients at intermediate and high risk (Grade 1B) [<xref ref-type="bibr" rid="CR6">6</xref>, <xref ref-type="bibr" rid="CR8">8</xref>]. They recommend the use of mechanical prophylaxis for patients with contraindications for anticoagulation (Grade 1B) or in selected patients at very high risk of VTE prophylaxis in addition to pharmacological prophylaxis (Grade 2B), and suggest the use of intermittent pneumatic compression over graduated compression stockings (GCS, Grade 2B). The American guidelines do not support the use of combination therapy over either pharmacologic therapy or compression therapy alone [<xref ref-type="bibr" rid="CR2">2</xref>].</p>
+    </sec>
+    <sec id="Sec4">
+      <title>Important considerations and pending questions</title>
+      <p id="Par8">Even if these recommendations are clear, there are still several considerations that need to be taken into account for critically ill patients.</p>
+      <p id="Par9">Although the availability of high-resolution reliable imaging allowed a more acute awareness for VTE over the past decades, compliance with VTE prophylaxis should still be improved. In a recent retrospective analysis of more than 1.4 million critically ill patients, 4% of patients did not receive any form of thromboprophylaxis within the first 24 h after ICU admission without obvious reason [<xref ref-type="bibr" rid="CR9">9</xref>]. This, together with pharmacologic thromboprophylaxis being often withheld in ICU due to complications or surgical/invasive procedures, leading to less efficient thromboprophylaxis. Also, as risk factors for thromboprophylaxis failure include an elevated BMI, a personal/family history of VTE, or vasopressor use, it is likely that more aggressive and multimodal strategies should be used in some at-risk patients [<xref ref-type="bibr" rid="CR10">10</xref>], maybe including mechanical thromboprophylaxis.</p>
+      <p id="Par10">Then, anti-factor Xa thresholds protective of VTE are still a matter of debate in critically ill patients receiving prophylactic LMWH, and personalizing thromboprophylaxis to decrease adverse events in this specific population not only at high risk of VTE, but also at high risk of bleeding complications, would need an alternative anticoagulation monitoring technique [<xref ref-type="bibr" rid="CR11">11</xref>, <xref ref-type="bibr" rid="CR12">12</xref>]. In this line, when a targeted level of anticoagulation is not achieved in response to heparin dose increase, heparin resistance might be invoked. The hypercoagulability of critical illness, as described for example in SARS-CoV-2 or other acute infections, might be responsible for elevated factor VIII and fibrinogen levels leading to shortened aPTT, and binding of heparin to acute-phase inflammatory proteins that decreases its effects [<xref ref-type="bibr" rid="CR13">13</xref>].</p>
+      <p id="Par11">This leads us to consider the question of a possible specific thromboprophylaxis regimen in critically ill patients with coronavirus disease 2019 (COVID-19), who have early been identified at increased risk of thrombotic events [<xref ref-type="bibr" rid="CR14">14</xref>]. Consistent with several negative RCTs, the most recent guidelines from the International Society of Thrombosis and Haemostasis (ISTH) recommend using prophylactic‐ over therapeutic‐ or intermediate-intensity anticoagulation to reduce risk of adverse events, including mortality and thromboembolism (moderate strength of recommendation, level of evidence B-Randomized RCTs) [<xref ref-type="bibr" rid="CR15">15</xref>].</p>
+    </sec>
+    <sec id="Sec5">
+      <title>Take-home message</title>
+      <p id="Par12">Considering the high risk of thrombosis in critically ill patients, general consensus currently establishes use of some form of heparin in pharmacological prophylaxis at the time of ICU admission, or mechanical thromboprophylaxis in those with contraindications to pharmacological thromboprophylaxis. LMWH is preferred over UFH for VTE prophylaxis in the ICU, unless in patients with severe renal insufficiency, where the use of low-dose heparin, dalteparin or reduced doses of enoxaparin might be preferred.</p>
+    </sec>
+    <sec sec-type="supplementary-material">
+      <title>Supplementary Information</title>
+      <sec id="Sec6">
+        <p>Below is the link to the electronic supplementary material.<supplementary-material content-type="local-data" id="MOESM1"><media xlink:href="134_2022_6850_MOESM1_ESM.jpg"><caption><p>Supplementary file1 Supplementary Fig. 1: Advances in the understanding and diagnosis of venous thromboembolism. CTA: Computed Tomography Angiography; CUS: compression ultrasonography; DVT: Deep vein thrombosis; PE: pulmonary embolism; VTE: Venous thromboembolism; V/Q: ventilation/perfusion</p></caption></media></supplementary-material></p>
+      </sec>
+    </sec>
+  </body>
+  <back>
+    <fn-group>
+      <fn>
+        <p>
+          <bold>Publisher's Note</bold>
+        </p>
+        <p>Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.</p>
+      </fn>
+    </fn-group>
+    <notes>
+      <title>Declarations</title>
+      <notes id="FPar1" notes-type="COI-statement">
+        <title>Conflicts of interest</title>
+        <p id="Par13">JH has received honoraria for lectures from Diagnostica Stago, Pfizer PFE France and Sanofi Aventis France. SM has received personal fees from Daiichi Sankyo, Bayer, Pfizer, Boehringer Ingelheim, Portola/Alexion, AbbVie, BMS-Pfizer, Sanofi, and Viatris, all paid to her institution, and grants from Daiichi Sankyo, Bayer, Pfizer, and Boehringer Ingelheim. AS received consultant fees from Janssen, Bayer, Bristol Myer Squibb, Sanofi, Alexion, ATLAS Group and research Funds from Janssen.</p>
+      </notes>
+    </notes>
+    <ref-list id="Bib1">
+      <title>References</title>
+      <ref id="CR1">
+        <label>1.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Barritt</surname>
+              <given-names>DW</given-names>
+            </name>
+            <name>
+              <surname>Jordan</surname>
+              <given-names>SC</given-names>
+            </name>
+          </person-group>
+          <article-title>Anticoagulant drugs in the treatment of pulmonary embolism. A controlled trial</article-title>
+          <source>Lancet</source>
+          <year>1960</year>
+          <volume>1</volume>
+          <fpage>1309</fpage>
+          <lpage>1312</lpage>
+          <pub-id pub-id-type="doi">10.1016/S0140-6736(60)92299-6</pub-id>
+          <pub-id pub-id-type="pmid">13797091</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR2">
+        <label>2.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Schunemann</surname>
+              <given-names>HJ</given-names>
+            </name>
+            <name>
+              <surname>Cushman</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Burnett</surname>
+              <given-names>AE</given-names>
+            </name>
+            <name>
+              <surname>Kahn</surname>
+              <given-names>SR</given-names>
+            </name>
+            <name>
+              <surname>Beyer-Westendorf</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Spencer</surname>
+              <given-names>FA</given-names>
+            </name>
+            <name>
+              <surname>Rezende</surname>
+              <given-names>SM</given-names>
+            </name>
+            <name>
+              <surname>Zakai</surname>
+              <given-names>NA</given-names>
+            </name>
+            <name>
+              <surname>Bauer</surname>
+              <given-names>KA</given-names>
+            </name>
+            <name>
+              <surname>Dentali</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Lansing</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Balduzzi</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Darzi</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Morgano</surname>
+              <given-names>GP</given-names>
+            </name>
+            <name>
+              <surname>Neumann</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Nieuwlaat</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Yepes-Nunez</surname>
+              <given-names>JJ</given-names>
+            </name>
+            <name>
+              <surname>Zhang</surname>
+              <given-names>Y</given-names>
+            </name>
+            <name>
+              <surname>Wiercioch</surname>
+              <given-names>W</given-names>
+            </name>
+          </person-group>
+          <article-title>American Society of Hematology 2018 guidelines for management of venous thromboembolism: prophylaxis for hospitalized and nonhospitalized medical patients</article-title>
+          <source>Blood Adv</source>
+          <year>2018</year>
+          <volume>2</volume>
+          <fpage>3198</fpage>
+          <lpage>3225</lpage>
+          <pub-id pub-id-type="doi">10.1182/bloodadvances.2018022954</pub-id>
+          <pub-id pub-id-type="pmid">30482763</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR3">
+        <label>3.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <collab>Group PIftCCCT, the A, New Zealand Intensive Care Society Clinical Trials G</collab>
+            <name>
+              <surname>Cook</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Meade</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Guyatt</surname>
+              <given-names>G</given-names>
+            </name>
+            <name>
+              <surname>Walter</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Heels-Ansdell</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Warkentin</surname>
+              <given-names>TE</given-names>
+            </name>
+            <name>
+              <surname>Zytaruk</surname>
+              <given-names>N</given-names>
+            </name>
+            <name>
+              <surname>Crowther</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Geerts</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Cooper</surname>
+              <given-names>DJ</given-names>
+            </name>
+            <name>
+              <surname>Vallance</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Qushmaq</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Rocha</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Berwanger</surname>
+              <given-names>O</given-names>
+            </name>
+            <name>
+              <surname>Vlahakis</surname>
+              <given-names>NE</given-names>
+            </name>
+          </person-group>
+          <article-title>Dalteparin versus unfractionated heparin in critically ill patients</article-title>
+          <source>N Engl J Med</source>
+          <year>2011</year>
+          <volume>364</volume>
+          <fpage>1305</fpage>
+          <lpage>1314</lpage>
+          <pub-id pub-id-type="doi">10.1056/NEJMoa1014475</pub-id>
+          <pub-id pub-id-type="pmid">21417952</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR4">
+        <label>4.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Geerts</surname>
+              <given-names>WH</given-names>
+            </name>
+            <name>
+              <surname>Jay</surname>
+              <given-names>RM</given-names>
+            </name>
+            <name>
+              <surname>Code</surname>
+              <given-names>KI</given-names>
+            </name>
+            <name>
+              <surname>Chen</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Szalai</surname>
+              <given-names>JP</given-names>
+            </name>
+            <name>
+              <surname>Saibil</surname>
+              <given-names>EA</given-names>
+            </name>
+            <name>
+              <surname>Hamilton</surname>
+              <given-names>PA</given-names>
+            </name>
+          </person-group>
+          <article-title>A comparison of low-dose heparin with low-molecular-weight heparin as prophylaxis against venous thromboembolism after major trauma</article-title>
+          <source>N Engl J Med</source>
+          <year>1996</year>
+          <volume>335</volume>
+          <fpage>701</fpage>
+          <lpage>707</lpage>
+          <pub-id pub-id-type="doi">10.1056/NEJM199609053351003</pub-id>
+          <pub-id pub-id-type="pmid">8703169</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR5">
+        <label>5.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Fernando</surname>
+              <given-names>SM</given-names>
+            </name>
+            <name>
+              <surname>Tran</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Cheng</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Sadeghirad</surname>
+              <given-names>B</given-names>
+            </name>
+            <name>
+              <surname>Arabi</surname>
+              <given-names>YM</given-names>
+            </name>
+            <name>
+              <surname>Cook</surname>
+              <given-names>DJ</given-names>
+            </name>
+            <name>
+              <surname>Moller</surname>
+              <given-names>MH</given-names>
+            </name>
+            <name>
+              <surname>Mehta</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Fowler</surname>
+              <given-names>RA</given-names>
+            </name>
+            <name>
+              <surname>Burns</surname>
+              <given-names>KEA</given-names>
+            </name>
+            <name>
+              <surname>Wells</surname>
+              <given-names>PS</given-names>
+            </name>
+            <name>
+              <surname>Carrier</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Crowther</surname>
+              <given-names>MA</given-names>
+            </name>
+            <name>
+              <surname>Scales</surname>
+              <given-names>DC</given-names>
+            </name>
+            <name>
+              <surname>English</surname>
+              <given-names>SW</given-names>
+            </name>
+            <name>
+              <surname>Kyeremanteng</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>Kanji</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Kho</surname>
+              <given-names>ME</given-names>
+            </name>
+            <name>
+              <surname>Rochwerg</surname>
+              <given-names>B</given-names>
+            </name>
+          </person-group>
+          <article-title>VTE prophylaxis in critically ill adults: a systematic review and network meta-analysis</article-title>
+          <source>Chest</source>
+          <year>2022</year>
+          <volume>161</volume>
+          <fpage>418</fpage>
+          <lpage>428</lpage>
+          <pub-id pub-id-type="doi">10.1016/j.chest.2021.08.050</pub-id>
+          <pub-id pub-id-type="pmid">34419428</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR6">
+        <label>6.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Duranteau</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Taccone</surname>
+              <given-names>FS</given-names>
+            </name>
+            <name>
+              <surname>Verhamme</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Ageno</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Force</surname>
+              <given-names>EVGT</given-names>
+            </name>
+          </person-group>
+          <article-title>European guidelines on perioperative venous thromboembolism prophylaxis: intensive care</article-title>
+          <source>Eur J Anaesthesiol</source>
+          <year>2018</year>
+          <volume>35</volume>
+          <fpage>142</fpage>
+          <lpage>146</lpage>
+          <pub-id pub-id-type="doi">10.1097/EJA.0000000000000707</pub-id>
+          <pub-id pub-id-type="pmid">29112545</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR7">
+        <label>7.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Arabi</surname>
+              <given-names>YM</given-names>
+            </name>
+            <name>
+              <surname>Al-Hameed</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Burns</surname>
+              <given-names>KEA</given-names>
+            </name>
+            <name>
+              <surname>Mehta</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Alsolamy</surname>
+              <given-names>SJ</given-names>
+            </name>
+            <name>
+              <surname>Alshahrani</surname>
+              <given-names>MS</given-names>
+            </name>
+            <name>
+              <surname>Mandourah</surname>
+              <given-names>Y</given-names>
+            </name>
+            <name>
+              <surname>Almekhlafi</surname>
+              <given-names>GA</given-names>
+            </name>
+            <name>
+              <surname>Almaani</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Al Bshabshe</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Finfer</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Arshad</surname>
+              <given-names>Z</given-names>
+            </name>
+            <name>
+              <surname>Khalid</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Mehta</surname>
+              <given-names>Y</given-names>
+            </name>
+            <name>
+              <surname>Gaur</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Hawa</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Buscher</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Lababidi</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Al Aithan</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Abdukahil</surname>
+              <given-names>SAI</given-names>
+            </name>
+            <name>
+              <surname>Jose</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Afesh</surname>
+              <given-names>LY</given-names>
+            </name>
+            <name>
+              <surname>Al-Dawood</surname>
+              <given-names>A</given-names>
+            </name>
+            <collab>Saudi Critical Care Trials G</collab>
+          </person-group>
+          <article-title>Adjunctive intermittent pneumatic compression for venous thromboprophylaxis</article-title>
+          <source>N Engl J Med</source>
+          <year>2019</year>
+          <volume>380</volume>
+          <fpage>1305</fpage>
+          <lpage>1315</lpage>
+          <pub-id pub-id-type="doi">10.1056/NEJMoa1816150</pub-id>
+          <pub-id pub-id-type="pmid">30779530</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR8">
+        <label>8.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Afshari</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Fenger-Eriksen</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>Monreal</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Verhamme</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>Force</surname>
+              <given-names>EVGT</given-names>
+            </name>
+          </person-group>
+          <article-title>European guidelines on perioperative venous thromboembolism prophylaxis: mechanical prophylaxis</article-title>
+          <source>Eur J Anaesthesiol</source>
+          <year>2018</year>
+          <volume>35</volume>
+          <fpage>112</fpage>
+          <lpage>115</lpage>
+          <pub-id pub-id-type="doi">10.1097/EJA.0000000000000726</pub-id>
+          <pub-id pub-id-type="pmid">29112550</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR9">
+        <label>9.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Sahle</surname>
+              <given-names>BW</given-names>
+            </name>
+            <name>
+              <surname>Pilcher</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Peter</surname>
+              <given-names>K</given-names>
+            </name>
+            <name>
+              <surname>McFadyen</surname>
+              <given-names>JD</given-names>
+            </name>
+            <name>
+              <surname>Bucknall</surname>
+              <given-names>T</given-names>
+            </name>
+          </person-group>
+          <article-title>Trends and risk factors for omission of early thromboprophylaxis in Australian and New Zealand ICUs between 2009 and 2020</article-title>
+          <source>Intensive Care Med</source>
+          <year>2022</year>
+          <volume>48</volume>
+          <fpage>590</fpage>
+          <lpage>598</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-022-06672-7</pub-id>
+          <pub-id pub-id-type="pmid">35362763</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR10">
+        <label>10.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Lim</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Meade</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Lauzier</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Zarychanski</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Mehta</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Lamontagne</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Dodek</surname>
+              <given-names>P</given-names>
+            </name>
+            <name>
+              <surname>McIntyre</surname>
+              <given-names>L</given-names>
+            </name>
+            <name>
+              <surname>Hall</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Heels-Ansdell</surname>
+              <given-names>D</given-names>
+            </name>
+            <name>
+              <surname>Fowler</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Pai</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Guyatt</surname>
+              <given-names>G</given-names>
+            </name>
+            <name>
+              <surname>Crowther</surname>
+              <given-names>MA</given-names>
+            </name>
+            <name>
+              <surname>Warkentin</surname>
+              <given-names>TE</given-names>
+            </name>
+            <name>
+              <surname>Devereaux</surname>
+              <given-names>PJ</given-names>
+            </name>
+            <name>
+              <surname>Walter</surname>
+              <given-names>SD</given-names>
+            </name>
+            <name>
+              <surname>Muscedere</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Herridge</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Turgeon</surname>
+              <given-names>AF</given-names>
+            </name>
+            <name>
+              <surname>Geerts</surname>
+              <given-names>W</given-names>
+            </name>
+            <name>
+              <surname>Finfer</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Jacka</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Berwanger</surname>
+              <given-names>O</given-names>
+            </name>
+            <name>
+              <surname>Ostermann</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Qushmaq</surname>
+              <given-names>I</given-names>
+            </name>
+            <name>
+              <surname>Friedrich</surname>
+              <given-names>JO</given-names>
+            </name>
+            <name>
+              <surname>Cook</surname>
+              <given-names>DJ</given-names>
+            </name>
+            <name>
+              <surname>Investigators PRfTiCCT, </surname>
+            </name>
+          </person-group>
+          <article-title>Failure of anticoagulant thromboprophylaxis: risk factors in medical-surgical critically ill patients*</article-title>
+          <source>Crit Care Med</source>
+          <year>2015</year>
+          <volume>43</volume>
+          <fpage>401</fpage>
+          <lpage>410</lpage>
+          <pub-id pub-id-type="doi">10.1097/CCM.0000000000000713</pub-id>
+          <pub-id pub-id-type="pmid">25474533</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR11">
+        <label>11.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gratz</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Wiegele</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Dibiasi</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>Schaden</surname>
+              <given-names>E</given-names>
+            </name>
+          </person-group>
+          <article-title>The challenge of pharmacological thromboprophylaxis in ICU patients: anti-FXa activity does not constitute a simple solution</article-title>
+          <source>Intensive Care Med</source>
+          <year>2022</year>
+          <pub-id pub-id-type="doi">10.1007/s00134-022-06744-8</pub-id>
+          <pub-id pub-id-type="pmid">35614321</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR12">
+        <label>12.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Hofmaenner</surname>
+              <given-names>DA</given-names>
+            </name>
+            <name>
+              <surname>Singer</surname>
+              <given-names>M</given-names>
+            </name>
+          </person-group>
+          <article-title>The challenge of pharmacological thromboprophylaxis in ICU patients: anti-FXa activity does not constitute the simple solution. Author's reply</article-title>
+          <source>Intensive Care Med</source>
+          <year>2022</year>
+          <pub-id pub-id-type="doi">10.1007/s00134-022-06744-8</pub-id>
+          <pub-id pub-id-type="pmid">35713667</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR13">
+        <label>13.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Levy</surname>
+              <given-names>JH</given-names>
+            </name>
+            <name>
+              <surname>Connors</surname>
+              <given-names>JM</given-names>
+            </name>
+          </person-group>
+          <article-title>Heparin resistance—clinical perspectives and management strategies</article-title>
+          <source>N Engl J Med</source>
+          <year>2021</year>
+          <volume>385</volume>
+          <fpage>826</fpage>
+          <lpage>832</lpage>
+          <pub-id pub-id-type="doi">10.1056/NEJMra2104091</pub-id>
+          <pub-id pub-id-type="pmid">34437785</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR14">
+        <label>14.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Helms</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Severac</surname>
+              <given-names>F</given-names>
+            </name>
+            <name>
+              <surname>Merdji</surname>
+              <given-names>H</given-names>
+            </name>
+            <name>
+              <surname>Anglés-Cano</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Meziani</surname>
+              <given-names>F</given-names>
+            </name>
+          </person-group>
+          <article-title>Prothrombotic phenotype in COVID-19 severe patients</article-title>
+          <source>Intensive Care Med</source>
+          <year>2020</year>
+          <volume>46</volume>
+          <fpage>1502</fpage>
+          <lpage>1503</lpage>
+          <pub-id pub-id-type="doi">10.1007/s00134-020-06082-7</pub-id>
+          <pub-id pub-id-type="pmid">32435823</pub-id>
+        </element-citation>
+      </ref>
+      <ref id="CR15">
+        <label>15.</label>
+        <element-citation publication-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Schulman</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Sholzberg</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Spyropoulos</surname>
+              <given-names>AC</given-names>
+            </name>
+            <name>
+              <surname>Zarychans</surname>
+              <given-names>R</given-names>
+            </name>
+            <name>
+              <surname>Resnick</surname>
+              <given-names>HE</given-names>
+            </name>
+            <name>
+              <surname>Bradbury</surname>
+              <given-names>C</given-names>
+            </name>
+            <name>
+              <surname>Broxmeyer</surname>
+              <given-names>L</given-names>
+            </name>
+            <name>
+              <surname>Connors</surname>
+              <given-names>JM</given-names>
+            </name>
+            <name>
+              <surname>Falanga</surname>
+              <given-names>A</given-names>
+            </name>
+            <name>
+              <surname>Iba</surname>
+              <given-names>T</given-names>
+            </name>
+            <name>
+              <surname>Kaatz</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Levy</surname>
+              <given-names>J</given-names>
+            </name>
+            <name>
+              <surname>Middeldorp</surname>
+              <given-names>S</given-names>
+            </name>
+            <name>
+              <surname>Minichiello</surname>
+              <given-names>TA</given-names>
+            </name>
+            <name>
+              <surname>Ramacciotti</surname>
+              <given-names>E</given-names>
+            </name>
+            <name>
+              <surname>Samama</surname>
+              <given-names>M</given-names>
+            </name>
+            <name>
+              <surname>Thachil</surname>
+              <given-names>J</given-names>
+            </name>
+          </person-group>
+          <article-title>ISTH guidelines for antithrombotic treatment in COVID-19</article-title>
+          <source>J Thromb Haemost</source>
+          <year>2022</year>
+          <pub-id pub-id-type="doi">10.1111/jth.15808</pub-id>
+          <pub-id pub-id-type="pmid">35906716</pub-id>
+        </element-citation>
+      </ref>
+    </ref-list>
+  </back>
+</article>
