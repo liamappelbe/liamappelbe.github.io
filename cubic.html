@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Cubic Hermite Spline</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+function setupCanvas(canvas, viewWidth, viewPosX, viewPosY, lineWidthMul = 1) {
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(
+      canvas.width / viewWidth, 0,
+      0, -canvas.width / viewWidth,
+      canvas.width * (0.5 - viewPosX / viewWidth),
+      canvas.height * (0.5 + viewPosY / viewWidth));
+  ctx.lineWidth = lineWidthMul * viewWidth / canvas.width;
+  return ctx;
+}
+
+function onLoad() {
+  const tau = 2 * Math.PI;
+  const viewSize = 1.6;
+  const domM0 = document.getElementById("m0_slider");
+  const domM1 = document.getElementById("m1_slider");
+  const canvas = document.getElementById("view");
+  const ctx = setupCanvas(canvas, viewSize, 0.5, 0.5, 2);
+  const xlo = (1 - viewSize) / 2;
+  const xhi = (1 + viewSize) / 2;
+  const dx = viewSize / 200;
+
+  const curve = (fn, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    let x = xlo;
+    ctx.moveTo(x, fn(x));
+    for (x += dx; x <= xhi; x += dx) ctx.lineTo(x, fn(x));
+    ctx.stroke();
+  };
+
+  const line = (px, py, qx, qy, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(qx, qy);
+    ctx.stroke();
+  };
+
+  const circle = (px, py, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const update = () => {
+    const m0 = parseFloat(domM0.value);
+    const m1 = parseFloat(domM1.value);
+    const m0d = 10 * Math.sqrt(1 + m0 * m0);
+    const m0x = 1 / m0d;
+    const m0y = m0 / m0d;
+    const m1d = 10 * Math.sqrt(1 + m1 * m1);
+    const m1x = 1 / m1d;
+    const m1y = m1 / m1d;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-10, -10, 20, 20);
+
+    line(0, 0, 0, 1, '#444');
+    line(0, 1, 1, 1, '#444');
+    line(1, 1, 1, 0, '#444');
+    line(1, 0, 0, 0, '#444');
+
+    curve(x => x * (m0 + x * (3 - 2 * m0 - m1 + x * (m0 + m1 - 2))), '#FFF');
+
+    circle(0, 0, 0.02, '#00F');
+    circle(1, 1, 0.02, '#00F');
+
+    line(-m0x, -m0y, m0x, m0y, '#F00');
+    line(1 - m1x, 1 - m1y, 1 + m1x, 1 + m1y, '#F00');
+
+    window.requestAnimationFrame(update);
+  };
+  update();
+}
+window.addEventListener('load', onLoad);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Cubic Hermite Spline</h1>
+</div>
+<div id="wrap">
+  <div>
+    This is the cubic Hermite spline between (0, 0), and (1, 1), with
+    configurable endpoint gradients.
+  </div>
+  <div>
+    m0:
+    <input type="range" id="m0_slider" min="-5" max="5" step="0.01"/><br/>
+    m1:
+    <input type="range" id="m1_slider" min="-5" max="5" step="0.01"/><br/>
+  </div>
+  <canvas id="view" width="800" height="800"></canvas>
+</div>
+</body>
+</html>
