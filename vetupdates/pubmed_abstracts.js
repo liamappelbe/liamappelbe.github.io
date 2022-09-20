@@ -383,7 +383,7 @@ class Article {
         formatEpubInfo(this.isPreprint, this.pubDate, this.epubDate);
     return `${this.citeAuthor}. ${this.title} ${
                cleanText(this.journalAbbr, '. ')}` +
-        cleanText(`${this.pubDate}${maybePrefix(this.pubIssue, ';')}`, '. ') +
+        cleanText(`${this.pubDate}${maybePrefix(this.issue, ';')}`, '. ') +
         `${cleanText(maybePrefix(this.doi, 'doi: '), '. ')}` +
         `${cleanText(epubInfo, '. ')}`;
   }
@@ -797,7 +797,7 @@ function makeBatcher(api, xmlToArrayOfArticles) {
         const articles = xmlToArrayOfArticles(Xml.parse(response));
         const split = new Map();
         for (const article of articles) {
-          split.set(article.id, article.serialize());
+          split.set(article.getPrefixedId(), article.serialize());
         }
         return split;
       },
@@ -921,13 +921,13 @@ function searchUp(node, cls) {
 }
 
 let allowedAbstractJournals = null;
-function shouldAllowAbstract(isoAbbr) {
+function shouldAllowAbstract(journalAbbr) {
   if (typeof (kAllowedAbstractJournals) == 'undefined') return true;
   if (allowedAbstractJournals == null) {
     allowedAbstractJournals =
         new Set(kAllowedAbstractJournals.map(x => x.trim().toLowerCase()));
   }
-  return allowedAbstractJournals.has(isoAbbr.trim().toLowerCase());
+  return allowedAbstractJournals.has(journalAbbr.trim().toLowerCase());
 }
 
 function formatEpubInfo(isPreprint, pubDate, epubDate) {
@@ -956,10 +956,10 @@ class PubMedImpl {
     this.article = null;
     window.setTimeout(async () => {
       try {
-        if (!isNaN(pmid)) {
-          this.article = asyncPubMedGetArticleFromPmid(pmid);
-        } else if (!isNaN(pmcid)) {
-          this.article = asyncPubMedGetArticleFromPmcid(pmcid);
+        if (pmid != null) {
+          this.article = await asyncPubMedGetArticleFromPmid(pmid);
+        } else if (pmcid != null) {
+          this.article = await asyncPubMedGetArticleFromPmcid(pmcid);
         } else {
           this._fillError('Bad ID (B)');
           return;
@@ -985,7 +985,7 @@ class PubMedImpl {
     this.node.classList.remove('loading');
     this.node.classList.add('loaded');
     if (this.allowAbstract == null) {
-      this.allowAbstract = shouldAllowAbstract(this.article.isoAbbr);
+      this.allowAbstract = shouldAllowAbstract(this.article.journalAbbr);
     }
     if (!this.allowAbstract) this.node.classList.add('no-abstract');
     const addBtn = (classes, text) => {
@@ -995,8 +995,8 @@ class PubMedImpl {
     };
     addBtn(['pub-med-title'], `${this.article.title} `);
     addBtn(['pub-med-authors'], this.article.authors);
-    if (this.article.isoAbbr != '') {
-      addBtn(['pub-med-journal'], ' - ' + this.article.isoAbbr);
+    if (this.article.journalAbbr != '') {
+      addBtn(['pub-med-journal'], ' - ' + this.article.journalAbbr);
     }
     if (this.article.pubDate != '') {
       addBtn(['pub-med-date'], ' -' + this.article.getDateText());
@@ -1045,7 +1045,7 @@ class PubMedImpl {
           ['pub-med-abstract-text', 'pub-med-abstract-text-not-available'],
           'Abstract not available.');
     } else {
-      for (const [label, text] of this.atricle.abstract) {
+      for (const [label, text] of this.article.abstract) {
         const part = newDiv(domPma, ['pub-med-abstract-part']);
         if (label.length > 0) newDiv(part, ['pub-med-abstract-label'], label);
         newDiv(part, ['pub-med-abstract-text'], text);
@@ -1054,7 +1054,7 @@ class PubMedImpl {
   }
 
   _copy(e) {
-    navigator.clipboard.writeText(this.getCite());
+    navigator.clipboard.writeText(this.article.getCite());
     e.target.classList.add('clicked');
     window.setTimeout(() => e.target.classList.remove('clicked'), 200);
   }

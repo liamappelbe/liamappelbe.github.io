@@ -167,6 +167,23 @@ const runUnitTests = async () => await group('unit', () => {
 });
 
 const allArticleIds = [
+  // new ArticleId('20137004', '7167204', '10.1111/j.1748-5827.2009.00820.x'),
+  // new ArticleId('24773159', '4857933', '10.1111/jvim.12364'),
+  // new ArticleId('26806261', '4913655', '10.1111/jvim.13823'),
+  // new ArticleId('27461721', '5108445', '10.1111/jvim.14357'),
+  // new ArticleId('30244674', '6151903', '10.1186/s13054-018-2155-1'),
+  // new ArticleId('31025713', '6849757', '10.1111/jsap.13000'),
+  // new ArticleId('31681643', '6820433', '10.4103/jfmpc.jfmpc_669_19'),
+  // new ArticleId('31758868', '6979111', '10.1111/jvim.15638'),
+  // new ArticleId('34213593', '8249842', '10.1007/s00134-021-06454-7'),
+  // new ArticleId('34446092', '8390082', '10.1186/s13054-021-03736-w'),
+  // new ArticleId('35337333', '8957137', '10.1186/s13054-022-03908-2'),
+  // new ArticleId('35337346', '8957156', '10.1186/s13054-022-03911-7'),
+  // new ArticleId('35358303', '9202732', '10.1210/clinem/dgac201'),
+  // new ArticleId('35505424', '9066729', '10.1186/s40575-022-00119-4'),
+  // new ArticleId('35690953', '9188674', '10.1007/s00134-022-06749-3'),
+  // new ArticleId('35759009', '9244137', '10.1007/s00134-022-06762-6'),
+
   new ArticleId('35513707', '9205826', '10.1007/s00134-022-06698-x'),
   new ArticleId('34232336', '8261815', '10.1007/s00134-021-06459-2'),
   new ArticleId('32157357', '7095206', '10.1007/s00134-020-05980-0'),
@@ -352,10 +369,7 @@ const articleParsingTest = async () => {
         }
 
         total += 1;
-        if (artPmid.isPreprint) {
-          preprint += 1;
-          console.log('ZZZZ', aid.pmid);
-        }
+        if (artPmid.isPreprint) preprint += 1;
         if (artPmid.pubDate != artPmid.epubDate) diffDate += 1;
         if (len > 1) multiSect += 1;
         if (hasSectionTitles) sectTitle += 1;
