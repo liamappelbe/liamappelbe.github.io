@@ -13,15 +13,15 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 function generate() {
-  const {Xml, newElement, newDiv, newLink, emptyDiv, cleanText, parsePubDates,
-         parseAuthors, asyncPubMedGetArticle, kLink, parseDoi, maybePrefix,
-         parsePreprintStatus} = module.exports;
+  const {newElement, newDiv, newLink, emptyDiv, cleanText,
+         asyncPubMedGetArticleFromPmid, kLink, maybePrefix} = module.exports;
   const formatted = document.getElementById('formatted');
   const tags = document.getElementById('tags');
   emptyDiv(formatted);
   emptyDiv(tags);
   const ul = newElement('ul', formatted);
   for (const id of document.getElementById('pmids').value.split(/[^0-9]+/)) {
+    if (id == '') continue;
     const pmid = parseInt(id);
     tags.innerText += `<li><pub-med pmid="${pmid}"></pub-med></li>\n`;
     const li = newElement('li', ul, ['loading']);
@@ -35,26 +35,16 @@ function generate() {
       fillError('Bad PMID (C)');
       return;
     }
-    const fill = xml => {
+    const fill = article => {
       li.classList.remove('loading');
       li.classList.add('loaded');
       const a = newLink(li, [],);
-      const data = Xml.parse(xml);
-      const article = data?.one('MedlineCitation')?.one('Article');
-      const isPreprint = parsePreprintStatus(data?.one('PubmedData'));
-      const journalIssue = article?.one('Journal')?.one('JournalIssue');
-      const title = cleanText(article?.one('ArticleTitle')?.text);
-      newDiv(li, ['title'], title);
-      newDiv(li, ['authors'], parseAuthors(article));
-      const [pubDate, epubDate] = parsePubDates(article);
-      let dateText = '';
-      if (!isPreprint) dateText += pubDate;
-      if (isPreprint || epubDate != pubDate) dateText += ` (Epub ${epubDate})`;
-      const cite = newDiv(li, ['cite'], cleanText(dateText, '. '));
-      const doi = parseDoi(article);
-      newLink(cite, ['doi'], kLink + pmid, maybePrefix(doi, 'doi: '));
+      newDiv(li, ['title'], article.title);
+      newDiv(li, ['authors'], article.authors);
+      const cite = newDiv(li, ['cite'], cleanText(article.getDateText(), '. '));
+      newLink(cite, ['doi'], kLink + pmid, maybePrefix(article.doi, 'doi: '));
     };
-    asyncPubMedGetArticle(pmid).then(fill, fillError);
+    asyncPubMedGetArticleFromPmid('' + pmid).then(fill, fillError);
   }
   select('formatted');
 }

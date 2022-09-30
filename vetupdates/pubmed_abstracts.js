@@ -1163,6 +1163,8 @@ if (typeof (module) != 'undefined') {
     setTooltip,
     newBtn,
     newLink,
+    cleanText,
+    maybePrefix,
     // TODO: What functions does pubmednews etc need?
   };
 }
