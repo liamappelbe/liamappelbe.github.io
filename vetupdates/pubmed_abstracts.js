@@ -825,7 +825,7 @@ const asyncPubMedConvertIds_Batchers =
 function asyncPubMedConvertId(id) {
   id = id.toLowerCase();
   const idKind = identifyIdKind(id);
-  if (idKind == null) throw 'Bad ID (C)';
+  if (idKind == null) return Promise.reject('Bad ID (C)');
   return asyncPubMedConvertIds_Batchers[idKind].get(id);
 }
 

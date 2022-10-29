@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html ondrop="onDrop(event)" ondragover="onDragOver(event)">
+<head>
+<title>PubMed Formatter</title>
+<link rel="icon" href="../res/favicon.ico">
+<script>
+const kPubMedApiSuffix = [
+  'tool=tiusic.com',
+  'email=liamappelbe@gmail.com',
+].join('&');
+let module = {};
+</script>
+<script src="pubmed_abstracts.js"></script>
+<script type="text/javascript">
+
+class ArticleResult {
+  constructor(id, aid, article, err) {
+    this.id = id;
+    this.aid = aid;
+    this.article = article;
+    this.err = err;
+  }
+}
+
+async function generate() {
+  const {newElement, newDiv, newLink, emptyDiv, cleanText,
+         asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
+         asyncPubMedConvertId} = module.exports;
+
+  function getArticleImpl(aid) {
+    if (aid.pmid != null) return asyncPubMedGetArticleFromPmid(aid.pmid);
+    if (aid.pcmid != null) return asyncPubMedGetArticleFromPcmid(aid.pcmid);
+    throw "Missing ID";
+  }
+
+  async function getArticle(id) {
+    try {
+      const aid = await asyncPubMedConvertId(id);
+      const article = await getArticleImpl(aid);
+      return new ArticleResult(id, aid, article, null);
+    } catch (err) {
+      return new ArticleResult(id, null, null, err);
+    }
+  }
+
+  const wrap = document.getElementById('wrap');
+  const loadanim = document.getElementById('loadanim');
+  wrap.classList.add('loading');
+  loadanim.classList.add('loading');
+
+  const idIn = document.getElementById('pmids');
+  const formatted = document.getElementById('formatted');
+  const tags = document.getElementById('tags');
+  const errors = document.getElementById('errors');
+  emptyDiv(formatted);
+  emptyDiv(tags);
+  const ul = newElement('ul', formatted);
+
+  const fulfilledIds = [];
+  const rejectedIds = [];
+  const results = await Promise.all(
+      idIn.value.split(/[\n\t ,]+/).filter(id => id != '').map(getArticle));
+  wrap.classList.remove('loading');
+  loadanim.classList.remove('loading');
+
+  for (const ar of results) {
+    if (ar.err != null) {
+      rejectedIds.push(ar.id);
+      console.error(ar.id, ar.err);
+      continue;
+    }
+    fulfilledIds.push(ar.id);
+
+    const aid = ar.aid;
+    if (aid.pmid != null) {
+      tags.innerText += `<li><pub-med pmid="${aid.pmid}"></pub-med></li>\n`;
+    } else {
+      console.assert(aid.pmcid != null);
+      tags.innerText += `<li><pub-med pmcid="${aid.pmcid}"></pub-med></li>\n`;
+    }
+
+    const art = ar.article;
+    const li = newElement('li', ul);
+    const a = newLink(li, []);
+    newDiv(li, ['title'], art.title);
+    newDiv(li, ['authors'], art.authors);
+    const cite = newDiv(li, ['cite'], cleanText(art.getDateText(), '. '));
+    newLink(cite, ['doi'], art.getLink(), maybePrefix(art.doi, 'doi: '));
+  }
+
+  idIn.value = fulfilledIds.join('\n');
+  errors.value = rejectedIds.join('\n');
+  select('formatted');
+}
+
+function select(id) {
+  const range = document.createRange();
+  range.selectNodeContents(document.getElementById(id));
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function onDragOver(e) { e.preventDefault(); }
+async function onDrop(e) {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  let files = [];
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind == "file") files.push(item.getAsFile());
+    }
+  } else {
+    files = dt.files;
+  }
+  if (files.length == 0) return;
+  const text = await files[0].text();
+  const isPmidList = (t) => {
+    const m = t.match(/([0-9]*\n?\r?)*/);
+    if (m == null || m.length == 0) return false;
+    return m[0] == t;
+  };
+  const domPmids = document.getElementById('pmids');
+  if (isPmidList(text)) {
+    domPmids.value = text;
+  } else {
+    const pmids = [...text.matchAll(/PMID:\s*([0-9]+)/g)].map(x => x[1]);
+    domPmids.value = pmids.join('\n');
+  }
+  generate();
+}
+
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 16px;
+}
+#wrap.loading {
+  opacity: 50%;
+  pointer-events: none;
+}
+#pmids {
+  resize: none;
+}
+.middle {
+  min-width: 20%;
+  max-width: 20%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.right2 {
+  flex-grow: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#tags, #formatted {
+  width: 100%;
+  flex-grow: 1;
+  background-color: #FFF;
+  color: black;
+  font-size: 1em;
+}
+#formatted {
+  font-family: sans-serif;
+}
+#tags {
+  font-size: 0.7em;
+}
+#formatted a {
+  color: black;
+  font-family: sans-serif;
+}
+.title {
+  font-weight: bold;
+}
+.authors {
+  font-style: italic;
+}
+.cite {
+}
+#loadanim {
+  display: none;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 100;
+  position: absolute;
+  height: 30%;
+  scale: 3;
+}
+#loadanim.loading {
+  display: flex;
+}
+#loadanim div {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+#loadanim div div {
+  display: inline-block;
+  position: absolute;
+  left: 8px;
+  width: 16px;
+  background: #4fc3f7;
+  animation: loadanim 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+}
+#loadanim div div:nth-child(1) {
+  left: 8px;
+  animation-delay: -0.24s;
+}
+#loadanim div div:nth-child(2) {
+  left: 32px;
+  animation-delay: -0.12s;
+}
+#loadanim div div:nth-child(3) {
+  left: 56px;
+  animation-delay: 0;
+}
+@keyframes loadanim {
+  0% {
+    top: 8px;
+    height: 64px;
+  }
+  50%, 100% {
+    top: 24px;
+    height: 32px;
+  }
+}
+
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>PubMed Formatter</h1>
+</div>
+<div id="loadanim"><div><div></div><div></div><div></div></div></div>
+<div id="wrap">
+  <div class="left">
+    Input PMIDs: <a onclick="generate()">== GO =></a>
+    <br/>
+    <textarea id="pmids" rows="30" cols="30">
+25586014
+PMC8692219
+10.1111/jvim.15607
+jkldkjld
+    </textarea>
+    <br/>
+    <br/>
+    Errors:
+    <br/>
+    <textarea id="errors" rows="6" cols="30"></textarea>
+  </div>
+  <div class="middle">
+    <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
+    <div id="tags"></div>
+  </div>
+  <div class="right2">
+    <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
+    <div id="formatted"></div>
+  </div>
+</div>
+</body>
+</html>
