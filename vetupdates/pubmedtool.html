@@ -4,6 +4,11 @@
 <title>PubMed Formatter</title>
 <link rel="icon" href="../res/favicon.ico">
 <script>
+
+// TODO: Plumbing for real Journal title
+// TODO: Synthetic Articles
+// TODO: Upgrade drag & drop to handle all 3 ID types?
+
 const kPubMedApiSuffix = [
   'tool=tiusic.com',
   'email=liamappelbe@gmail.com',
@@ -48,13 +53,12 @@ async function generate() {
   wrap.classList.add('loading');
   loadanim.classList.add('loading');
 
-  const idIn = document.getElementById('pmids');
+  const idIn = document.getElementById('idin');
   const formatted = document.getElementById('formatted');
   const tags = document.getElementById('tags');
   const errors = document.getElementById('errors');
   emptyDiv(formatted);
   emptyDiv(tags);
-  const ul = newElement('ul', formatted);
 
   const fulfilledIds = [];
   const rejectedIds = [];
@@ -63,6 +67,8 @@ async function generate() {
   wrap.classList.remove('loading');
   loadanim.classList.remove('loading');
 
+  const articlesByJournal = new Map();
+
   for (const ar of results) {
     if (ar.err != null) {
       rejectedIds.push(ar.id);
@@ -70,22 +76,35 @@ async function generate() {
       continue;
     }
     fulfilledIds.push(ar.id);
-
-    const aid = ar.aid;
-    if (aid.pmid != null) {
-      tags.innerText += `<li><pub-med pmid="${aid.pmid}"></pub-med></li>\n`;
-    } else {
-      console.assert(aid.pmcid != null);
-      tags.innerText += `<li><pub-med pmcid="${aid.pmcid}"></pub-med></li>\n`;
+    const journal = ar.article.journalAbbr;
+    if (!articlesByJournal.has(journal)) {
+      articlesByJournal.set(journal, []);
     }
+    articlesByJournal.get(journal).push(ar);
+  }
 
-    const art = ar.article;
-    const li = newElement('li', ul);
-    const a = newLink(li, []);
-    newDiv(li, ['title'], art.title);
-    newDiv(li, ['authors'], art.authors);
-    const cite = newDiv(li, ['cite'], cleanText(art.getDateText(), '. '));
-    newLink(cite, ['doi'], art.getLink(), maybePrefix(art.doi, 'doi: '));
+  for (const [journal, articles] of articlesByJournal) {
+    tags.innerText += '<div>\n';
+    tags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
+    tags.innerText += '  <ul>\n';
+
+    const heading = newElement('h2', formatted, [], journal);
+    const ul = newElement('ul', formatted);
+    for (const ar of articles) {
+      const aid = ar.aid;
+      tags.innerText += `    <li><pub-med ${
+              aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
+          }></pub-med></li>\n`;
+
+      const art = ar.article;
+      const li = newElement('li', ul);
+      newDiv(li, ['title'], art.title);
+      newDiv(li, ['authors'], art.authors);
+      const cite = newDiv(li, ['cite'], cleanText(art.getDateText(), '. '));
+      newLink(cite, ['doi'], art.getLink(), maybePrefix(art.doi, 'doi: '));
+    }
+    tags.innerText += '  </ul>\n';
+    tags.innerText += '</div>\n\n';
   }
 
   idIn.value = fulfilledIds.join('\n');
@@ -120,7 +139,7 @@ async function onDrop(e) {
     if (m == null || m.length == 0) return false;
     return m[0] == t;
   };
-  const domPmids = document.getElementById('pmids');
+  const domPmids = document.getElementById('idin');
   if (isPmidList(text)) {
     domPmids.value = text;
   } else {
@@ -157,10 +176,6 @@ h1, #index {
   text-decoration: none;
   flex-grow: 0;
 }
-h2 {
-  color: #ff5722;
-  font-family: monospace;
-}
 a {
   color: #ffc107;
   font-family: monospace;
@@ -183,7 +198,7 @@ a {
   opacity: 50%;
   pointer-events: none;
 }
-#pmids {
+#idin, #errors {
   resize: none;
 }
 .middle {
@@ -193,7 +208,7 @@ a {
   display: flex;
   flex-direction: column;
 }
-.right2 {
+.right {
   flex-grow: 1;
   min-height: 100%;
   display: flex;
@@ -208,9 +223,12 @@ a {
 }
 #formatted {
   font-family: sans-serif;
+  overflow-y: scroll;
 }
 #tags {
   font-size: 0.7em;
+  white-space: pre;
+  overflow: scroll;
 }
 #formatted a {
   color: black;
@@ -231,8 +249,7 @@ a {
   align-items: flex-end;
   z-index: 100;
   position: absolute;
-  height: 30%;
-  scale: 3;
+  height: 50%;
 }
 #loadanim.loading {
   display: flex;
@@ -240,37 +257,37 @@ a {
 #loadanim div {
   display: inline-block;
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 240px;
+  height: 240px;
 }
 #loadanim div div {
   display: inline-block;
   position: absolute;
-  left: 8px;
-  width: 16px;
+  left: 24px;
+  width: 48px;
   background: #4fc3f7;
   animation: loadanim 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
 }
 #loadanim div div:nth-child(1) {
-  left: 8px;
+  left: 24px;
   animation-delay: -0.24s;
 }
 #loadanim div div:nth-child(2) {
-  left: 32px;
+  left: 96px;
   animation-delay: -0.12s;
 }
 #loadanim div div:nth-child(3) {
-  left: 56px;
+  left: 168px;
   animation-delay: 0;
 }
 @keyframes loadanim {
   0% {
-    top: 8px;
-    height: 64px;
+    top: 24px;
+    height: 192px;
   }
   50%, 100% {
-    top: 24px;
-    height: 32px;
+    top: 72px;
+    height: 96px;
   }
 }
 
@@ -286,23 +303,24 @@ a {
   <div class="left">
     Input PMIDs: <a onclick="generate()">== GO =></a>
     <br/>
-    <textarea id="pmids" rows="30" cols="30">
+    <textarea id="idin" rows="30" cols="60">
 25586014
 PMC8692219
 10.1111/jvim.15607
 jkldkjld
+35499966
     </textarea>
     <br/>
     <br/>
     Errors:
     <br/>
-    <textarea id="errors" rows="6" cols="30"></textarea>
+    <textarea id="errors" rows="6" cols="60"></textarea>
   </div>
   <div class="middle">
     <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
     <div id="tags"></div>
   </div>
-  <div class="right2">
+  <div class="right">
     <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
     <div id="formatted"></div>
   </div>
