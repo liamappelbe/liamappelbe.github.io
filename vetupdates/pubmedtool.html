@@ -5,7 +5,6 @@
 <link rel="icon" href="../res/favicon.ico">
 <script>
 
-// TODO: Plumbing for real Journal title
 // TODO: Synthetic Articles
 // TODO: Upgrade drag & drop to handle all 3 ID types?
 
@@ -76,7 +75,7 @@ async function generate() {
       continue;
     }
     fulfilledIds.push(ar.id);
-    const journal = ar.article.journalAbbr;
+    const journal = ar.article.journalName;
     if (!articlesByJournal.has(journal)) {
       articlesByJournal.set(journal, []);
     }

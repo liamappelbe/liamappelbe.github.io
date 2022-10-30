@@ -96,57 +96,71 @@ const articleSerializationTest = () => {
     test(JSON.stringify(article2), JSON.stringify(article));
   };
   runTest(
-      kIdKind_PMID, false, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', []);
+      kIdKind_PMID, false, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', []);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      kIdKind_PMID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
       [['a', 'b'], ['c', 'd']]);
   runTest(
-      kIdKind_PMCID, false, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      kIdKind_PMCID, false, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
       [['a', 'b'], ['c', 'd'], ['e', 'f']]);
   runTest(
-      null, true, 'id', 'doi', 'title', 'authors', 'journal abbr', 'issue',
-      'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      null, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, null, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, null, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, null, 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, null, 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', null, 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', null, 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', null, 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', null, 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', null, 'journal abbr', 'issue',
-      'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', null, 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', null, 'issue',
-      'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', null,
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      null, 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      null, 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', null, 'epud\ndate', 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', null, 'pub\tdate', 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', null, 'cite\\author', [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', null, 'epud\ndate', 'cite\\author',
+      [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', null, [['a', 'b']]);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', null, 'cite\\author', [['a', 'b']]);
   runTest(
-      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal abbr',
-      'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', null);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', null, [['a', 'b']]);
   runTest(
-      null, null, null, null, null, null, null, null, null, null, null, null);
+      kIdKind_PMCID, true, 'id', 'doi', 'title', 'authors', 'journal name',
+      'journal abbr', 'issue', 'pub\tdate', 'epud\ndate', 'cite\\author', null);
+  runTest(
+      null, null, null, null, null, null, null, null, null, null, null, null,
+      null);
 };
 
 const identifyIdKindTest = () => {
@@ -351,6 +365,7 @@ const articleParsingTest = async () => {
         t(artPmcid.isPreprint, artPmid.isPreprint);
         tt(artPmcid.title, artPmid.title);
         tt(artPmcid.authors, artPmid.authors);
+        t(artPmcid.journalName, artPmid.journalName);
         t(artPmcid.journalAbbr, artPmid.journalAbbr);
         t(artPmcid.issue, artPmid.issue);
         t(artPmcid.pubDate, artPmid.pubDate);

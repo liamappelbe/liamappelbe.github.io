@@ -117,7 +117,7 @@ class Cache {
     }
   }
 }
-const cache = new Cache(window.localStorage, 'PUBMED', 4);
+const cache = new Cache(window.localStorage, 'PUBMED', 5);
 
 class Xml {
   static parse(xml) {
@@ -361,8 +361,8 @@ const kArticleTypeCodes = new Map([
 const kInvArticleTypeCodes = invertMap(kArticleTypeCodes);
 class Article {
   constructor(
-      type, isPreprint, id, doi, title, authors, journalAbbr, issue, pubDate,
-      epubDate, citeAuthor, abstract) {
+      type, isPreprint, id, doi, title, authors, journalName, journalAbbr,
+      issue, pubDate, epubDate, citeAuthor, abstract) {
     // In each string field, '' is the same as null.
     this.type = type ?? kIdKind_PMID;
     this.isPreprint = isPreprint ?? false;
@@ -370,6 +370,7 @@ class Article {
     this.doi = doi ?? '';
     this.title = title ?? '';
     this.authors = authors ?? '';  // authorText
+    this.journalName = journalName ?? '';
     this.journalAbbr = journalAbbr ?? '';  // isoAbbr
     this.issue = issue ?? '';  // pubIssue
     this.pubDate = pubDate ?? '';
@@ -421,6 +422,7 @@ class Article {
       this.doi,
       this.title,
       this.authors,
+      this.journalName,
       this.journalAbbr,
       this.issue,
       this.pubDate,
@@ -432,7 +434,7 @@ class Article {
 
 function deserializeArticle(s) {
   const f = s.split(kDelim2).map(unescapeString);
-  const n = 10;
+  const n = 11;
   console.assert(f.length >= n);
   console.assert((f.length - n) % 2 == 0);
   console.assert(f[0].length >= 2);
@@ -458,6 +460,13 @@ function cleanText(text, end = null, otherEnds = null) {
 
 function fixCase(text) {
   return text.slice(0, 1).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+function cleanJournalName(name) {
+  return cleanText(name?.replaceAll(/\([^()]*\)/g, ''))
+      .split(' ')
+      .map(fixCase)
+      .join(' ');
 }
 
 function maybePrefix(text, pre = ' ') {
@@ -591,6 +600,7 @@ function pmidXmlToArticle(data) {
   const [pubDate, epubDate] =
       parsePMIDPubDates(article, data?.one('PubmedData'));
   const journal = article?.one('Journal');
+  const journalName = cleanJournalName(journal?.one('Title')?.text);
   const journalAbbr = cleanText(journal?.one('ISOAbbreviation')?.text);
   const journalIssue = journal?.one('JournalIssue');
   const issue = formatIssue(
@@ -602,8 +612,8 @@ function pmidXmlToArticle(data) {
               ?.text);
   const doi = parsePMIDDoi(article)?.toLowerCase();
   return new Article(
-      kIdKind_PMID, isPreprint, id, doi, title, authors, journalAbbr, issue,
-      pubDate, epubDate, citeAuthor, abstract);
+      kIdKind_PMID, isPreprint, id, doi, title, authors, journalName,
+      journalAbbr, issue, pubDate, epubDate, citeAuthor, abstract);
 }
 
 function pmidXmlToArrayOfArticles(data) {
@@ -725,7 +735,10 @@ function pmcidXmlToArticle(data) {
   const article = data?.one('front');
   if (article == null) return null;
   // console.log('NEW', data.serialize());
-  const journalAbbr = parsePMCIDJournalAbbr(article?.one('journal-meta'));
+  const journalMeta = article?.one('journal-meta');
+  const journalName = cleanJournalName(
+      journalMeta?.one('journal-title-group')?.one('journal-title')?.text);
+  const journalAbbr = parsePMCIDJournalAbbr(journalMeta);
   const am = article?.one('article-meta');
   const id = am?.oneWithAttr('article-id', [['pub-id-type', 'pmc']])?.text;
   const doi = am?.oneWithAttr('article-id', [
@@ -742,8 +755,8 @@ function pmcidXmlToArticle(data) {
   const isPreprint = parsePMCIDPreprintStatus(am);
   const abstract = parsePMCIDAbstract(am?.one('abstract'));
   return new Article(
-      kIdKind_PMCID, isPreprint, id, doi, title, authors, journalAbbr, issue,
-      pubDate, epubDate, citeAuthor, abstract);
+      kIdKind_PMCID, isPreprint, id, doi, title, authors, journalName,
+      journalAbbr, issue, pubDate, epubDate, citeAuthor, abstract);
 }
 
 function pmcidXmlToArrayOfArticles(data) {
