@@ -104,9 +104,7 @@ table {
     </div>
     <br/>
 
-    I also sell fractal prints on <a href="https://www.etsy.com/shop/BespokeFractals">Etsy</a>:
-    <br/>
-    <a href="https://www.etsy.com/shop/BespokeFractals"><img id="fractal" src="fractals/1.jpg"/></a>
+    <img id="fractal"/>
     <br/>
     <br/>
 
@@ -175,4 +173,10 @@ table {
 </div>
 
 </body>
+
+<script type="text/javascript">
+const id = Math.floor(13 * Math.random());
+document.getElementById("fractal").src = `fractals/fractal${id}.webp`;
+</script>
+
 </html>
