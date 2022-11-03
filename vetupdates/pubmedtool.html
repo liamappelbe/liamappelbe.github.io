@@ -5,7 +5,6 @@
 <link rel="icon" href="../res/favicon.ico">
 <script>
 
-// TODO: Synthetic Articles
 // TODO: Upgrade drag & drop to handle all 3 ID types?
 
 const kPubMedApiSuffix = [
@@ -17,20 +16,120 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 
-class ArticleResult {
-  constructor(id, aid, article, err) {
-    this.id = id;
+const {newElement, newDiv, newLink, emptyDiv, cleanText,
+       asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
+       asyncPubMedConvertId} = module.exports;
+
+let domWrap = null;
+let domLoad = null;
+let domIds = null;
+let domFormatted = null;
+let domTags = null;
+let domErrors = null;
+let domBottom = null;
+
+class State {
+  constructor() {
+    this.ids = [];
+    this.errorIds = [];
+    this.synths = [];
+  }
+}
+let state = null;
+
+class ArticleInfo {
+  constructor(aid, title, authors, date, doi, journal, journalAbbr, url) {
     this.aid = aid;
+    this.title = title;
+    this.authors = authors;
+    this.date = date;
+    this.doi = doi;
+    this.journal = journal;
+    this.journalAbbr = journalAbbr;
+    this.url = url;
+  }
+}
+
+function loadState() {
+  const saved = window.localStorage.getItem("save");
+  if (saved == null) {
+    state = new State();
+  } else {
+    state = JSON.parse(saved);
+    if (state.ids == null) state.ids = [];
+    if (state.errorIds == null) state.errorIds = [];
+    if (state.synths == null) state.synths = [];
+  }
+}
+
+function saveState() {
+  window.localStorage.setItem("save", JSON.stringify(state));
+}
+
+function fillDomFromState() {
+  domIds.value = state.ids.join('\n');
+  domErrors.value = state.errorIds.join('\n');
+  emptyDiv(domBottom);
+  for (const s of state.synths) addSynth(s);
+}
+
+function fillStateFromDom() {
+  state.ids = domIds.value.split(/[\n\t ,]+/).filter(id => id != '');
+  state.errorIds = domErrors.value.split(/[\n\t ,]+/).filter(id => id != '');
+  state.synths = [];
+  for (const synth of domBottom.getElementsByClassName('synth')) {
+    const f = (cls) => synth.getElementsByClassName('synth-' + cls)[0].value;
+    state.synths.push(new ArticleInfo(
+        null, f('title'), f('authors'), f('date'), f('doi'), f('journal'),
+        f('journal-abbr'), f('url')));
+  }
+}
+
+function newButton(
+    parent, classes = [], text = null, onclick = null) {
+  const btn = newDiv(parent, classes, text);
+  if (onclick != null) btn.addEventListener('click', onclick);
+  return btn;
+}
+
+function newTextInput(parent, classes = [], hint = null, value = null) {
+  const inp = newElement('input', parent, classes);
+  inp.setAttribute('type', 'text');
+  if (hint != null) inp.setAttribute('placeholder', hint);
+  if (value != null) inp.value = value;
+  return inp;
+}
+
+function addSynth(s = null) {
+  const synth = newDiv(domBottom, ['synth']);
+  newButton(synth, ['synth-delete'], '[DELETE]', () => {
+    domBottom.removeChild(synth);
+  });
+  newTextInput(synth, ['synth-input', 'synth-title'], 'Title', s?.title);
+  newTextInput(synth, ['synth-input', 'synth-authors'], 'Authors', s?.authors);
+  newTextInput(synth, ['synth-input', 'synth-date'], 'Date', s?.date);
+  newTextInput(synth, ['synth-input', 'synth-doi'], 'DOI', s?.doi);
+  newTextInput(synth, ['synth-input', 'synth-journal'], 'Journal', s?.journal);
+  newTextInput(synth, ['synth-input', 'synth-journal-abbr'],
+      'Journal Abbreviation', s?.journalAbbr);
+  newTextInput(synth, ['synth-input', 'synth-url'], 'URL', s?.url);
+}
+
+async function wait(seconds) {
+  return new Promise((resolve, reject) => {
+    window.setTimeout(resolve, 1000 * seconds);
+  });
+}
+
+class ArticleResult {
+  constructor(id, article, err) {
+    this.id = id;
     this.article = article;
     this.err = err;
   }
 }
 
 async function generate() {
-  const {newElement, newDiv, newLink, emptyDiv, cleanText,
-         asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
-         asyncPubMedConvertId} = module.exports;
-
   function getArticleImpl(aid) {
     if (aid.pmid != null) return asyncPubMedGetArticleFromPmid(aid.pmid);
     if (aid.pcmid != null) return asyncPubMedGetArticleFromPcmid(aid.pcmid);
@@ -40,33 +139,28 @@ async function generate() {
   async function getArticle(id) {
     try {
       const aid = await asyncPubMedConvertId(id);
-      const article = await getArticleImpl(aid);
-      return new ArticleResult(id, aid, article, null);
+      const art = await getArticleImpl(aid);
+      return new ArticleResult(id, new ArticleInfo(
+          aid, art.title, art.authors, art.getDateText(), art.doi,
+          art.journalName, art.journalAbbr, art.getLink()), null);
     } catch (err) {
-      return new ArticleResult(id, null, null, err);
+      return new ArticleResult(id, null, err);
     }
   }
 
-  const wrap = document.getElementById('wrap');
-  const loadanim = document.getElementById('loadanim');
-  wrap.classList.add('loading');
-  loadanim.classList.add('loading');
+  domWrap.classList.add('loading');
+  domLoad.classList.add('loading');
+  emptyDiv(domFormatted);
+  emptyDiv(domTags);
 
-  const idIn = document.getElementById('idin');
-  const formatted = document.getElementById('formatted');
-  const tags = document.getElementById('tags');
-  const errors = document.getElementById('errors');
-  emptyDiv(formatted);
-  emptyDiv(tags);
+  fillStateFromDom();
+  saveState();
 
   const fulfilledIds = [];
   const rejectedIds = [];
-  const results = await Promise.all(
-      idIn.value.split(/[\n\t ,]+/).filter(id => id != '').map(getArticle));
-  wrap.classList.remove('loading');
-  loadanim.classList.remove('loading');
-
-  const articlesByJournal = new Map();
+  const results = await Promise.all(state.ids.map(getArticle));
+  domWrap.classList.remove('loading');
+  domLoad.classList.remove('loading');
 
   for (const ar of results) {
     if (ar.err != null) {
@@ -75,39 +169,56 @@ async function generate() {
       continue;
     }
     fulfilledIds.push(ar.id);
-    const journal = ar.article.journalName;
+  }
+
+  const articlesByJournal = new Map();
+  for (const ai of results.map(ar => ar.article).concat(state.synths)) {
+    const journal = ai.journal;
     if (!articlesByJournal.has(journal)) {
       articlesByJournal.set(journal, []);
     }
-    articlesByJournal.get(journal).push(ar);
+    articlesByJournal.get(journal).push(ai);
   }
 
   for (const [journal, articles] of articlesByJournal) {
-    tags.innerText += '<div>\n';
-    tags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
-    tags.innerText += '  <ul>\n';
+    domTags.innerText += '<div>\n';
+    domTags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
+    domTags.innerText += '  <ul>\n';
 
-    const heading = newElement('h2', formatted, [], journal);
-    const ul = newElement('ul', formatted);
-    for (const ar of articles) {
-      const aid = ar.aid;
-      tags.innerText += `    <li><pub-med ${
-              aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
-          }></pub-med></li>\n`;
+    const heading = newElement('h2', domFormatted, [], journal);
+    const ul = newElement('ul', domFormatted);
+    for (const ai of articles) {
+      const aid = ai.aid;
+      if (aid != null) {
+        domTags.innerText += `    <li><pub-med ${
+                aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
+            }></pub-med></li>\n`;
+      } else {
+        domTags.innerText += `    <li>\n`;
+        domTags.innerText += `      <a href="${ai.url}" target="_blank">\n`;
+        domTags.innerText += `        <div class="pub-med-title">${ai.title}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-authors">${ai.authors}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-journal">${ai.journalAbbr}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-date">${ai.date}</div>\n`;
+        domTags.innerText += `      </a>\n`;
+        domTags.innerText += `    </li>\n`;
+      }
 
-      const art = ar.article;
       const li = newElement('li', ul);
-      newDiv(li, ['title'], art.title);
-      newDiv(li, ['authors'], art.authors);
-      const cite = newDiv(li, ['cite'], cleanText(art.getDateText(), '. '));
-      newLink(cite, ['doi'], art.getLink(), maybePrefix(art.doi, 'doi: '));
+      newDiv(li, ['title'], ai.title);
+      newDiv(li, ['authors'], ai.authors);
+      const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
+      newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
     }
-    tags.innerText += '  </ul>\n';
-    tags.innerText += '</div>\n\n';
+    domTags.innerText += '  </ul>\n';
+    domTags.innerText += '</div>\n\n';
   }
 
-  idIn.value = fulfilledIds.join('\n');
-  errors.value = rejectedIds.join('\n');
+  state.ids = fulfilledIds;
+  state.errorIds = state.errorIds.concat(rejectedIds);
+  saveState();
+  fillDomFromState();
+
   select('formatted');
 }
 
@@ -148,6 +259,23 @@ async function onDrop(e) {
   generate();
 }
 
+async function onLoad() {
+  domWrap = document.getElementById('wrap');
+  domLoad = document.getElementById('loadanim');
+  domIds = document.getElementById('idin');
+  domFormatted = document.getElementById('formatted');
+  domTags = document.getElementById('tags');
+  domErrors = document.getElementById('errors');
+  domBottom = document.getElementById('bottom');
+
+  loadState();
+  fillDomFromState();
+
+  await wait(0);
+  generate();
+}
+window.addEventListener("load", onLoad);
+
 </script>
 <style>
 body {
@@ -175,7 +303,7 @@ h1, #index {
   text-decoration: none;
   flex-grow: 0;
 }
-a {
+a, .synth-delete {
   color: #ffc107;
   font-family: monospace;
   font-size: 16px;
@@ -188,14 +316,31 @@ a {
   font-family: monospace;
   font-size: 16px;
   display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 2px;
+}
+#wrap.loading {
+  opacity: 50%;
+  pointer-events: none;
+}
+#top {
+  display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: stretch;
   gap: 16px;
 }
-#wrap.loading {
-  opacity: 50%;
-  pointer-events: none;
+#mid {
+  margin-top: 16px;
+}
+#bottom {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 16px;
 }
 #idin, #errors {
   resize: none;
@@ -289,6 +434,15 @@ a {
     height: 96px;
   }
 }
+.synth {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  gap: 16px;
+}
+.synth-input {
+  flex-grow: 1;
+}
 
 </style>
 </head>
@@ -299,29 +453,38 @@ a {
 </div>
 <div id="loadanim"><div><div></div><div></div><div></div></div></div>
 <div id="wrap">
-  <div class="left">
-    Input PMIDs: <a onclick="generate()">== GO =></a>
-    <br/>
-    <textarea id="idin" rows="30" cols="60">
-25586014
+  <div id="top">
+    <div class="left">
+      Input PMID/PMCID/DOI: <a onclick="generate()">== GO =></a>
+      <br/>
+      <textarea id="idin" rows="20" cols="40">
+<!-- 25586014
 PMC8692219
 10.1111/jvim.15607
 jkldkjld
-35499966
-    </textarea>
-    <br/>
-    <br/>
-    Errors:
-    <br/>
-    <textarea id="errors" rows="6" cols="60"></textarea>
+35499966 -->
+      </textarea>
+      <br/>
+      <br/>
+      Bad IDs:
+      <br/>
+      <textarea id="errors" rows="6" cols="40"></textarea>
+    </div>
+    <div class="middle">
+      <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
+      <div id="tags"></div>
+    </div>
+    <div class="right">
+      <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
+      <div id="formatted"></div>
+    </div>
   </div>
-  <div class="middle">
-    <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
-    <div id="tags"></div>
+  <div id="mid">
+    Synthetic tags:
+    <a onclick="addSynth()">[ADD]</a>
+    <a onclick="generate()">== GO =></a>
   </div>
-  <div class="right">
-    <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
-    <div id="formatted"></div>
+  <div id="bottom">
   </div>
 </div>
 </body>
