@@ -185,7 +185,9 @@ async function generate() {
     domTags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
     domTags.innerText += '  <ul>\n';
 
-    const heading = newElement('h2', domFormatted, [], journal);
+    // Tom doesn't like the heading :P
+    // const heading = newElement('h2', domFormatted, [], journal);
+
     const ul = newElement('ul', domFormatted);
     for (const ai of articles) {
       const aid = ai.aid;
