@@ -173,6 +173,7 @@ async function generate() {
 
   const articlesByJournal = new Map();
   for (const ai of results.map(ar => ar.article).concat(state.synths)) {
+    if (ai == null || ai.err != null) continue;
     const journal = ai.journal;
     if (!articlesByJournal.has(journal)) {
       articlesByJournal.set(journal, []);
