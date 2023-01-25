@@ -1,5 +1,5 @@
 (function() {
-const kLocalDev = true;
+const kLocalDev = false;
 const kApiEndpoint =
     kLocalDev ? 'http://localhost:8080' : 'http://168.235.69.20';
 const kSearchApi = kApiEndpoint + '/zpqk';
