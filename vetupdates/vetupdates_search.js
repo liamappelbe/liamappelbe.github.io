@@ -1,5 +1,7 @@
 (function() {
-const kApiEndpoint = 'http://168.235.69.20';
+const kLocalDev = true;
+const kApiEndpoint =
+    kLocalDev ? 'http://localhost:8080' : 'http://168.235.69.20';
 const kSearchApi = kApiEndpoint + '/zpqk';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
@@ -119,7 +121,7 @@ function newDropOptionsCheckWithLabel(list, label, onclick) {
 };
 
 function newDropOptionsItem(list, option) {
-  newDropOptionsCheckWithLabel(list, opt, () => {
+  newDropOptionsCheckWithLabel(list, option, () => {
     list.children[0].checked = false;
   });
 }
