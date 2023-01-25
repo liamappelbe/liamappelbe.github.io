@@ -2,7 +2,16 @@
 <html>
 <head>
 <title>VetUpdates Search</title>
-<link rel="icon" href="res/favicon.ico">
+<link rel="icon" href="../res/favicon.ico">
+<script>
+const kPubMedApiSuffix = [
+  'tool=tiusic.com',
+  'email=liamappelbe@gmail.com',
+  'api_key=52cee269b1c8feb878019fa2dccc04a22909',
+].join('&');
+</script>
+<script src="pubmed_abstracts.js"></script>
+<script src="vetupdates_search.js"></script>
 <script type="text/javascript">
 function onLoad() {
 }
@@ -51,6 +60,59 @@ a {
   font-family: monospace;
   font-size: 16px;
 }
+vetupdates-search {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+vetupdates-search .input-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+vetupdates-search .input-row .text-input {
+}
+vetupdates-search .input-row .dropdown-input {
+}
+vetupdates-search .input-row .date-input-wrap {
+  display: flex;
+  flex-direction: row;
+}
+vetupdates-search .input-row .button {
+  background-color: #424242;
+  padding: 0 4px;
+  cursor: pointer;
+  color: #ffc107;
+}
+vetupdates-search .results {
+  display: flex;
+  flex-direction: column;
+}
+dropdown-menu .name {
+  color: black;
+  cursor: pointer;
+  padding: 0 4px 0 4px;
+  background-color: white;
+  border: 1px solid #ccc;
+  user-select: none;
+}
+dropdown-menu .name:after {
+  content: "\25BC";
+  margin: 0 0 0 8px;
+}
+dropdown-menu .items {
+  display: none;
+  color: black;
+  background-color: white;
+  border: 1px solid #ccc;
+}
+dropdown-menu .items.visible {
+  position: absolute;
+  display: initial;
+}
 </style>
 </head>
 <body>
@@ -59,11 +121,7 @@ a {
   <h1>VetUpdates Search</h1>
 </div>
 <div id="wrap">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit. In enim ante,
-  molestie id faucibus vel, semper id massa. Phasellus a ante id lorem bibendum
-  ornare et vitae ex. Nulla mattis vel turpis id vestibulum. Vestibulum
-  facilisis condimentum lectus eu tincidunt. Nullam feugiat a ante id tincidunt.
-  Nunc a dolor sem.
+  <vetupdates-search></vetupdates-search>
 </div>
 </body>
 </html>
