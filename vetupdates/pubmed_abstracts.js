@@ -463,7 +463,7 @@ function fixCase(text) {
 }
 
 function cleanJournalName(name) {
-  return cleanText(name?.replaceAll(/\([^()]*\)/g, ''))
+  return cleanText(name?.split(':')[0]?.replaceAll(/\([^()]*\)/g, ''))
       .split(' ')
       .map(fixCase)
       .join(' ');
@@ -1177,6 +1177,7 @@ if (typeof (module) != 'undefined') {
     newBtn,
     newLink,
     cleanText,
+    fixCase,
     maybePrefix,
     // TODO: What functions does pubmednews etc need?
   };

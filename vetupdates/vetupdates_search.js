@@ -1,7 +1,7 @@
 (function() {
 const kLocalDev = false;
 const kApiEndpoint =
-    kLocalDev ? 'http://localhost:8080' : 'http://168.235.69.20';
+    kLocalDev ? 'http://localhost:8080' : 'https://squeakysqueenoctopus.com/';
 const kSearchApi = kApiEndpoint + '/zpqk';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
@@ -138,6 +138,18 @@ function newDropOptionsInput(parent, classes = [], name = null) {
   return list;
 }
 
+function fixCase(text) {
+  return text.slice(0, 1).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+function cleanTitle(t) {
+  return t.split(' ').map(fixCase).join(' ');
+}
+
+function cleanMetadata(a) {
+  return a.map(cleanTitle);
+}
+
 async function buildVetUpdatesSearch(node) {
   const inputRow = newDiv(node, ['input-row']);
   const dateInput = title => {
@@ -158,7 +170,7 @@ async function buildVetUpdatesSearch(node) {
     console.log('search!');
   });
   const resultRow = newDiv(node, ['results']);
-  const [journals, tags] = await metadataRequest();
+  const [journals, tags] = (await metadataRequest()).map(cleanMetadata);
   for (const journal of journals) newDropOptionsItem(journalInput, journal);
   for (const tag of tags) newDropOptionsItem(tagsInput, tag);
 }

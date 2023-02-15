@@ -16,7 +16,7 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 
-const {newElement, newDiv, newLink, emptyDiv, cleanText,
+const {newElement, newDiv, newLink, emptyDiv, cleanText, fixCase,
        asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
        asyncPubMedConvertId} = module.exports;
 
@@ -64,6 +64,10 @@ function loadState() {
 
 function saveState() {
   window.localStorage.setItem("save", JSON.stringify(state));
+}
+
+function clearState() {
+  window.localStorage.removeItem("save");
 }
 
 function fillDomFromState() {
@@ -148,6 +152,17 @@ async function generate() {
     }
   }
 
+  function cleanSynthAuthor(a) {
+    const aa = cleanText(a).split(' ');
+    let b = '';
+    for (let i = 0; i < aa.length - 1; ++i) {
+      b += aa[i][0].toUpperCase();
+    }
+    return `${b} ${fixCase(aa[aa.length - 1])}`;
+  }
+  const cleanSynthAuthors = a =>
+    cleanText(a).split(',').map(cleanSynthAuthor).join(', ');
+
   domWrap.classList.add('loading');
   domLoad.classList.add('loading');
   emptyDiv(domFormatted);
@@ -192,6 +207,7 @@ async function generate() {
     const ul = newElement('ul', domFormatted);
     for (const ai of articles) {
       const aid = ai.aid;
+      const authors = cleanSynthAuthors(ai.authors);
       if (aid != null) {
         domTags.innerText += `    <li><pub-med ${
                 aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
@@ -200,16 +216,16 @@ async function generate() {
         domTags.innerText += `    <li>\n`;
         domTags.innerText += `      <a href="${ai.url}" target="_blank">\n`;
         domTags.innerText += `        <div class="pub-med-title">${ai.title}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-authors">${ai.authors}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-journal">${ai.journalAbbr}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-date">${ai.date}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-authors">${authors}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
+        domTags.innerText += `        <div class="pub-med-date"> - ${ai.date}</div>\n`;
         domTags.innerText += `      </a>\n`;
         domTags.innerText += `    </li>\n`;
       }
 
       const li = newElement('li', ul);
       newDiv(li, ['title'], ai.title);
-      newDiv(li, ['authors'], ai.authors);
+      newDiv(li, ['authors'], authors);
       const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
       newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
     }
@@ -262,7 +278,14 @@ async function onDrop(e) {
   generate();
 }
 
-async function onLoad() {
+async function refreshUI() {
+  loadState();
+  fillDomFromState();
+  await wait(0);
+  generate();
+}
+
+function onLoad() {
   domWrap = document.getElementById('wrap');
   domLoad = document.getElementById('loadanim');
   domIds = document.getElementById('idin');
@@ -270,14 +293,14 @@ async function onLoad() {
   domTags = document.getElementById('tags');
   domErrors = document.getElementById('errors');
   domBottom = document.getElementById('bottom');
-
-  loadState();
-  fillDomFromState();
-
-  await wait(0);
-  generate();
+  refreshUI();
 }
 window.addEventListener("load", onLoad);
+
+function clearAll() {
+  clearState();
+  refreshUI();
+}
 
 </script>
 <style>
@@ -446,6 +469,9 @@ a, .synth-delete {
 .synth-input {
   flex-grow: 1;
 }
+.warning {
+  color: #f44336;
+}
 
 </style>
 </head>
@@ -477,6 +503,7 @@ a, .synth-delete {
     </div>
   </div>
   <div id="mid">
+    <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
     Synthetic tags:
     <a onclick="addSynth()">[ADD]</a>
     <a onclick="generate()">== GO =></a>
