@@ -52,6 +52,10 @@ async function metadataRequest() {
   return JSON.parse(await asyncRequest(kMetadataApi));
 }
 
+async function searchRequest(q) {
+  return JSON.parse(await asyncRequest(kSearchApi + '?' + q.join('')));
+}
+
 function getUniqueElementId() {
   while (true) {
     const newId = `id_${Math.floor(1e9 * Math.random())}`;
@@ -103,7 +107,7 @@ function newDateInput(parent, classes = []) {
 function newCheckboxInput(parent, classes = [], onclick = null) {
   const check =
       newElement('input', parent, classes, null, [['type', 'checkbox']]);
-  if (onclick != null) check.addEventListener('click', onclick);
+  if (onclick != null) check.addEventListener('click', () => onclick(check));
   return check;
 }
 
@@ -121,8 +125,9 @@ function newDropOptionsCheckWithLabel(list, label, onclick) {
 };
 
 function newDropOptionsItem(list, option) {
-  newDropOptionsCheckWithLabel(list, option, () => {
-    list.children[0].checked = false;
+  newDropOptionsCheckWithLabel(list, option, c => {
+    if (!c.checked) return;
+    list.children[0].children[0].checked = false;
   });
 }
 
@@ -130,24 +135,67 @@ function newDropOptionsInput(parent, classes = [], name = null) {
   const menu =
       newElement('dropdown-menu', parent, classes, null, [['name', name]]);
   const list = newDiv(menu);
-  newDropOptionsCheckWithLabel(list, 'Any', () => {
+  newDropOptionsCheckWithLabel(list, 'Any', c => {
+    if (!c.checked) return;
     for (let i = 1; i < list.children.length; ++i) {
-      list.children[i].checked = false;
+      list.children[i].children[0].checked = false;
     }
   }).checked = true;
   return list;
 }
 
-function fixCase(text) {
-  return text.slice(0, 1).toUpperCase() + text.slice(1).toLowerCase();
+const reClean = /[^a-zA-Z0-9]+/g;
+function cleanText(t) {
+  return t.replaceAll(reClean, ' ').trim();
+}
+
+function fixCase(t) {
+  return t.slice(0, 1).toUpperCase() + t.slice(1).toLowerCase();
 }
 
 function cleanTitle(t) {
   return t.split(' ').map(fixCase).join(' ');
 }
 
+function removeThe(t) {
+  if (t.toLowerCase().startsWith('the ')) return t.substring(4);
+  return t;
+}
+
 function cleanMetadata(a) {
-  return a.map(cleanTitle);
+  const b = a.map(cleanTitle);
+  b.sort((x, y) => {
+    const x0 = removeThe(x);
+    const y0 = removeThe(y);
+    if (x0 < y0) return -1;
+    if (x0 > y0) return 1;
+    return 0;
+  });
+  return b;
+}
+
+function encodeTextQuery(q, t) {
+  if (t.value.length == 0) return '';
+  return q + '=' +
+      encodeURIComponent(cleanText(t.value).toLowerCase().split(' ').join(','));
+}
+
+function encodeOptionQuery(q, o) {
+  if (o.children[0].children[0].checked) return '';
+  const a = [];
+  for (let i = 1; i < o.children.length; ++i) {
+    const c = o.children[i];
+    if (c.children[0].checked) {
+      a.push(cleanText(c.children[1].innerText).toLowerCase());
+    }
+  }
+  return q + '=' + encodeURIComponent(a.join(','));
+}
+
+function encodeDateQuery(q, d) {
+  const x = d.valueAsNumber;
+  if (isNaN(x)) return '';
+  return q + '=' + (Math.floor(x / 1000).toString(36));
 }
 
 async function buildVetUpdatesSearch(node) {
@@ -166,8 +214,17 @@ async function buildVetUpdatesSearch(node) {
   const tagsInput = newDropOptionsInput(inputRow, ['dropdown-input'], 'Tags');
   const keywordsInput = newTextInput(inputRow, ['dropdown-input'], 'Keywords');
   const abstractInput = newTextInput(inputRow, ['dropdown-input'], 'Abstract');
-  const searchButton = newButton(inputRow, ['button'], 'Search', () => {
-    console.log('search!');
+  const searchButton = newButton(inputRow, ['button'], 'Search', async () => {
+    const t = encodeTextQuery('t', titleInput);
+    const j = encodeOptionQuery('j', journalInput);
+    const d = encodeDateQuery('d', fromDateInput);
+    const e = encodeDateQuery('e', toDateInput);
+    const a = encodeTextQuery('a', authorsInput);
+    const g = encodeOptionQuery('g', tagsInput);
+    const k = encodeTextQuery('k', keywordsInput);
+    const w = encodeTextQuery('w', abstractInput);
+    const result = await searchRequest([t, j, d, e, a, g, k, w]);
+    console.log(result);
   });
   const resultRow = newDiv(node, ['results']);
   const [journals, tags] = (await metadataRequest()).map(cleanMetadata);
