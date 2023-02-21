@@ -1,8 +1,9 @@
 (function() {
 const kLocalDev = false;
 const kApiEndpoint =
-    kLocalDev ? 'http://localhost:8080' : 'https://squeakysqueenoctopus.com/';
-const kSearchApi = kApiEndpoint + '/zpqk';
+    kLocalDev ? 'http://localhost:8080' : 'https://squeakysqueenoctopus.com';
+const kAdvancedSearchApi = kApiEndpoint + '/zpqk';
+const kSearchApi = kApiEndpoint + '/gqmo';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
 
@@ -52,8 +53,12 @@ async function metadataRequest() {
   return JSON.parse(await asyncRequest(kMetadataApi));
 }
 
+async function advancedSearchRequest(q) {
+  return JSON.parse(await asyncRequest(kAdvancedSearchApi + '?' + q.join('')));
+}
+
 async function searchRequest(q) {
-  return JSON.parse(await asyncRequest(kSearchApi + '?' + q.join('')));
+  return JSON.parse(await asyncRequest(kSearchApi + '?' + q));
 }
 
 function getUniqueElementId() {
@@ -144,6 +149,10 @@ function newDropOptionsInput(parent, classes = [], name = null) {
   return list;
 }
 
+function newPubMedTag(parent, pmid) {
+  return newElement('pub-med', parent, [], null, [['pmid', pmid]]);
+}
+
 const reClean = /[^a-zA-Z0-9]+/g;
 function cleanText(t) {
   return t.replaceAll(reClean, ' ').trim();
@@ -199,37 +208,68 @@ function encodeDateQuery(q, d) {
 }
 
 async function buildVetUpdatesSearch(node) {
-  const inputRow = newDiv(node, ['input-row']);
+  const smpRow = newDiv(node, ['input-row']);
+  const advRow = newDiv(node, ['input-row', 'hidden']);
+  const resultRow = newDiv(node, ['results']);
+
+  const clearResults = () => {
+    resultRow.classList.add('loading');
+    emptyDiv(resultRow);
+  };
+  const fillResults = result => {
+    resultRow.classList.remove('loading');
+    for (const pmid of result) {
+      newPubMedTag(resultRow, pmid);
+    }
+  };
+
+  const searchInput = newTextInput(smpRow, ['text-input'], 'Search');
+  newButton(smpRow, ['button'], 'Search', async () => {
+    clearResults();
+    const q = encodeTextQuery('q', searchInput);
+    const result = await searchRequest(q);
+    fillResults(result);
+  });
+  newButton(smpRow, ['button'], 'Advanced', async () => {
+    smpRow.classList.add('hidden');
+    advRow.classList.remove('hidden');
+  });
+
   const dateInput = title => {
-    const wrap = newDiv(inputRow, ['date-input-wrap']);
+    const wrap = newDiv(advRow, ['date-input-wrap']);
     newDiv(wrap, ['date-input-title'], title);
     return newDateInput(wrap, ['date-input']);
   };
-  const titleInput = newTextInput(inputRow, ['text-input'], 'Title');
+  const titleInput = newTextInput(advRow, ['text-input'], 'Title');
   const journalInput =
-      newDropOptionsInput(inputRow, ['dropdown-input'], 'Journal');
+      newDropOptionsInput(advRow, ['dropdown-input'], 'Journal');
   const fromDateInput = dateInput('From:');
   const toDateInput = dateInput('To:');
-  const authorsInput = newTextInput(inputRow, ['text-input'], 'Authors');
-  const tagsInput = newDropOptionsInput(inputRow, ['dropdown-input'], 'Tags');
-  const keywordsInput = newTextInput(inputRow, ['dropdown-input'], 'Keywords');
-  const abstractInput = newTextInput(inputRow, ['dropdown-input'], 'Abstract');
-  const searchButton = newButton(inputRow, ['button'], 'Search', async () => {
+  const authorsInput = newTextInput(advRow, ['text-input'], 'Authors');
+  // const tagsInput = newDropOptionsInput(advRow, ['dropdown-input'], 'Tags');
+  const keywordsInput = newTextInput(advRow, ['dropdown-input'], 'Keywords');
+  const abstractInput = newTextInput(advRow, ['dropdown-input'], 'Abstract');
+  newButton(advRow, ['button'], 'Search', async () => {
+    clearResults();
     const t = encodeTextQuery('t', titleInput);
     const j = encodeOptionQuery('j', journalInput);
     const d = encodeDateQuery('d', fromDateInput);
     const e = encodeDateQuery('e', toDateInput);
     const a = encodeTextQuery('a', authorsInput);
-    const g = encodeOptionQuery('g', tagsInput);
+    // const g = encodeOptionQuery('g', tagsInput);
     const k = encodeTextQuery('k', keywordsInput);
     const w = encodeTextQuery('w', abstractInput);
-    const result = await searchRequest([t, j, d, e, a, g, k, w]);
-    console.log(result);
+    const result = await advancedSearchRequest([t, j, d, e, a /*, g*/, k, w]);
+    fillResults(result);
   });
-  const resultRow = newDiv(node, ['results']);
+  newButton(advRow, ['button'], 'Simple', async () => {
+    advRow.classList.add('hidden');
+    smpRow.classList.remove('hidden');
+  });
+
   const [journals, tags] = (await metadataRequest()).map(cleanMetadata);
   for (const journal of journals) newDropOptionsItem(journalInput, journal);
-  for (const tag of tags) newDropOptionsItem(tagsInput, tag);
+  // for (const tag of tags) newDropOptionsItem(tagsInput, tag);
 }
 
 class VetUpdatesSearch extends HTMLElement {

@@ -956,18 +956,25 @@ class PubMedImpl {
   constructor(node) {
     if (domPma == null) domPma = this._setupAbstract();
     this.node = node;
+    this.allowAbstract = null;
+    this.article = null;
+  }
+
+  rebuild() {
     emptyDiv(this.node);
     this.node.classList.add('loading');
-    const pmid = this.node.getAttribute('pmid');
-    const pmcid = this.node.getAttribute('pmcid');
     this.allowAbstract = null;
-    if (this.node.getAttribute('no-abstract') != null) {
-      this.allowAbstract = false;
-    } else if (this.node.getAttribute('abstract') != null) {
-      this.allowAbstract = true;
-    }
     this.article = null;
     window.setTimeout(async () => {
+      const pmid = this.node.getAttribute('pmid');
+      const pmcid = this.node.getAttribute('pmcid');
+      if (domPma == null) {
+        this.allowAbstract = false;
+      } else if (this.node.getAttribute('no-abstract') != null) {
+        this.allowAbstract = false;
+      } else if (this.node.getAttribute('abstract') != null) {
+        this.allowAbstract = true;
+      }
       try {
         if (pmid != null) {
           this.article = await asyncPubMedGetArticleFromPmid(pmid);
@@ -1028,9 +1035,6 @@ class PubMedImpl {
   }
 
   _showAbstract() {
-    if (domPma == null) return;
-    emptyDiv(domPma);
-
     if (!this.allowAbstract) {
       this._openPubMed();
       if (domIsThin) {
@@ -1038,6 +1042,9 @@ class PubMedImpl {
         return;
       }
     }
+
+    if (domPma == null) return;
+    emptyDiv(domPma);
 
     newBtn(
         domPma, ['pub-med-abstract-close'], () => this._hideAbstract(),
@@ -1141,6 +1148,14 @@ class PubMed extends HTMLElement {
   constructor() {
     super();
     this.impl = new PubMedImpl(this);
+  }
+
+  connectedCallback() {
+    this.impl.rebuild();
+  }
+
+  attributeChangedCallback() {
+    this.impl.rebuild();
   }
 }
 

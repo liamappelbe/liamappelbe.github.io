@@ -113,6 +113,139 @@ dropdown-menu .items.visible {
   position: absolute;
   display: initial;
 }
+.hidden {
+  display: none !important;
+}
+
+pub-med.loading { opacity: 50%; }
+pub-med.no-abstract {
+  color: #999;
+}
+pub-med .pub-med-title,
+pub-med .pub-med-authors,
+pub-med .pub-med-date,
+pub-med .pub-med-journal,
+pub-med .pub-med-copy,
+#pub-med-abstract .pub-med-abstract-part .pub-med-abstract-label,
+#pub-med-abstract .pub-med-abstract-part .pub-med-abstract-text {
+  display: inline;
+}
+pub-med .pub-med-title {
+  font-weight: bold;
+  cursor: pointer;
+}
+pub-med .pub-med-authors,
+pub-med .pub-med-date,
+pub-med .pub-med-journal {
+  cursor: pointer;
+}
+pub-med .pub-med-copy {
+  margin-left: 0.5em;
+  padding-left: 0.8em;
+  cursor: pointer;
+  background-image: url(res/cite_icon.svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: relative;
+  top: 0;
+}
+pub-med .pub-med-copy.clicked {
+  animation: bounce 0.15s;
+}
+pub-med[new] .pub-med-title::before {
+  content: 'NEW';
+  margin-right: 8px;
+  background-color: green;
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 4px;
+}
+@keyframes bounce {
+  0% {
+    top: 0;
+    animation-timing-function: cubic-bezier(0,.5,.5,1);
+  }
+  50% {
+    top: -10px;
+    animation-timing-function: cubic-bezier(.5,0,1,.5);
+  }
+  100% {
+    top: 0;
+  }
+}
+.pub-med-tooltip {
+  display: none;
+  pointer-events: none;
+  position: fixed;
+  background-color: black;
+  color: white;
+  padding: 4px;
+  border-radius: 4px;
+}
+.pub-med-tooltip.shown {
+  display: block;
+}
+#pub-med-abstract {
+  max-height: 50vh;
+  overflow-y: scroll;
+}
+#pub-med-abstract .pub-med-abstract-title-row {
+  padding-bottom: 0.5em;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+#pub-med-abstract .pub-med-abstract-title {
+  font-size: 1.5em;
+  color: #ffc107;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#pub-med-abstract .pub-med-abstract-close {
+  font-size: 1.5em;
+  margin-left: auto;
+  margin-right: 0.5em;
+  margin-bottom: -1em;
+  max-width: 1em;
+  min-height: 1em;
+  cursor: pointer;
+  background-image: url(res/close.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: sticky;
+  top: 0;
+}
+#pub-med-abstract .pub-med-abstract-citation {
+  font-size: 0.8em;
+}
+#pub-med-abstract .pub-med-abstract-part {
+  padding-top: 0.5em;
+}
+#pub-med-abstract .pub-med-abstract-part .pub-med-abstract-label {
+  padding-right: 0.5em;
+  font-weight: bold;
+}
+.print-button {
+  cursor: pointer;
+  color: #ffc107;
+  position: absolute;
+  right: 0;
+}
+.print-button::before {
+  content: "[print]";
+}
+.scroll_to_top_button {
+  display: none;
+  width: 30px;
+  height: 30px;
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-image: url(res/scroll_top_icon.svg);
+}
+.scroll_to_top_button.enabled {
+  display: initial;
+}
 </style>
 </head>
 <body>
