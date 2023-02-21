@@ -99,10 +99,18 @@ function newButton(parent, classes = [], text = null, onclick = null) {
   return btn;
 }
 
-function newTextInput(parent, classes = [], placeholder = null) {
-  return newElement(
+function newTextInput(
+    parent, classes = [], placeholder = null, onEnter = null) {
+  const n = newElement(
       'input', parent, classes, null,
       [['type', 'text'], ['placeholder', placeholder]]);
+  if (onEnter != null) {
+    n.addEventListener('keyup', e => {
+      e.preventDefault();
+      if (e.keyCode == 13) onEnter();
+    });
+  }
+  return n;
 }
 
 function newDateInput(parent, classes = []) {
@@ -218,38 +226,29 @@ async function buildVetUpdatesSearch(node) {
   };
   const fillResults = result => {
     resultRow.classList.remove('loading');
-    for (const pmid of result) {
-      newPubMedTag(resultRow, pmid);
+    if (result.length == 0) {
+      newDiv(resultRow, ['no-results'], 'No results');
+    } else {
+      for (const pmid of result) {
+        newPubMedTag(resultRow, pmid);
+      }
     }
   };
 
-  const searchInput = newTextInput(smpRow, ['text-input'], 'Search');
-  newButton(smpRow, ['button'], 'Search', async () => {
+  const doSearch = async () => {
     clearResults();
     const q = encodeTextQuery('q', searchInput);
     const result = await searchRequest(q);
     fillResults(result);
-  });
+  };
+  const searchInput = newTextInput(smpRow, ['text-input'], 'Search', doSearch);
+  newButton(smpRow, ['button'], 'Search', doSearch);
   newButton(smpRow, ['button'], 'Advanced', async () => {
     smpRow.classList.add('hidden');
     advRow.classList.remove('hidden');
   });
 
-  const dateInput = title => {
-    const wrap = newDiv(advRow, ['date-input-wrap']);
-    newDiv(wrap, ['date-input-title'], title);
-    return newDateInput(wrap, ['date-input']);
-  };
-  const titleInput = newTextInput(advRow, ['text-input'], 'Title');
-  const journalInput =
-      newDropOptionsInput(advRow, ['dropdown-input'], 'Journal');
-  const fromDateInput = dateInput('From:');
-  const toDateInput = dateInput('To:');
-  const authorsInput = newTextInput(advRow, ['text-input'], 'Authors');
-  // const tagsInput = newDropOptionsInput(advRow, ['dropdown-input'], 'Tags');
-  const keywordsInput = newTextInput(advRow, ['dropdown-input'], 'Keywords');
-  const abstractInput = newTextInput(advRow, ['dropdown-input'], 'Abstract');
-  newButton(advRow, ['button'], 'Search', async () => {
+  const doAdvSearch = async () => {
     clearResults();
     const t = encodeTextQuery('t', titleInput);
     const j = encodeOptionQuery('j', journalInput);
@@ -261,7 +260,25 @@ async function buildVetUpdatesSearch(node) {
     const w = encodeTextQuery('w', abstractInput);
     const result = await advancedSearchRequest([t, j, d, e, a /*, g*/, k, w]);
     fillResults(result);
-  });
+  };
+  const dateInput = title => {
+    const wrap = newDiv(advRow, ['date-input-wrap']);
+    newDiv(wrap, ['date-input-title'], title);
+    return newDateInput(wrap, ['date-input']);
+  };
+  const titleInput = newTextInput(advRow, ['text-input'], 'Title', doAdvSearch);
+  const journalInput =
+      newDropOptionsInput(advRow, ['dropdown-input'], 'Journal');
+  const fromDateInput = dateInput('From:');
+  const toDateInput = dateInput('To:');
+  const authorsInput =
+      newTextInput(advRow, ['text-input'], 'Authors', doAdvSearch);
+  // const tagsInput = newDropOptionsInput(advRow, ['dropdown-input'], 'Tags');
+  const keywordsInput =
+      newTextInput(advRow, ['dropdown-input'], 'Keywords', doAdvSearch);
+  const abstractInput =
+      newTextInput(advRow, ['dropdown-input'], 'Abstract', doAdvSearch);
+  newButton(advRow, ['button'], 'Search', doAdvSearch);
   newButton(advRow, ['button'], 'Simple', async () => {
     advRow.classList.add('hidden');
     smpRow.classList.remove('hidden');
