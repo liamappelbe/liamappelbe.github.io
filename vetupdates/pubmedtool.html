@@ -152,7 +152,7 @@ async function generate() {
     }
   }
 
-  function cleanSynthAuthor(a) {
+  /*function cleanSynthAuthor(a) {
     const aa = cleanText(a).split(' ');
     let b = '';
     for (let i = 0; i < aa.length - 1; ++i) {
@@ -161,7 +161,8 @@ async function generate() {
     return `${b} ${fixCase(aa[aa.length - 1])}`;
   }
   const cleanSynthAuthors = a =>
-    cleanText(a).split(',').map(cleanSynthAuthor).join(', ');
+    cleanText(a).split(',').map(cleanSynthAuthor).join(', ');*/
+  const cleanSynthAuthors = a => a;
 
   domWrap.classList.add('loading');
   domLoad.classList.add('loading');
