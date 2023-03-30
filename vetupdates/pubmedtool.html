@@ -15,10 +15,14 @@ let module = {};
 </script>
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
-
 const {newElement, newDiv, newLink, emptyDiv, cleanText, fixCase,
        asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
        asyncPubMedConvertId} = module.exports;
+module = {};
+</script>
+<script src="vetupdates_search.js"></script>
+<script>
+const {metadataRequest} = module.exports;
 
 let domWrap = null;
 let domLoad = null;
@@ -212,7 +216,7 @@ async function generate() {
       if (aid != null) {
         domTags.innerText += `    <li><pub-med ${
                 aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
-            }></pub-med></li>\n`;
+            } tags=""></pub-med></li>\n`;
       } else {
         domTags.innerText += `    <li>\n`;
         domTags.innerText += `      <a href="${ai.url}" target="_blank">\n`;
@@ -286,6 +290,19 @@ async function refreshUI() {
   generate();
 }
 
+async function fillKnownTags() {
+  const [journals, tags] = await metadataRequest();
+  tags.sort();
+  const node = document.getElementById('known_tags');
+  for (const tag of tags) {
+    newButton(node, ['known-tag-button'], tag, () => copyText(tag));
+  }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+}
+
 function onLoad() {
   domWrap = document.getElementById('wrap');
   domLoad = document.getElementById('loadanim');
@@ -294,6 +311,7 @@ function onLoad() {
   domTags = document.getElementById('tags');
   domErrors = document.getElementById('errors');
   domBottom = document.getElementById('bottom');
+  fillKnownTags();
   refreshUI();
 }
 window.addEventListener("load", onLoad);
@@ -473,6 +491,21 @@ a, .synth-delete {
 .warning {
   color: #f44336;
 }
+#known_tags {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  padding-bottom: 16px;
+}
+.known-tag-button {
+  color: #ffc107;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.known-tag-button:active {
+  color: #ff5722;
+}
 
 </style>
 </head>
@@ -504,8 +537,9 @@ a, .synth-delete {
     </div>
   </div>
   <div id="mid">
+    <div id="known_tags"><div>Known tags (click to copy):</div></div>
     <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
-    Synthetic tags:
+    Synthetic elements:
     <a onclick="addSynth()">[ADD]</a>
     <a onclick="generate()">== GO =></a>
   </div>

@@ -327,4 +327,12 @@ window.addEventListener('load', () => {
   customElements.define('vetupdates-search', VetUpdatesSearch);
   customElements.define('dropdown-menu', DropdownMenu);
 });
+
+if (typeof (module) != 'undefined') {
+  module.exports = {
+    metadataRequest,
+    advancedSearchRequest,
+    searchRequest,
+  };
+}
 })();
