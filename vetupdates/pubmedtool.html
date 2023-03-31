@@ -202,11 +202,10 @@ async function generate() {
   }
 
   for (const [journal, articles] of articlesByJournal) {
-    domTags.innerText += '<div>\n';
-    domTags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
-    domTags.innerText += '  <ul>\n';
+    // domTags.innerText += '<div>\n';
+    // domTags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
+    // domTags.innerText += '  <ul>\n';
 
-    // Tom doesn't like the heading :P
     // const heading = newElement('h2', domFormatted, [], journal);
 
     const ul = newElement('ul', domFormatted);
@@ -214,18 +213,18 @@ async function generate() {
       const aid = ai.aid;
       const authors = cleanSynthAuthors(ai.authors);
       if (aid != null) {
-        domTags.innerText += `    <li><pub-med ${
+        domTags.innerText += `<li><pub-med ${
                 aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
             } tags=""></pub-med></li>\n`;
       } else {
-        domTags.innerText += `    <li>\n`;
-        domTags.innerText += `      <a href="${ai.url}" target="_blank">\n`;
-        domTags.innerText += `        <div class="pub-med-title">${ai.title}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-authors">${authors}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
-        domTags.innerText += `        <div class="pub-med-date"> - ${ai.date}</div>\n`;
-        domTags.innerText += `      </a>\n`;
-        domTags.innerText += `    </li>\n`;
+        domTags.innerText += `<li>\n`;
+        domTags.innerText += `  <a href="${ai.url}" target="_blank">\n`;
+        domTags.innerText += `    <div class="pub-med-title">${ai.title}</div>\n`;
+        domTags.innerText += `    <div class="pub-med-authors">${authors}</div>\n`;
+        domTags.innerText += `    <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
+        domTags.innerText += `    <div class="pub-med-date"> - ${ai.date}</div>\n`;
+        domTags.innerText += `  </a>\n`;
+        domTags.innerText += `</li>\n`;
       }
 
       const li = newElement('li', ul);
@@ -234,8 +233,8 @@ async function generate() {
       const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
       newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
     }
-    domTags.innerText += '  </ul>\n';
-    domTags.innerText += '</div>\n\n';
+    // domTags.innerText += '  </ul>\n';
+    // domTags.innerText += '</div>\n\n';
   }
 
   state.ids = fulfilledIds;
@@ -391,8 +390,8 @@ a, .synth-delete {
   resize: none;
 }
 .middle {
-  min-width: 20%;
-  max-width: 20%;
+  min-width: 40%;
+  max-width: 40%;
   min-height: 100%;
   display: flex;
   flex-direction: column;
