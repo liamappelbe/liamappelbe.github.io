@@ -91,7 +91,8 @@ async function metadataRequest() {
 }
 
 async function advancedSearchRequest(q) {
-  return JSON.parse(await asyncRequest(kAdvancedSearchApi + '?' + q.join('')));
+  return JSON.parse(await asyncRequest(
+      kAdvancedSearchApi + '?' + q.filter(w => w.length > 0).join('&')));
 }
 
 async function searchRequest(q) {
