@@ -171,7 +171,7 @@ async function generate() {
   domWrap.classList.add('loading');
   domLoad.classList.add('loading');
   emptyDiv(domFormatted);
-  emptyDiv(domTags);
+  domTags.value = '';
 
   fillStateFromDom();
   saveState();
@@ -202,9 +202,9 @@ async function generate() {
   }
 
   for (const [journal, articles] of articlesByJournal) {
-    // domTags.innerText += '<div>\n';
-    // domTags.innerText += `  <div class="sticky_heading">${journal}</div>\n`;
-    // domTags.innerText += '  <ul>\n';
+    // domTags.value += '<div>\n';
+    // domTags.value += `  <div class="sticky_heading">${journal}</div>\n`;
+    // domTags.value += '  <ul>\n';
 
     // const heading = newElement('h2', domFormatted, [], journal);
 
@@ -213,18 +213,18 @@ async function generate() {
       const aid = ai.aid;
       const authors = cleanSynthAuthors(ai.authors);
       if (aid != null) {
-        domTags.innerText += `<li><pub-med ${
+        domTags.value += `<li><pub-med ${
                 aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
             } tags=""></pub-med></li>\n`;
       } else {
-        domTags.innerText += `<li>\n`;
-        domTags.innerText += `  <a href="${ai.url}" target="_blank">\n`;
-        domTags.innerText += `    <div class="pub-med-title">${ai.title}</div>\n`;
-        domTags.innerText += `    <div class="pub-med-authors">${authors}</div>\n`;
-        domTags.innerText += `    <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
-        domTags.innerText += `    <div class="pub-med-date"> - ${ai.date}</div>\n`;
-        domTags.innerText += `  </a>\n`;
-        domTags.innerText += `</li>\n`;
+        domTags.value += `<li>\n`;
+        domTags.value += `  <a href="${ai.url}" target="_blank">\n`;
+        domTags.value += `    <div class="pub-med-title">${ai.title}</div>\n`;
+        domTags.value += `    <div class="pub-med-authors">${authors}</div>\n`;
+        domTags.value += `    <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
+        domTags.value += `    <div class="pub-med-date"> - ${ai.date}</div>\n`;
+        domTags.value += `  </a>\n`;
+        domTags.value += `</li>\n`;
       }
 
       const li = newElement('li', ul);
@@ -233,8 +233,8 @@ async function generate() {
       const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
       newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
     }
-    // domTags.innerText += '  </ul>\n';
-    // domTags.innerText += '</div>\n\n';
+    // domTags.value += '  </ul>\n';
+    // domTags.value += '</div>\n\n';
   }
 
   state.ids = fulfilledIds;
@@ -390,8 +390,6 @@ a, .synth-delete {
   resize: none;
 }
 .middle {
-  min-width: 40%;
-  max-width: 40%;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -528,7 +526,7 @@ a, .synth-delete {
     </div>
     <div class="middle">
       <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
-      <div id="tags"></div>
+      <textarea id="tags" rows="30" cols="80"></textarea>
     </div>
     <div class="right">
       <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
