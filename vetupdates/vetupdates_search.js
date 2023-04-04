@@ -7,6 +7,43 @@ const kSearchApi = kApiEndpoint + '/gqmo';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
 
+const kMajorTags = new Set([
+  'acid base',
+  'analgesia',
+  'anesthesia',
+  'cardiovascular',
+  'coagulation',
+  'cpr',
+  'critical illness',
+  'electrolytes',
+  'endocrine',
+  'environmental',
+  'extracorporeal',
+  'fluid therapy',
+  'gi and nutrition',
+  'hemolymphatic',
+  'hepatobiliary and pancreas',
+  'immunology',
+  'infectious',
+  'integument',
+  'monitoring',
+  'musculoskeletal',
+  'neurology',
+  'ophthalmology',
+  'pharmacology',
+  'pocus',
+  'radiology',
+  'renal',
+  'reproduction',
+  'respiratory',
+  'sepsis sirs mods',
+  'shock and ischemia',
+  'statistics',
+  'surgery',
+  'transfusion',
+  'trauma',
+]);
+
 async function asyncRequest(url) {
   let errorCode = null;
   let errorResponse = null;
@@ -340,6 +377,7 @@ if (typeof (module) != 'undefined') {
     metadataRequest,
     advancedSearchRequest,
     searchRequest,
+    kMajorTags,
   };
 }
 })();

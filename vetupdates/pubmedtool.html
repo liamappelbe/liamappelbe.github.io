@@ -22,7 +22,7 @@ module = {};
 </script>
 <script src="vetupdates_search.js"></script>
 <script>
-const {metadataRequest} = module.exports;
+const {metadataRequest, kMajorTags} = module.exports;
 
 let domWrap = null;
 let domLoad = null;
@@ -242,15 +242,19 @@ async function generate() {
   saveState();
   fillDomFromState();
 
-  select('formatted');
+  selectElement('formatted');
 }
 
-function select(id) {
+function selectElement(id) {
   const range = document.createRange();
   range.selectNodeContents(document.getElementById(id));
   const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
+}
+
+function selectTextArea(id) {
+  document.getElementById(id).select();
 }
 
 function onDragOver(e) { e.preventDefault(); }
@@ -290,11 +294,17 @@ async function refreshUI() {
 }
 
 async function fillKnownTags() {
+  const majorTags = document.getElementById('major_tags');
+  for (const tag of kMajorTags) {
+    newButton(majorTags, ['tag-button'], tag, () => copyText(tag));
+  }
   const [journals, tags] = await metadataRequest();
   tags.sort();
-  const node = document.getElementById('known_tags');
+  const minorTags = document.getElementById('minor_tags');
   for (const tag of tags) {
-    newButton(node, ['known-tag-button'], tag, () => copyText(tag));
+    if (!kMajorTags.has(tag)) {
+      newButton(minorTags, ['tag-button'], tag, () => copyText(tag));
+    }
   }
 }
 
@@ -488,19 +498,19 @@ a, .synth-delete {
 .warning {
   color: #f44336;
 }
-#known_tags {
+#major_tags, #minor_tags {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   column-gap: 12px;
   padding-bottom: 16px;
 }
-.known-tag-button {
+.tag-button {
   color: #ffc107;
   cursor: pointer;
   text-decoration: underline;
 }
-.known-tag-button:active {
+.tag-button:active {
   color: #ff5722;
 }
 
@@ -525,16 +535,19 @@ a, .synth-delete {
       <textarea id="errors" rows="6" cols="40"></textarea>
     </div>
     <div class="middle">
-      <span>Tags: <a onclick="select('tags')">[SELECT]</a></span>
+      <span>Elements: <a onclick="selectTextArea('tags')">[SELECT]</a></span>
       <textarea id="tags" rows="30" cols="80"></textarea>
     </div>
     <div class="right">
-      <span>Formatted: <a onclick="select('formatted')">[SELECT]</a></span>
+      <span>
+        Formatted: <a onclick="selectElement('formatted')">[SELECT]</a>
+      </span>
       <div id="formatted"></div>
     </div>
   </div>
   <div id="mid">
-    <div id="known_tags"><div>Known tags (click to copy):</div></div>
+    <div id="major_tags"><div>Major tags (click to copy):</div></div>
+    <div id="minor_tags"><div>Known minor tags (click to copy):</div></div>
     <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
     Synthetic elements:
     <a onclick="addSynth()">[ADD]</a>
