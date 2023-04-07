@@ -12,6 +12,7 @@
 <script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
 <script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
 <script src="thumb.js"></script>
+<script src="lib/hitcount.js"></script>
 <script>
 let domImage = null;
 let domSize = null;
@@ -58,6 +59,8 @@ function onLoad() {
   ctxOutput = domOutputView.getContext("2d");
 
   ctxOutput.imageSmoothingEnabled = false;
+
+  hitCountRequest('thumb', '-1a9p7wtyt50p3');
 }
 window.addEventListener("load", onLoad);
 

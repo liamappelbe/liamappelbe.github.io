@@ -175,9 +175,12 @@ table {
 
 </body>
 
+<script src="lib/hitcount.js"></script>
 <script type="text/javascript">
 const id = Math.floor(13 * Math.random());
 document.getElementById("fractal").src = `fractals/fractal${id}.webp`;
+window.addEventListener(
+    'load', () => hitCountRequest('tiusic.com', '14vxyotwueh77'));
 </script>
 
 </html>
