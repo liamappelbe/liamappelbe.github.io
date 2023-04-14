@@ -303,7 +303,7 @@ packages:
     source: hosted
     version: "1.5.1"
   protobuf:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: protobuf
       url: "https://pub.dartlang.org"
@@ -421,6 +421,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.2"
+  wav:
+    dependency: "direct main"
+    description:
+      name: wav
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.2.0"
   web_socket_channel:
     dependency: transitive
     description:
