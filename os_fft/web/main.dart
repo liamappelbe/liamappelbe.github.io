@@ -247,7 +247,7 @@ the output, without affecting the clarity.
 ''';
 
 const kTooltipOutVolume = '''
-The overall output volume sets the volume that the sequence should be
+The overall output volume sets the volume that the result should be
 normalized to. Use this if the output is too loud or too quiet, or just
 change the sine instrument volume in OS.
 ''';
@@ -788,8 +788,16 @@ void toggleAdvOpt(MouseEvent e) {
   }
 }
 
-void setTooltip(String text) {
-  domAdvOptRight.innerHtml = text;
+class PermissiveValidator implements NodeValidator {
+  @override
+  bool allowsAttribute(Element element, String attributeName, String value) =>
+      true;
+  @override
+  bool allowsElement(Element element) => true;
+}
+
+void setTooltip(String html) {
+  domAdvOptRight.setInnerHtml(html, validator: PermissiveValidator());
 }
 
 void main() {
