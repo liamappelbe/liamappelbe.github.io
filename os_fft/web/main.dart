@@ -37,6 +37,7 @@ const kC0Freq = 16.351597831287414;
 const kMinPitch = 2 * kNotesPerOctave;
 const kMaxPitch = 8 * kNotesPerOctave - 1;
 const kInstSin = 13;
+const kCloneOffset = 10000;
 const kPitchNames = [
   'C',
   'C#',
@@ -252,6 +253,14 @@ normalized to. Use this if the output is too loud or too quiet, or just
 change the sine instrument volume in OS.
 ''';
 
+const kTooltipNumSineInst = '''
+One of the biggest limitations of using FFT on OS is that the only frequencies
+that can be reproduced are the piano notes. So all the frequencies that the FFT
+creates have to be snapped to the piano frequencies. We can work around this by
+making clones of the sine instrument, detuned by microtones. This improves the
+result of any FFT, but is especially useful for reproducing music or singing.
+''';
+
 final kConfigSchema = <ConfigField>[
   ConfigField<int>(
     parent: domBpm,
@@ -324,6 +333,14 @@ final kConfigSchema = <ConfigField>[
     desc: 'Overall output volume',
     tooltip: kTooltipOutVolume,
   ),
+  ConfigField<int>(
+    parent: domAdvOptLeft,
+    name: 'numSineInst',
+    defaultValue: 1,
+    activeValue: IntConfigValue(min: 1),
+    desc: 'Number of sine instruments',
+    tooltip: kTooltipNumSineInst,
+  ),
 ];
 
 int findConfigId(String name) =>
@@ -338,6 +355,7 @@ final kOutputVolumeId = findConfigId('outputVolume');
 final kMinVolumeId = findConfigId('minVolume');
 final kDetuneId = findConfigId('detune');
 final kNumFreqId = findConfigId('numFreq');
+final kNumSineInstId = findConfigId('numSineInst');
 
 class Config {
   final values = <ConfigValue>[];
@@ -364,6 +382,8 @@ class Config {
   set detune(double value) => values[kDetuneId].value = value;
   int get numFreq => values[kNumFreqId].value as int;
   set numFreq(int value) => values[kNumFreqId].value = value;
+  int get numSineInst => values[kNumSineInstId].value as int;
+  set numSineInst(int value) => values[kNumSineInstId].value = value;
 
   void copyFrom(Config other) {
     for (int i = 0; i < values.length; ++i) {
@@ -381,7 +401,7 @@ class Config {
           ? rand.randf(minChunksPerSec, maxChunksPerSec)
           : minChunksPerSec);
   int freqToPitch(double f) =>
-      (kNotesPerOctave * log2(f / kC0Freq) - detuneNotes).round();
+      (numSineInst * (kNotesPerOctave * log2(f / kC0Freq) - detuneNotes)).round();
   @override
   String toString() {
     String str = '';
@@ -578,11 +598,14 @@ class FFTJob {
         sines = <Sine>[];
         final vol = s.amp;
         final pitch = config.freqToPitch(s.f);
-        if (pitch >= kMinPitch && pitch <= kMaxPitch) {
+        final pianoIndex = pitch ~/ config.numSineInst;
+        final cloneIndex = pitch % config.numSineInst;
+        if (pianoIndex >= kMinPitch && pianoIndex <= kMaxPitch) {
           notes.add(Note(
+            instrument: cloneIndex * kCloneOffset + kInstSin,
             time: chunkStart,
             length: chunkLength,
-            pitch: pitch,
+            pitch: pianoIndex,
             volume: vol,
           ));
         }
@@ -653,10 +676,13 @@ class FFTJob {
     final seq = pb.Sequence();
     final settings = pb.SequenceSettings();
     settings.bpm = config.bpm;
-    final sinSettings = pb.InstrumentSettings();
-    sinSettings.detune = config.detune;
-    sinSettings.volume = 1;
-    settings.instruments[kInstSin] = sinSettings;
+    for (int cloneIndex = 0; cloneIndex < config.numSineInst; ++cloneIndex) {
+      final sinSettings = pb.InstrumentSettings();
+      sinSettings.detune = config.detune + (cloneIndex * 100.0 / config.numSineInst);
+      print('${cloneIndex * kCloneOffset + kInstSin}\t${sinSettings.detune}');
+      sinSettings.volume = 1;
+      settings.instruments[cloneIndex * kCloneOffset + kInstSin] = sinSettings;
+    }
     seq.settings = settings;
     final notes = seq.notes;
     for (final note in outNotes) {
@@ -664,7 +690,7 @@ class FFTJob {
       n.type = note.pbType;
       n.time = note.getTimeStep(config);
       n.length = note.getLengthStep(config);
-      n.instrument = kInstSin;
+      n.instrument = note.instrument;
       n.volume = note.volume;
       notes.add(n);
     }
