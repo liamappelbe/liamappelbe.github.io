@@ -29,6 +29,7 @@ final domDownloadButton = querySelector('#download_btn')!;
 
 void hide(Element e) => e.classes.add('hidden');
 void show(Element e) => e.classes.remove('hidden');
+void setShown(Element e, bool shown) => shown ? show(e) : hide(e);
 bool isHidden(Element e) => e.classes.contains('hidden');
 
 const kTimeStepsPerBeat = 4;
@@ -38,6 +39,7 @@ const kMinPitch = 2 * kNotesPerOctave;
 const kMaxPitch = 8 * kNotesPerOctave - 1;
 const kInstSin = 13;
 const kCloneOffset = 10000;
+const kMainVolume = 3;
 const kPitchNames = [
   'C',
   'C#',
@@ -159,6 +161,21 @@ class SelectConfigValue implements ActiveConfigValue<String> {
   Element get element => _element;
 }
 
+class BoolConfigValue implements ActiveConfigValue<bool> {
+  final CheckboxInputElement _element;
+
+  BoolConfigValue() : _element = CheckboxInputElement();
+
+  @override
+  set value(bool val) => _element.checked = val;
+
+  @override
+  bool get value => _element.checked ?? false;
+
+  @override
+  Element get element => _element;
+}
+
 class ConfigField<T> {
   final Element _element;
   final ActiveConfigValue<T> activeValue;
@@ -253,12 +270,26 @@ normalized to. Use this if the output is too loud or too quiet, or just
 change the sine instrument volume in OS.
 ''';
 
-const kTooltipNumSineInst = '''
+const kTooltipMicrotones = '''
 One of the biggest limitations of using FFT on OS is that the only frequencies
 that can be reproduced are the piano notes. So all the frequencies that the FFT
 creates have to be snapped to the piano frequencies. We can work around this by
 making clones of the sine instrument, detuned by microtones. This improves the
 result of any FFT, but is especially useful for reproducing music or singing.
+<br/><br/>
+Be careful though, because having lots of cloned sine instruments is very CPU
+intensive, and there's diminishing returns in terms of the audio quality. Try
+to use as few as necessary to get the level of quality you want. Any more than
+10 is probably a bad idea.
+''';
+
+const kTooltipStereo = '''
+If the stereo option is enabled, and your input audio has 2 channels,
+the left and right channels will be FFT'd
+separately using instrument clones. Otherwise, they'll be combined into mono
+audio. This doubles the number of sine instruments, which significantly
+increases the CPU cost of the sequence. Only use this if you need it, and be
+careful when combining it with microtones.
 ''';
 
 final kConfigSchema = <ConfigField>[
@@ -335,11 +366,19 @@ final kConfigSchema = <ConfigField>[
   ),
   ConfigField<int>(
     parent: domAdvOptLeft,
-    name: 'numSineInst',
+    name: 'microtones',
     defaultValue: 1,
     activeValue: IntConfigValue(min: 1),
-    desc: 'Number of sine instruments',
-    tooltip: kTooltipNumSineInst,
+    desc: 'Number of microtones',
+    tooltip: kTooltipMicrotones,
+  ),
+  ConfigField<bool>(
+    parent: domAdvOptLeft,
+    name: 'stereo',
+    defaultValue: false,
+    activeValue: BoolConfigValue(),
+    desc: 'Stereo',
+    tooltip: kTooltipStereo,
   ),
 ];
 
@@ -355,7 +394,8 @@ final kOutputVolumeId = findConfigId('outputVolume');
 final kMinVolumeId = findConfigId('minVolume');
 final kDetuneId = findConfigId('detune');
 final kNumFreqId = findConfigId('numFreq');
-final kNumSineInstId = findConfigId('numSineInst');
+final kMicrotonesId = findConfigId('microtones');
+final kStereoId = findConfigId('stereo');
 
 class Config {
   final values = <ConfigValue>[];
@@ -382,8 +422,10 @@ class Config {
   set detune(double value) => values[kDetuneId].value = value;
   int get numFreq => values[kNumFreqId].value as int;
   set numFreq(int value) => values[kNumFreqId].value = value;
-  int get numSineInst => values[kNumSineInstId].value as int;
-  set numSineInst(int value) => values[kNumSineInstId].value = value;
+  int get microtones => values[kMicrotonesId].value as int;
+  set microtones(int value) => values[kMicrotonesId].value = value;
+  bool get stereo => values[kStereoId].value as bool;
+  set stereo(bool value) => values[kStereoId].value = value;
 
   void copyFrom(Config other) {
     for (int i = 0; i < values.length; ++i) {
@@ -401,7 +443,10 @@ class Config {
           ? rand.randf(minChunksPerSec, maxChunksPerSec)
           : minChunksPerSec);
   int freqToPitch(double f) =>
-      (numSineInst * (kNotesPerOctave * log2(f / kC0Freq) - detuneNotes)).round();
+      (microtones * (kNotesPerOctave * log2(f / kC0Freq) - detuneNotes))
+          .round();
+  bool get hasClones => (microtones == 1) && !stereo;
+  bool get shouldShowCopyNotes => hasClones;
   @override
   String toString() {
     String str = '';
@@ -557,7 +602,8 @@ class AsyncSTFT {
 }
 
 class FFTJob {
-  final Wav wav;
+  final List<Float64List> channels;
+  final double sampleRate;
   final String name;
   final Config config = Config();
   final List<Note> outNotes = <Note>[];
@@ -565,17 +611,32 @@ class FFTJob {
   bool done = false;
   bool stopped = false;
 
-  FFTJob(this.wav, this.name, Config inputConfig) {
+  FFTJob(Wav wav, this.name, Config inputConfig)
+      : sampleRate = wav.samplesPerSecond.toDouble(),
+        channels = ((wav.channels.length == 2) && inputConfig.stereo)
+            ? wav.channels
+            : [wav.toMono()] {
     config.copyFrom(inputConfig);
   }
   void stop() => stopped = true;
 
+  int getCloneIndex(int microtoneIndex, int chan) =>
+      microtoneIndex + config.microtones * chan;
+
   Future<void> run(Future<void> Function(double) onProgress) async {
-    final sampleRate = wav.samplesPerSecond.toDouble();
-    final audio = wav.toMono();
+    final chunks = <List<Note>>[];
+    for (int chan = 0; chan < channels.length; ++chan) {
+      await _runMono(chunks, chan, onProgress);
+      if (stopped) return;
+    }
+    _output(chunks);
+  }
+
+  Future<void> _runMono(List<List<Note>> chunks, int chan,
+      Future<void> Function(double) onProgress) async {
+    final audio = channels[chan];
     final totalSamples = audio.length;
     final stft = AsyncSTFT(kWindowFns[config.window]);
-    final chunks = <List<Note>>[];
 
     double getChunkStride() => config.generateChunkStride(sampleRate, rand);
     void updateChunkSize(double s) =>
@@ -598,8 +659,9 @@ class FFTJob {
         sines = <Sine>[];
         final vol = s.amp;
         final pitch = config.freqToPitch(s.f);
-        final pianoIndex = pitch ~/ config.numSineInst;
-        final cloneIndex = pitch % config.numSineInst;
+        final pianoIndex = pitch ~/ config.microtones;
+        final microtoneIndex = pitch % config.microtones;
+        final cloneIndex = getCloneIndex(microtoneIndex, chan);
         if (pianoIndex >= kMinPitch && pianoIndex <= kMaxPitch) {
           notes.add(Note(
             instrument: cloneIndex * kCloneOffset + kInstSin,
@@ -639,11 +701,12 @@ class FFTJob {
       chunks.add(filteredNotes);
 
       updateChunkSize(nextChunkStride);
-      await onProgress(firstSample / totalSamples);
+      await onProgress(((firstSample / totalSamples) + chan) / channels.length);
       return !stopped;
     });
-    if (stopped) return;
+  }
 
+  void _output(List<List<Note>> chunks) {
     // Calculate RMS volume.
     double sequenceSquareSumVolume = 0;
     for (final chunk in chunks) {
@@ -656,7 +719,7 @@ class FFTJob {
     final sequenceRmsVolume = sqrt(sequenceSquareSumVolume / chunks.length);
 
     // Normalize RMS volume, and discard any notes that are too quiet.
-    final volumeMul = config.outputVolume / sequenceRmsVolume;
+    final volumeMul = kMainVolume * config.outputVolume / sequenceRmsVolume;
     for (final chunk in chunks) {
       for (final note in chunk) {
         note.volume *= volumeMul;
@@ -676,12 +739,25 @@ class FFTJob {
     final seq = pb.Sequence();
     final settings = pb.SequenceSettings();
     settings.bpm = config.bpm;
-    for (int cloneIndex = 0; cloneIndex < config.numSineInst; ++cloneIndex) {
-      final sinSettings = pb.InstrumentSettings();
-      sinSettings.detune = config.detune + (cloneIndex * 100.0 / config.numSineInst);
-      print('${cloneIndex * kCloneOffset + kInstSin}\t${sinSettings.detune}');
-      sinSettings.volume = 1;
-      settings.instruments[cloneIndex * kCloneOffset + kInstSin] = sinSettings;
+    for (int chan = 0; chan < channels.length; ++chan) {
+      final pan = channels.length == 1
+          ? 0.0
+          : chan == 0
+              ? -1.0
+              : 1.0;
+      for (int microtoneIndex = 0;
+          microtoneIndex < config.microtones;
+          ++microtoneIndex) {
+        final sinSettings = pb.InstrumentSettings();
+        final cloneIndex = getCloneIndex(microtoneIndex, chan);
+        final instrument = cloneIndex * kCloneOffset + kInstSin;
+        sinSettings.detune =
+            config.detune + (microtoneIndex * 100.0 / config.microtones);
+        print('${instrument}\t${sinSettings.detune}\t${pan}');
+        sinSettings.pan = pan;
+        sinSettings.volume = 1;
+        settings.instruments[instrument] = sinSettings;
+      }
     }
     seq.settings = settings;
     final notes = seq.notes;
@@ -739,7 +815,7 @@ void setInputFiles(List<File> files) {
     try {
       final wav = Wav.read(bytes);
       domSelectedDuration.innerText = '${wav.duration.toStringAsFixed(2)} sec'
-          ' at ${wav.samplesPerSecond} Hz';
+          ' at ${wav.samplesPerSecond} Hz with ${wav.channels.length} channels';
       activeWav = WavFile(file.name, wav);
     } on FormatException catch (e) {
       reportError(e.message);
@@ -769,6 +845,7 @@ Future<void> go(MouseEvent e) async {
   if (!job.done) return;
   domStatus.innerText = 'Done! :) ${job.outNotes.length} notes';
   show(domOutputRow);
+  setShown(domCopyButton, job.config.shouldShowCopyNotes);
 }
 
 void copyNotes(MouseEvent e) {
