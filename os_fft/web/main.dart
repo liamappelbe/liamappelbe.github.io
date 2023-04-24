@@ -292,6 +292,24 @@ increases the CPU cost of the sequence. Only use this if you need it, and be
 careful when combining it with microtones.
 ''';
 
+const kTooltipExtraDetune = '''
+If non-zero, uses clones to extend the usual frequency range beyond the limits
+of the piano. The clones will have the same detune as the original, plus this
+extra detune (ie "Detune" + "Extra detune"). For example, to get 1 octave above
+and 1 octave below the usual piano range, set "Detune" to 1200 and "Extra
+detune" to -2400.
+<br/><br/>
+Like the stereo setting, this also doubles the number of sine instruments,
+which can get very CPU intensive. So use this carefully.
+<br/><br/>
+Advanced trick: Set extra detune to slot into the microtonal gaps to get more
+microtones for free. For example, if you're using 2 microtones you'll have a
+sine at 0 cents and another at 50, so if you add 25 to the extra detune then
+you'll get sines at 25 and 75 cents too. So in the central area of the piano
+where your main detune and extra detune overlap, you'll effectively get 4
+microtones.
+''';
+
 final kConfigSchema = <ConfigField>[
   ConfigField<int>(
     parent: domBpm,
@@ -380,6 +398,14 @@ final kConfigSchema = <ConfigField>[
     desc: 'Stereo',
     tooltip: kTooltipStereo,
   ),
+  ConfigField<double>(
+    parent: domAdvOptLeft,
+    name: 'extraDetune',
+    defaultValue: 0,
+    activeValue: FloatConfigValue(),
+    desc: 'Extra detune',
+    tooltip: kTooltipExtraDetune,
+  ),
 ];
 
 int findConfigId(String name) =>
@@ -396,6 +422,7 @@ final kDetuneId = findConfigId('detune');
 final kNumFreqId = findConfigId('numFreq');
 final kMicrotonesId = findConfigId('microtones');
 final kStereoId = findConfigId('stereo');
+final kExtraDetuneId = findConfigId('extraDetune');
 
 class Config {
   final values = <ConfigValue>[];
@@ -426,6 +453,8 @@ class Config {
   set microtones(int value) => values[kMicrotonesId].value = value;
   bool get stereo => values[kStereoId].value as bool;
   set stereo(bool value) => values[kStereoId].value = value;
+  double get extraDetune => values[kExtraDetuneId].value as double;
+  set extraDetune(double value) => values[kExtraDetuneId].value = value;
 
   void copyFrom(Config other) {
     for (int i = 0; i < values.length; ++i) {
@@ -433,8 +462,7 @@ class Config {
     }
   }
 
-  double get detuneNotes => detune / 100;
-  double timeToStep(double t) => t * (bpm / 60) * kTimeStepsPerBeat;
+  double timeToStep(double t) => t * (bpm / 60.0) * kTimeStepsPerBeat;
   int chunkSize(double samplesPerSecond) =>
       (samplesPerSecond * chunkSizeRatio / maxChunksPerSec).round();
   double generateChunkStride(double samplesPerSecond, Random rand) =>
@@ -442,11 +470,35 @@ class Config {
       (minChunksPerSec < maxChunksPerSec
           ? rand.randf(minChunksPerSec, maxChunksPerSec)
           : minChunksPerSec);
-  int freqToPitch(double f) =>
-      (microtones * (kNotesPerOctave * log2(f / kC0Freq) - detuneNotes))
-          .round();
-  bool get hasClones => (microtones == 1) && !stereo;
-  bool get shouldShowCopyNotes => hasClones;
+  bool get hasExtraDetune => extraDetune != 0;
+  bool get hasMicrotones => microtones != 1;
+  bool get hasClones => hasMicrotones || stereo || hasExtraDetune;
+  bool get shouldShowCopyNotes => !hasClones;
+
+  int get numDetuneGroups => hasExtraDetune ? 2 : 1;
+  double fullDetune(int extraDetuneIndex) =>
+      detune + extraDetuneIndex * extraDetune;
+  Microtone? _freqToMicrotone(double f, int extraDetuneIndex) {
+    final d = fullDetune(extraDetuneIndex) / 100.0;
+    final p = kNotesPerOctave * log2(f / kC0Freq) - d;
+    final m = (microtones * p).round();
+    if (m < kMinPitch * microtones || m > kMaxPitch * microtones) return null;
+    return Microtone(m, extraDetuneIndex);
+  }
+  double _microtoneToFreq(Microtone m) {
+    final d = fullDetune(m.extraDetuneIndex) / 100.0;
+    return pow(2, ((m.microtone / microtones) + d) / kNotesPerOctave) * kC0Freq;
+  }
+  Microtone? freqToMicrotone(double f) {
+    final mt1 = _freqToMicrotone(f, 0);
+    final mt2 = hasExtraDetune ? _freqToMicrotone(f, 1) : null;
+    if (mt2 == null) return mt1;
+    if (mt1 == null) return mt2;
+    final f1 = _microtoneToFreq(mt1);
+    final f2 = _microtoneToFreq(mt2);
+    return ((f - f1).abs() < (f - f2).abs()) ? mt1 : mt2;
+  }
+
   @override
   String toString() {
     String str = '';
@@ -521,6 +573,19 @@ Sine mergeSines(List<Sine> sines) {
   }
   sum.f /= sines.length;
   return sum;
+}
+
+class Microtone {
+  final int microtone;
+  final int extraDetuneIndex;
+  Microtone(this.microtone, this.extraDetuneIndex);
+  @override
+  bool operator ==(Object other) =>
+      other is Microtone &&
+      other.microtone == microtone &&
+      other.extraDetuneIndex == extraDetuneIndex;
+  @override
+  int get hashCode => Object.hash(microtone, extraDetuneIndex);
 }
 
 class Note {
@@ -620,8 +685,10 @@ class FFTJob {
   }
   void stop() => stopped = true;
 
-  int getCloneIndex(int microtoneIndex, int chan) =>
-      microtoneIndex + config.microtones * chan;
+  int getCloneIndex(int microtoneIndex, int chan, int extraDetuneIndex) {
+    final group = extraDetuneIndex + config.numDetuneGroups * chan;
+    return microtoneIndex + config.microtones * group;
+  }
 
   Future<void> run(Future<void> Function(double) onProgress) async {
     final chunks = <List<Note>>[];
@@ -648,7 +715,7 @@ class FFTJob {
       final chunkStart = firstSample / sampleRate;
       final nextChunkStride = getChunkStride();
       final chunkLength = nextChunkStride.round() / sampleRate;
-      int? currentPitch;
+      Microtone? currentMicrotone;
       List<Sine> sines = <Sine>[];
       final notes = <Note>[];
 
@@ -658,11 +725,11 @@ class FFTJob {
         final s = mergeSines(sines);
         sines = <Sine>[];
         final vol = s.amp;
-        final pitch = config.freqToPitch(s.f);
-        final pianoIndex = pitch ~/ config.microtones;
-        final microtoneIndex = pitch % config.microtones;
-        final cloneIndex = getCloneIndex(microtoneIndex, chan);
-        if (pianoIndex >= kMinPitch && pianoIndex <= kMaxPitch) {
+        final m = config.freqToMicrotone(s.f);
+        if (m != null) {
+          final pianoIndex = m.microtone ~/ config.microtones;
+          final mtIndex = m.microtone % config.microtones;
+          final cloneIndex = getCloneIndex(mtIndex, chan, m.extraDetuneIndex);
           notes.add(Note(
             instrument: cloneIndex * kCloneOffset + kInstSin,
             time: chunkStart,
@@ -677,10 +744,10 @@ class FFTJob {
       for (int i = 1; i < freq.length; ++i) {
         final p = freq[i];
         final f = stft.frequency(i, sampleRate);
-        final pitch = config.freqToPitch(f);
-        if (pitch != currentPitch) {
+        final microtone = config.freqToMicrotone(f);
+        if (microtone != currentMicrotone) {
           flushSines();
-          currentPitch = pitch;
+          currentMicrotone = microtone;
         }
         sines.add(Sine(f, p));
       }
@@ -745,20 +812,22 @@ class FFTJob {
           : chan == 0
               ? -1.0
               : 1.0;
+      for (int edi = 0; edi < config.numDetuneGroups; ++edi) {
       for (int microtoneIndex = 0;
           microtoneIndex < config.microtones;
           ++microtoneIndex) {
         final sinSettings = pb.InstrumentSettings();
-        final cloneIndex = getCloneIndex(microtoneIndex, chan);
+        final cloneIndex = getCloneIndex(microtoneIndex, chan, edi);
         final instrument = cloneIndex * kCloneOffset + kInstSin;
-        sinSettings.detune =
-            config.detune + (microtoneIndex * 100.0 / config.microtones);
+        final microDetune = microtoneIndex * 100.0 / config.microtones;
+        sinSettings.detune = config.fullDetune(edi) + microDetune;
         print('${instrument}\t${sinSettings.detune}\t${pan}');
         sinSettings.pan = pan;
         sinSettings.volume = 1;
         settings.instruments[instrument] = sinSettings;
       }
     }
+  }
     seq.settings = settings;
     final notes = seq.notes;
     for (final note in outNotes) {
