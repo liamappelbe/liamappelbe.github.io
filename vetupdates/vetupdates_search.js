@@ -333,11 +333,11 @@ async function buildVetUpdatesSearch(node) {
       newTextInput(advRow1, ['text-input'], 'Title', doAdvSearch);
   const abstractInput =
       newTextInput(advRow1, ['dropdown-input'], 'Abstract', doAdvSearch);
-  const keywordsInput =
-      newTextInput(advRow1, ['dropdown-input'], 'Keywords', doAdvSearch);
   const tagsInput = newDropOptionsInput(
       advRow1, ['dropdown-input'], kMajorTagText,
       [kMajorTagText, kMinorTagText]);
+  const keywordsInput =
+      newTextInput(advRow1, ['dropdown-input'], 'Keywords', doAdvSearch);
 
   const authorsInput =
       newTextInput(advRow2, ['text-input'], 'Authors', doAdvSearch);
