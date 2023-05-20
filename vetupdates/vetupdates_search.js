@@ -6,6 +6,8 @@ const kAdvancedSearchApi = kApiEndpoint + '/zpqk';
 const kSearchApi = kApiEndpoint + '/gqmo';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
+const kMajorTagText = 'Topics';
+const kMinorTagText = 'Subtopics';
 
 const kMajorTags = new Set([
   'acid base',
@@ -40,9 +42,14 @@ const kMajorTags = new Set([
   'shock and ischemia',
   'statistics',
   'surgery',
+  'toxicology',
   'transfusion',
   'trauma',
 ]);
+
+function isMajorTag(tag) {
+  return kMajorTags.has(tag.toLowerCase().trim());
+}
 
 async function asyncRequest(url) {
   let errorCode = null;
@@ -175,23 +182,33 @@ function newDropOptionsCheckWithLabel(list, label, onclick) {
   return c;
 };
 
-function newDropOptionsItem(list, option) {
-  newDropOptionsCheckWithLabel(list, option, c => {
+function newDropOptionsItem(list, option, sublistIndex = null) {
+  const i = (sublistIndex == null ? 0 : sublistIndex + 1);
+  newDropOptionsCheckWithLabel(list.children[i], option, c => {
     if (!c.checked) return;
-    list.children[0].children[0].checked = false;
+    list.children[0].children[0].children[0].checked = false;
   });
 }
 
-function newDropOptionsInput(parent, classes = [], name = null) {
+function newDropOptionsInput(parent, classes = [], name = null, groups = []) {
   const menu =
       newElement('dropdown-menu', parent, classes, null, [['name', name]]);
   const list = newDiv(menu);
-  newDropOptionsCheckWithLabel(list, 'Any', c => {
+  const firstSublist = newDiv(list);
+  newDropOptionsCheckWithLabel(firstSublist, 'Any', c => {
     if (!c.checked) return;
-    for (let i = 1; i < list.children.length; ++i) {
-      list.children[i].children[0].checked = false;
+    for (let i = 0; i < list.children.length; ++i) {
+      const sublist = list.children[i];
+      // In the first sublist, we skip "Any". In later ones we skip the title.
+      for (let j = 1; j < sublist.children.length; ++j) {
+        sublist.children[j].children[0].checked = false;
+      }
     }
   }).checked = true;
+  for (const g of groups) {
+    const sublist = newDiv(list);
+    const title = newDiv(sublist, ['dropdown-options-group-title'], g);
+  }
   return list;
 }
 
@@ -236,12 +253,16 @@ function encodeTextQuery(q, t) {
 }
 
 function encodeOptionQuery(q, o) {
-  if (o.children[0].children[0].checked) return '';
+  if (o.children[0].children[0].children[0].checked) return '';
   const a = [];
-  for (let i = 1; i < o.children.length; ++i) {
-    const c = o.children[i];
-    if (c.children[0].checked) {
-      a.push(cleanText(c.children[1].innerText).toLowerCase());
+  for (let i = 0; i < o.children.length; ++i) {
+    const sublist = o.children[i];
+    // In the first sublist, we skip "Any". In later ones we skip the title.
+    for (let j = 1; j < sublist.children.length; ++j) {
+      const c = sublist.children[j];
+      if (c.children[0].checked) {
+        a.push(cleanText(c.children[1].innerText).toLowerCase());
+      }
     }
   }
   return q + '=' + encodeURIComponent(a.join(','));
@@ -296,10 +317,10 @@ async function buildVetUpdatesSearch(node) {
     const d = encodeDateQuery('d', fromDateInput);
     const e = encodeDateQuery('e', toDateInput);
     const a = encodeTextQuery('a', authorsInput);
-    // const g = encodeOptionQuery('g', tagsInput);
+    const g = encodeOptionQuery('g', tagsInput);
     const k = encodeTextQuery('k', keywordsInput);
     const w = encodeTextQuery('w', abstractInput);
-    const result = await advancedSearchRequest([t, j, d, e, a /*, g*/, k, w]);
+    const result = await advancedSearchRequest([t, j, d, e, a, g, k, w]);
     fillResults(result);
   };
   const dateInput = (row, title) => {
@@ -314,7 +335,8 @@ async function buildVetUpdatesSearch(node) {
       newTextInput(advRow1, ['dropdown-input'], 'Abstract', doAdvSearch);
   const keywordsInput =
       newTextInput(advRow1, ['dropdown-input'], 'Keywords', doAdvSearch);
-  // const tagsInput = newDropOptionsInput(advRow1, ['dropdown-input'], 'Tags');
+  const tagsInput = newDropOptionsInput(
+      advRow1, ['dropdown-input'], 'Tags', [kMajorTagText, kMinorTagText]);
 
   const authorsInput =
       newTextInput(advRow2, ['text-input'], 'Authors', doAdvSearch);
@@ -324,14 +346,16 @@ async function buildVetUpdatesSearch(node) {
   const toDateInput = dateInput(advRow2, 'To:');
 
   newButton(advRow3, ['button'], 'Search', doAdvSearch);
-  newButton(advRow3, ['button'], 'Simple', async () => {
+  newButton(advRow3, ['button'], 'Simple', () => {
     advCol.classList.add('hidden');
     smpRow.classList.remove('hidden');
   });
 
   const [journals, tags] = (await metadataRequest()).map(cleanMetadata);
   for (const journal of journals) newDropOptionsItem(journalInput, journal);
-  // for (const tag of tags) newDropOptionsItem(tagsInput, tag);
+  for (const tag of tags) {
+    newDropOptionsItem(tagsInput, tag, isMajorTag(tag) ? 0 : 1);
+  }
 }
 
 class VetUpdatesSearch extends HTMLElement {
