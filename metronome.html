@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Metronome</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+function lerp(t, x0, x1) {
+  return t * (x1 - x0) + x0;
+}
+
+function unlerp(x, x0, x1) {
+  return (x - x0) / (x1 - x0);
+}
+
+function wrap(x) {
+  return ((x % 1) + 1) % 1;
+}
+
+async function asyncXMLHttpRequest(url, type) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = type;
+    request.onload = () => resolve(request.response);
+    request.onerror = reject;
+    request.send();
+  });
+}
+
+class LiveValue {
+  constructor(id, format) {
+    this.value = null;
+    this._input = document.getElementById(id);
+    this._view = document.getElementById(`${id}_view`);
+    this._format = format;
+    this.update();
+  }
+
+  update() {
+    this.value = parseFloat(this._input.value);
+    this._view.innerText = this._format(this.value);
+    return this.value;
+  }
+}
+
+class Metronome {
+  constructor() {
+    this.spb = null;
+    this.swing = null;
+    this.nextTickTime = 0;
+    this.nextTick = null;
+    this.lastBeatTime = 0;
+    this.nextBeatTime = 0;
+    this.tickSound = null;
+    this.ctx = new AudioContext();
+    window.setTimeout(async () => {
+      const response = await asyncXMLHttpRequest(
+          'https://tiusic.com/res/tick.wav', 'arraybuffer');
+      this.tickSound = await this.ctx.decodeAudioData(response);
+    }, 0);
+  }
+
+  play() {
+    this.ctx.resume();
+    this.nextTick = 0;
+    this.nextTickTime = this.ctx.currentTime + 0.1;
+    this.nextBeatTime = this.nextTickTime;
+    this.lastBeatTime = this.nextBeatTime - (60 / this.bpm);
+    this._update();
+  }
+
+  stop() {
+    // TODO: Fix bug where ticks from before pause are still audible after
+    // resume.
+    this.ctx.suspend();
+    this.nextTick = null;
+  }
+
+  update(bpm, swing) {
+    this.bpm = bpm;
+    this.swing = swing;
+    this._update();
+  }
+
+  _update() {
+    if (this.nextTick == null) return;
+
+    // Schedule the next tick if it's going to happen in the 0.1 seconds, and
+    // then calculate when the following tick will be. Due to our BPM limit of
+    // 300, the shortest possible gap is 0.2 seconds, so the following tick
+    // should be outside our scheduling horizon.
+    const t = this.ctx.currentTime;
+    if (this.nextTickTime > t + 0.1) {
+      // Too distant. Wait.
+      return;
+    }
+
+    // Play the tick.
+    const downBeat = this.nextTick % 2 == 0;
+    const gainNode = this.ctx.createGain();
+    gainNode.gain.value = downBeat ? 1.0 : 0.1;
+    const tickNode = this.ctx.createBufferSource();
+    tickNode.detune.value = downBeat ? 1000 : 500;
+    tickNode.buffer = this.tickSound;
+    tickNode.connect(gainNode);
+    gainNode.connect(this.ctx.destination);
+    tickNode.start(this.nextTickTime);
+
+    // If this was a down beat, update the beat times.
+    if (downBeat) {
+      this.lastBeatTime = this.nextBeatTime;
+      this.nextBeatTime = this.lastBeatTime + (60 / this.bpm);
+    }
+
+    // Calculate when the following tick will be.
+    ++this.nextTick;
+    const f = downBeat ? lerp(this.swing / 100, 1 / 2, 2 / 3) : 1;
+    this.nextTickTime = lerp(f, this.lastBeatTime, this.nextBeatTime);
+  }
+
+  beatFrac() {
+    // TODO: Use this to animate some CSS to visually indicate the beats.
+    return wrap(unlerp(
+        this.ctx.currentTime, this.lastBeatTime, this.nextBeatTime));
+  }
+}
+
+function onLoad() {
+  const bpm = new LiveValue('bpm', x => `${x}`);
+  const swing = new LiveValue('swing', x => `${x}%`);
+
+  const setupToggle = (id, onChange) => {
+    const button = document.getElementById(id);
+    let value = true;
+    const update = () => {
+      value = !value;
+      if (value) {
+        button.classList.add('enabled');
+      } else {
+        button.classList.remove('enabled');
+      }
+      onChange(value);
+    };
+    button.addEventListener('click', update);
+    update();
+  };
+
+  let metronome = null;
+  const ensureMetronome = () => {
+    if (metronome != null) return;
+    metronome = new Metronome()
+    metronome.update(bpm.update(), swing.update());
+  };
+
+  setupToggle('play_button', (value) => {
+    if (value) {
+      ensureMetronome();
+      metronome.play();
+    } else {
+      metronome?.stop();
+    }
+  });
+
+  const frame = () => {
+    const bpmVal = bpm.update();
+    const swingVal = swing.update();
+    metronome?.update(bpmVal, swingVal);
+    window.setTimeout(frame, 0.03);
+  };
+  frame();
+}
+window.addEventListener('load', onLoad);
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.row {
+  display: flex;
+  flex-direction: row;
+}
+.view {
+  width: 96px;
+}
+.label {
+  width: 128px;
+}
+input {
+  width: 196px;
+}
+#play_button {
+  font-size: 128px;
+  font-weight: bold;
+  color: #ffc107;
+  cursor: pointer;
+}
+#play_button:hover {
+  color: #f5f5f5;
+}
+#play_button::after {
+  content: '⏵';
+}
+#play_button.enabled::after {
+  content: '⏸';
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Metronome</h1>
+</div>
+<div id="wrap">
+  <div class="row">
+    <span class="label">BPM:</span>
+    <span class="view" id="bpm_view"></span>
+    <input type="range" id="bpm" min="30" max="300" step="1" value="60"/>
+  </div>
+  <div class="row">
+    <span class="label">Swing:</span>
+    <span class="view" id="swing_view"></span>
+    <input type="range" id="swing" min="0" max="150" step="5" value="0"/>
+  </div>
+  <div class="row">
+    <span id="play_button"></span>
+  </div>
+</div>
+</body>
+</html>
