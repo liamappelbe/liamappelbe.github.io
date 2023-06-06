@@ -17,6 +17,10 @@ function wrap(x) {
   return ((x % 1) + 1) % 1;
 }
 
+function cubicEaseOut(x) {
+  return (3 - x * x) * x / 2;
+}
+
 async function asyncXMLHttpRequest(url, type) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
@@ -71,8 +75,6 @@ class Metronome {
   }
 
   stop() {
-    // TODO: Fix bug where ticks from before pause are still audible after
-    // resume.
     this.ctx.suspend();
     this.nextTick = null;
   }
@@ -83,8 +85,12 @@ class Metronome {
     this._update();
   }
 
+  isPlaying() {
+    return this.nextTick != null;
+  }
+
   _update() {
-    if (this.nextTick == null) return;
+    if (!this.isPlaying()) return;
 
     // Schedule the next tick if it's going to happen in the 0.1 seconds, and
     // then calculate when the following tick will be. Due to our BPM limit of
@@ -120,53 +126,79 @@ class Metronome {
   }
 
   beatFrac() {
-    // TODO: Use this to animate some CSS to visually indicate the beats.
     return wrap(unlerp(
         this.ctx.currentTime, this.lastBeatTime, this.nextBeatTime));
   }
+}
+
+const kPlayButton = "M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM9.64109 7.19733C9.14132 6.89192 8.5 7.2516 8.5 7.83729V16.1627C8.5 16.7484 9.14132 17.1081 9.64109 16.8027L16.4528 12.64C16.9313 12.3475 16.9313 11.6525 16.4528 11.36L9.64109 7.19733Z";
+const kPauseButton = "M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM8 8C8 7.44772 8.44772 7 9 7H10C10.5523 7 11 7.44772 11 8V16C11 16.5523 10.5523 17 10 17H9C8.44772 17 8 16.5523 8 16V8ZM13 8C13 7.44772 13.4477 7 14 7H15C15.5523 7 16 7.44772 16 8V16C16 16.5523 15.5523 17 15 17H14C13.4477 17 13 16.5523 13 16V8Z";
+
+function emptyDiv(n) {
+  while (n.hasChildNodes()) n.removeChild(n.lastChild);
+}
+
+function makeElementNS(ns, tag, parent, attr) {
+  const node = document.createElementNS(ns, tag);
+  if (parent != null) parent.appendChild(node);
+  for (const [k, v] of attr) node.setAttribute(k, v);
+  return node;
+}
+
+function makeButtonSvg(path) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = makeElementNS(ns, 'svg', null, [['viewBox', '0 0 24 24']]);
+  makeElementNS(ns, 'path', svg, [
+    ['fill-rule', 'evenodd'], ['clip-rule', 'evenodd'],
+    ['fill', 'var(--svgcolor)'], ['d', path],
+  ]);
+  return svg;
 }
 
 function onLoad() {
   const bpm = new LiveValue('bpm', x => `${x}`);
   const swing = new LiveValue('swing', x => `${x}%`);
 
+  const svgPlay = makeButtonSvg(kPlayButton);
+  const svgPause = makeButtonSvg(kPauseButton);
+
   const setupToggle = (id, onChange) => {
     const button = document.getElementById(id);
     let value = true;
     const update = () => {
       value = !value;
-      if (value) {
-        button.classList.add('enabled');
-      } else {
-        button.classList.remove('enabled');
-      }
-      onChange(value);
+      onChange(button, value);
     };
     button.addEventListener('click', update);
     update();
   };
 
-  let metronome = null;
-  const ensureMetronome = () => {
-    if (metronome != null) return;
-    metronome = new Metronome()
-    metronome.update(bpm.update(), swing.update());
-  };
+  const metronome = new Metronome();
 
-  setupToggle('play_button', (value) => {
+  setupToggle('play_button', (playButton, value) => {
+    emptyDiv(playButton);
     if (value) {
-      ensureMetronome();
+      playButton.appendChild(svgPause);
       metronome.play();
     } else {
-      metronome?.stop();
+      playButton.appendChild(svgPlay);
+      metronome.stop();
     }
   });
+
+  const bgColor = (playing, x) => {
+    if (!playing) return '#212121';
+    const g = Math.floor(lerp(cubicEaseOut(x), 0x42, 0x21));
+    return `rgb(${g}, ${g}, ${g})`;
+  };
 
   const frame = () => {
     const bpmVal = bpm.update();
     const swingVal = swing.update();
-    metronome?.update(bpmVal, swingVal);
-    window.setTimeout(frame, 0.03);
+    metronome.update(bpmVal, swingVal);
+    const clr = bgColor(metronome.isPlaying(), metronome.beatFrac());
+    document.body.style.setProperty('background-color', clr);
+    window.requestAnimationFrame(frame);
   };
   frame();
 }
@@ -221,19 +253,17 @@ input {
   width: 196px;
 }
 #play_button {
-  font-size: 128px;
+  display: block;
+  width: 128px;
+  height: 128px;
   font-weight: bold;
-  color: #ffc107;
   cursor: pointer;
 }
-#play_button:hover {
-  color: #f5f5f5;
+#play_button svg path {
+  --svgcolor: #ffc107;
 }
-#play_button::after {
-  content: '⏵';
-}
-#play_button.enabled::after {
-  content: '⏸';
+#play_button:hover svg path {
+  --svgcolor: #f5f5f5;
 }
 </style>
 </head>
