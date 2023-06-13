@@ -48,16 +48,42 @@ class LiveValue {
   }
 }
 
+class Tick {
+  constructor(ctx, sound, t, volume, detune) {
+    this.gainNode = ctx.createGain();
+    this.gainNode.gain.value = volume;
+    this.tickNode = ctx.createBufferSource();
+    this.tickNode.detune.value = detune;
+    this.tickNode.buffer = sound;
+    this.tickNode.connect(this.gainNode);
+    this.gainNode.connect(ctx.destination);
+    this.tickNode.start(t);
+    this.ctx = ctx;
+  }
+
+  onEnd(fn) {
+    this.tickNode.addEventListener('ended', fn);
+  }
+
+  stop() {
+    this.gainNode.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.01);
+  }
+}
+
 class Metronome {
   constructor() {
     this.spb = null;
     this.swing = null;
-    this.nextTickTime = 0;
-    this.nextTick = null;
+    this.playing = false;
     this.lastBeatTime = 0;
     this.nextBeatTime = 0;
     this.tickSound = null;
+    this.currentDownTick = null;
+    this.currentUpTick = null;
+    this.delayedSuspend = 0;
+    this.epoch = 0;
     this.ctx = new AudioContext();
+    this.ctx.suspend();
     window.setTimeout(async () => {
       const response = await asyncXMLHttpRequest(
           'https://tiusic.com/res/tick.wav', 'arraybuffer');
@@ -66,63 +92,64 @@ class Metronome {
   }
 
   play() {
+    window.clearTimeout(this.delayedSuspend);
     this.ctx.resume();
-    this.nextTick = 0;
-    this.nextTickTime = this.ctx.currentTime + 0.1;
-    this.nextBeatTime = this.nextTickTime;
+    this.playing = true;
+    this.nextBeatTime = this.ctx.currentTime + 0.1;
     this.lastBeatTime = this.nextBeatTime - (60 / this.bpm);
-    this._update();
+    this._update(this.epoch);
   }
 
   stop() {
-    this.ctx.suspend();
-    this.nextTick = null;
+    this.playing = false;
+    this.epoch += 1;
+    this.currentDownTick?.stop();
+    this.currentUpTick?.stop();
+    this.currentDownTick = this.currentUpTick = null;
+    this.delayedSuspend = window.setTimeout(() => {
+      this.ctx.suspend();
+      this.delayedSuspend = 0;
+    }, 1000);
   }
 
-  update(bpm, swing) {
+  config(bpm, swing) {
     this.bpm = bpm;
     this.swing = swing;
-    this._update();
   }
 
   isPlaying() {
-    return this.nextTick != null;
+    return this.playing;
   }
 
-  _update() {
-    if (!this.isPlaying()) return;
+  _update(epoch) {
+    if (epoch != this.epoch || !this.isPlaying()) return;
 
-    // Schedule the next tick if it's going to happen in the 0.1 seconds, and
-    // then calculate when the following tick will be. Due to our BPM limit of
-    // 300, the shortest possible gap is 0.2 seconds, so the following tick
-    // should be outside our scheduling horizon.
-    const t = this.ctx.currentTime;
-    if (this.nextTickTime > t + 0.1) {
-      // Too distant. Wait.
-      return;
-    }
+    // Schedule the next 2 tick sounds (the down beat and up beat). We attach
+    // the scheduling of the subsequent beat to when the down beat sound
+    // finishes playing. This lets us play even when the tab is in the
+    // background (ie when window.setTimeout etc stop working).
+    //
+    // This relies on the fact that the tick sound is about 0.05 seconds long,
+    // and the fastest BPM we support is 300, which is a gap between beats of
+    // 0.2 seconds. If the tick sound was longer than this gap, the sounds could
+    // overlap and this approach wouldn't work.
 
-    // Play the tick.
-    const downBeat = this.nextTick % 2 == 0;
-    const gainNode = this.ctx.createGain();
-    gainNode.gain.value = downBeat ? 1.0 : 0.1;
-    const tickNode = this.ctx.createBufferSource();
-    tickNode.detune.value = downBeat ? 1000 : 500;
-    tickNode.buffer = this.tickSound;
-    tickNode.connect(gainNode);
-    gainNode.connect(this.ctx.destination);
-    tickNode.start(this.nextTickTime);
+    // Calculate when the following beat will be.
+    this.lastBeatTime = this.nextBeatTime;
+    this.nextBeatTime = this.lastBeatTime + (60 / this.bpm);
 
-    // If this was a down beat, update the beat times.
-    if (downBeat) {
-      this.lastBeatTime = this.nextBeatTime;
-      this.nextBeatTime = this.lastBeatTime + (60 / this.bpm);
-    }
+    // Downbeat.
+    this.currentDownTick = this._tick(this.lastBeatTime, 1.0, 1000);
+    this.currentDownTick.onEnd(() => this._update(epoch));
 
-    // Calculate when the following tick will be.
-    ++this.nextTick;
-    const f = downBeat ? lerp(this.swing / 100, 1 / 2, 2 / 3) : 1;
-    this.nextTickTime = lerp(f, this.lastBeatTime, this.nextBeatTime);
+    // Upbeat.
+    const frac = lerp(this.swing / 100, 1 / 2, 2 / 3);
+    const uptime = lerp(frac, this.lastBeatTime, this.nextBeatTime);
+    this.currentUpTick = this._tick(uptime, 0.1, 500);
+  }
+
+  _tick(t, volume, detune) {
+    return new Tick(this.ctx, this.tickSound, t, volume, detune);
   }
 
   beatFrac() {
@@ -193,9 +220,7 @@ function onLoad() {
   };
 
   const frame = () => {
-    const bpmVal = bpm.update();
-    const swingVal = swing.update();
-    metronome.update(bpmVal, swingVal);
+    metronome.config(bpm.update(), swing.update());
     const clr = bgColor(metronome.isPlaying(), metronome.beatFrac());
     document.body.style.setProperty('background-color', clr);
     window.requestAnimationFrame(frame);
