@@ -91,8 +91,8 @@ input, select {
   width: 400px;
 }
 .config_input input {
-  width: 96px;
+  width: 120px;
 }
 .config_input select {
-  width: 104px;
+  width: 128px;
 }

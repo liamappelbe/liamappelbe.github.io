@@ -15,6 +15,8 @@ function numSan(x, valueIfNaN = 0) { return isNumber(x) ? x : valueIfNaN; }
 <script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
 <script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
 <script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
+<script src="https://onlinesequencer.net/ajax/settings.php"></script>
+<script src="https://onlinesequencer.net/app/instrumentManager.js"></script>
 <script src="https://onlinesequencer.net/app/consoleCommands.js"></script>
 <script>
 
@@ -310,9 +312,15 @@ function removeTweaks(o) {
 
 </script>
 <style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
 body {
   background-color: #212121;
   margin: 0;
+  flex-grow: 1;
 }
 #head {
   background-color: #424242;

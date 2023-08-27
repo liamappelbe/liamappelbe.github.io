@@ -204,9 +204,15 @@ function runThumbnailGenerator(img) {
 }
 </script>
 <style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
 body {
   background-color: #212121;
   margin: 0;
+  flex-grow: 1;
 }
 #head {
   background-color: #424242;

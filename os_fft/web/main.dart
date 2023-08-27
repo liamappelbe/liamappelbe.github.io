@@ -61,10 +61,39 @@ final kWindowFns = <String, Float64List Function(int)?>{
   'Hamming': Window.hamming,
   'Bartlett': Window.bartlett,
   'Blackman': Window.blackman,
+  'Paulstretch': Window2.paulstretch,
 };
 
 extension RandUtil on Random {
   double randf(double min, double max) => (nextDouble() * (max - min)) + min;
+}
+
+// TODO: Move this into fftea.
+extension Window2 on Float64List {
+  static Float64List _makeWindow(int size, double Function(int) fn) {
+    final a = Float64List(size);
+    if (size == 1) {
+      a[0] = 1;
+      return a;
+    }
+    final half = size >>> 1;
+    final n = size - 1;
+    for (int i = 0; i <= half; ++i) {
+      a[i] = fn(i);
+    }
+    for (int i = 0; i < half; ++i) {
+      a[n - i] = a[i];
+    }
+    return a;
+  }
+
+  static Float64List paulstretch(int size) {
+    final s = (size - 1) / 2;
+    return _makeWindow(size, (i) {
+      final x = 1 - i / s;
+      return pow(1 - x * x, 1.25).toDouble();
+    });
+  }
 }
 
 class WavFile {
@@ -821,7 +850,6 @@ class FFTJob {
         final instrument = cloneIndex * kCloneOffset + kInstSin;
         final microDetune = microtoneIndex * 100.0 / config.microtones;
         sinSettings.detune = config.fullDetune(edi) + microDetune;
-        print('${instrument}\t${sinSettings.detune}\t${pan}');
         sinSettings.pan = pan;
         sinSettings.volume = 1;
         settings.instruments[instrument] = sinSettings;
