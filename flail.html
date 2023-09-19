@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Flick and Flail</title>
+<link rel="icon" href="res/favicon.ico">
+<script id="clr_vert_sh" type="text/glsl">#version 300 es
+in vec2 pos;
+in vec2 off;
+
+void main() {
+  gl_Position = vec4(pos + off, 0, 1);
+}
+</script>
+<script id="clr_frag_sh" type="text/glsl">#version 300 es
+precision mediump float;
+uniform vec3 clr;
+out vec4 outClr;
+
+void main() {
+  outClr = vec4(clr, 1);
+}
+</script>
+<script type="text/javascript">
+
+const TAU = 2 * Math.PI;
+const kResolution = 800;
+const kFrameRate = 60;
+const kMapRad2 = 2.01;
+const kEnemyRad2 = 30 / (kResolution * kResolution);
+const kSpring = 0.001;
+const kDamping = 0.001;
+const kBounce = 0.9;
+const kSpawnSlices = 100;
+const kSpawnRateBase = 10;
+const kSpawnRateGrowth = 0.03 * kSpawnRateBase;
+const kSpawnCycle = 240;
+const kSpawnRotation = [0.28, -0.22, 0.12, -0.16];
+const kSpawnN = kSpawnRotation.length;
+const kSpawnVelocitySpread = 0.25 * TAU;
+const kEnemySpeed = 0.14;
+
+function r2(x, y) { return x * x + y * y; }
+function d2(x0, y0, x1, y1) { return r2(x0 - x1, y0 - y1); }
+function cycle(t) { return (1 + Math.cos(TAU * t)) / 2; }
+
+function safeInt(x) {
+  y = parseInt(x);
+  return isNaN(y) ? 0 : y;
+}
+
+class EnemyBuffer {
+  constructor() {
+    this.cap = 1;
+    this.length = 0;
+    this.pos = null;
+    this.vel = null;
+    this._resize();
+  }
+
+  _resize() {
+    const n = this.length << 1;
+    const m = this.cap << 1;
+    const p = new Float32Array(m);
+    const v = new Float32Array(m);
+    for (let i = 0; i < n; ++i) {
+      p[i] = this.pos[i];
+      v[i] = this.vel[i];
+    }
+    this.pos = p;
+    this.vel = v;
+  }
+
+  update(ux, uy) {
+    const n = this.length << 1;
+    for (let i = 0; i < n; ++i) {
+      this.pos[i] += this.vel[i];
+    }
+    for (let i = 0; i < this.length;) {
+      const j = i << 1;
+      const px = this.pos[j];
+      const py = this.pos[j + 1];
+      if (r2(px, py) > kMapRad2) {
+        this.del(i);
+      } else if(d2(px, py, ux, uy) < kEnemyRad2) {
+        return true;
+      } else {
+        ++i;
+      }
+    }
+    return false;
+  }
+
+  add(x, y, u, v) {
+    if (this.length >= this.cap) {
+      this.cap <<= 1;
+      this._resize();
+    }
+    let n = this.length << 1;
+    this.pos[n] = x;
+    this.vel[n] = u;
+    ++n;
+    this.pos[n] = y;
+    this.vel[n] = v;
+    ++this.length;
+  }
+
+  del(i) {
+    --this.length;
+    if (i < this.length) {
+      let n = this.length << 1;
+      let j = i << 1;
+      this.pos[j] = this.pos[n];
+      this.vel[j] = this.vel[n];
+      ++n;
+      ++j;
+      this.pos[j] = this.pos[n];
+      this.vel[j] = this.vel[n];
+    }
+  }
+
+  clear() {
+    this.length = 0;
+  }
+}
+
+function baseSpawnRate(t, time) {
+  let sum = 0;
+  for (let i = 0; i < kSpawnN; ++i) {
+    const speed = kSpawnRotation[i];
+    const clover = cycle((i + 1) * (t + speed * time) / TAU)
+    const pulse = cycle((time / kSpawnCycle) - (i + 0.5) / kSpawnN);
+    sum += clover * Math.pow(pulse, 2 * kSpawnN);
+  }
+  return Math.pow(sum, 2) * (kSpawnRateBase + kSpawnRateGrowth * time);
+}
+
+class Spawner {
+  constructor(enemies) {
+    this.enemies = enemies;
+    this.a = null;
+    this.clear();
+  }
+
+  clear() {
+    this.a = new Float64Array(kSpawnSlices);
+    for (let i = 0; i < kSpawnSlices; ++i) {
+      this.a[i] = Math.random();
+    }
+  }
+
+  update(time) {
+    for (let i = 0; i < kSpawnSlices; ++i) {
+      const t = i * TAU / kSpawnSlices;
+      this.a[i] += baseSpawnRate(t, time) / (kFrameRate * kSpawnSlices);
+      while (this.a[i] >= 1) {
+        this._spawn(t);
+        this.a[i] -= 1;
+      }
+    }
+  }
+
+  _spawn(t) {
+    const st = t + Math.random() * TAU / kSpawnSlices;
+    const sx = Math.cos(st);
+    const sy = Math.sin(st);
+    const d = Math.max(Math.abs(sx), Math.abs(sy))
+    const vt = st + 0.5 * TAU + (Math.random() - 0.5) * kSpawnVelocitySpread;
+    const vr = kEnemySpeed / kFrameRate;
+    this.enemies.add(sx / d, sy / d, vr * Math.cos(vt), vr * Math.sin(vt));
+  }
+}
+
+function runGame(body, canvas, scoreText, hiscoreText) {
+  const gl = canvas.getContext('webgl2');
+  if (gl == null) {
+    console.error('Failed to create web GL 2 context.');
+    return;
+  }
+  gl.clearColor(0.0, 0.0, 0.0, 1);
+
+  const halfResX = canvas.clientWidth / 2;
+  const halfResY = canvas.clientHeight / 2;
+
+  let mouseX = 0;
+  let mouseY = 0;
+  const mouseHandler = (e) => {
+    const r = canvas.getBoundingClientRect();
+    mouseX = (Math.floor(e.clientX - r.left) / halfResX) - 1;
+    mouseY = 1 - (Math.floor(e.clientY - r.top) / halfResY);
+  };
+  body.addEventListener('mousemove', e => mouseHandler(e));
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  let playerX = 0;
+  let playerY = 0;
+  let playerU = 0;
+  let playerV = 0;
+
+  const loadShader = (vert_id, frag_id) => {
+    const load = (type, src_id) => {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, document.getElementById(src_id).innerText);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error\n', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vertexShader = load(gl.VERTEX_SHADER, vert_id);
+    const fragmentShader = load(gl.FRAGMENT_SHADER, frag_id);
+    const sh = gl.createProgram();
+    gl.attachShader(sh, vertexShader);
+    gl.attachShader(sh, fragmentShader);
+    gl.linkProgram(sh);
+    if (!gl.getProgramParameter(sh, gl.LINK_STATUS)) {
+      console.error('Shader link error\n', gl.getProgramInfoLog(sh));
+      return null;
+    }
+    gl.useProgram(sh);
+    return sh;
+  }
+
+  const shDot = loadShader('clr_vert_sh', 'clr_frag_sh');
+  if (!shDot) return;
+  const uDotClr = gl.getUniformLocation(shDot, 'clr');
+
+  const s = 2 / kResolution;
+  const bufPos = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufPos);
+  gl.bufferData(
+      gl.ARRAY_BUFFER, new Float32Array([-s, -s, s, -s, s, s, -s, s]),
+      gl.STATIC_DRAW);
+  const idDotPos = gl.getAttribLocation(shDot, 'pos');
+  gl.enableVertexAttribArray(idDotPos);
+  gl.vertexAttribPointer(idDotPos, 2, gl.FLOAT, false, 0, 0);
+
+  const bufOff = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufOff);
+  const idDotOff = gl.getAttribLocation(shDot, 'off');
+  gl.enableVertexAttribArray(idDotOff);
+  gl.vertexAttribPointer(idDotOff, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribDivisor(idDotOff, 1);
+
+  const bufLine = gl.createBuffer();
+
+  const scratch = new Float32Array([0, 0, 0, 0]);
+  const enemies = new EnemyBuffer();
+  const spawner = new Spawner(enemies);
+
+  let time = 0;
+  let score = 0;
+  let hiscore = safeInt(window.localStorage.getItem("hiscore"));
+  hiscoreText.innerText = hiscore;
+
+  const gameOver = () => {
+    if (score > hiscore) {
+      hiscore = score;
+      hiscoreText.innerText = hiscore;
+      window.localStorage.setItem("hiscore", hiscore);
+    }
+    score = 0;
+    scoreText.innerText = score;
+    time = 0;
+    playerX = 0;
+    playerY = 0;
+    playerU = 0;
+    playerV = 0;
+    mouseX = 0;
+    mouseY = 0;
+    enemies.clear();
+    spawner.clear();
+  };
+
+  const updatePlayerAxis = (m, p, u) => {
+    u += kSpring * (m - p) - kDamping * u;
+    p += u;
+    if (p > 1) {
+      u *= -kBounce;
+      p = 1;
+    } else if (p < -1) {
+      u *= -kBounce;
+      p = -1;
+    }
+    return [p, u];
+  };
+
+  let oldt = 0;
+  let fps = 60;
+  const update = () => {
+    time += 1 / kFrameRate;
+    spawner.update(time);
+    const newt = performance.now();
+    fps += 0.03 * (1000 / (newt - oldt) - fps);
+    oldt = newt;
+
+    [playerX, playerU] = updatePlayerAxis(mouseX, playerX, playerU);
+    [playerY, playerV] = updatePlayerAxis(mouseY, playerY, playerV);
+
+    if (enemies.update(playerX, playerY)) {
+      gameOver();
+      return;
+    }
+
+    score += enemies.length;
+    scoreText.innerText = score;
+  };
+
+  const draw = () => {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Force link.
+    const g = 0.1 * d2(mouseX, mouseY, playerX, playerY);
+    scratch[0] = mouseX;
+    scratch[1] = mouseY;
+    scratch[2] = playerX;
+    scratch[3] = playerY;
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufLine);
+    gl.bufferData(gl.ARRAY_BUFFER, scratch, gl.DYNAMIC_DRAW, 0, 4);
+    gl.enableVertexAttribArray(idDotPos);
+    gl.vertexAttribPointer(idDotPos, 2, gl.FLOAT, false, 0, 0);
+    scratch[0] = 0;
+    scratch[1] = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufOff);
+    gl.bufferData(gl.ARRAY_BUFFER, scratch, gl.DYNAMIC_DRAW, 0, 2);
+    gl.uniform3f(uDotClr, g, g, g);
+    gl.drawArrays(gl.LINE_STRIP, 0, 2);
+
+    // Enemies.
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufPos);
+    gl.enableVertexAttribArray(idDotPos);
+    gl.vertexAttribPointer(idDotPos, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufOff);
+    gl.bufferData(gl.ARRAY_BUFFER, enemies.pos, gl.DYNAMIC_DRAW, 0,
+                  enemies.length << 1);
+    gl.uniform3f(uDotClr, 1, 0.3, 0);
+    gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 4, enemies.length);
+
+    // Mouse.
+    scratch[0] = mouseX;
+    scratch[1] = mouseY;
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufOff);
+    gl.bufferData(gl.ARRAY_BUFFER, scratch, gl.DYNAMIC_DRAW, 0, 2);
+    gl.uniform3f(uDotClr, 1, 1, 1);
+    gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 4, 1);
+
+    // Player.
+    scratch[0] = playerX;
+    scratch[1] = playerY;
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufOff);
+    gl.bufferData(gl.ARRAY_BUFFER, scratch, gl.DYNAMIC_DRAW, 0, 2);
+    gl.uniform3f(uDotClr, 0, 0.7, 1);
+    gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 4, 1);
+  };
+
+  const loop = () => {
+    update();
+    draw();
+    window.requestAnimationFrame(loop);
+  };
+
+  window.requestAnimationFrame(loop);
+}
+
+function onLoad() {
+  runGame(
+      document.body, document.getElementById('game_view'),
+      document.getElementById('score'), document.getElementById('hiscore'));
+}
+window.addEventListener('load', onLoad);
+
+</script>
+<style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+body {
+  background-color: #212121;
+  margin: 0;
+  flex-grow: 1;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  display: flex;
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+#score_row {
+  display: flex;
+  flex-direction: row;
+  gap: 64px;
+}
+canvas {
+  cursor: none;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Flick and Flail</h1>
+</div>
+<div id="wrap">
+  <div id="score_row">
+    <div>Score: <span id="score">0</span></div>
+    <div>High score: <span id="hiscore">0</span></div>
+  </div>
+  <canvas id="game_view" width="800" height="800"></canvas>
+</div>
+</body>
+</html>
