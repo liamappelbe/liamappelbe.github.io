@@ -1112,13 +1112,12 @@ class PubMedImpl {
     // Add the print button at the top of this row.
     newBtn(row, ['print-button'], () => window.print(), 'Print');
 
-    // The first column in the row should be the one containing the pub med
-    // tags. We use this to detect thin layouts because the abstract column
-    // is laid out differently depending on whether the abstract box is shown,
-    // so it would be brittle to try and write the thin detector using it.
-    const pmCol = row.children[0];
-    if (pmCol == null || pmCol == col || pmCol.classList == null ||
-        !pmCol.classList.contains('col')) {
+    // Find the column containing the pub med tags. We use this to detect thin
+    // layouts because the abstract column is laid out differently depending on
+    // whether the abstract box is shown, so it would be brittle to try and
+    // write the thin detector using it.
+    const pmCol = searchUp(document.getElementsByTagName('pub-med')[0], 'col');
+    if (pmCol == null || pmCol == col) {
       console.log('PUBMED', 'Couldn\'t find pub med tag column');
       return pma;
     }
