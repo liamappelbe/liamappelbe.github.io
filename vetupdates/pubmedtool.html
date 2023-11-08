@@ -293,17 +293,21 @@ async function refreshUI() {
   generate();
 }
 
+function cleanTagName(tag) {
+  return tag[0].toUpperCase() + tag.substr(1);
+}
+
 async function fillKnownTags() {
   const majorTags = document.getElementById('major_tags');
   for (const tag of kMajorTags) {
-    newButton(majorTags, ['tag-button'], tag, () => copyText(tag));
+    newButton(majorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
   }
   const [journals, tags] = await metadataRequest();
   tags.sort();
   const minorTags = document.getElementById('minor_tags');
   for (const tag of tags) {
     if (!kMajorTags.has(tag)) {
-      newButton(minorTags, ['tag-button'], tag, () => copyText(tag));
+      newButton(minorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
     }
   }
 }
@@ -499,9 +503,8 @@ a, .synth-delete {
   color: #f44336;
 }
 #major_tags, #minor_tags {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   column-gap: 12px;
   padding-bottom: 16px;
 }
@@ -546,8 +549,10 @@ a, .synth-delete {
     </div>
   </div>
   <div id="mid">
-    <div id="major_tags"><div>Major tags (click to copy):</div></div>
-    <div id="minor_tags"><div>Known minor tags (click to copy):</div></div>
+    <div>Major tags (click to copy):</div>
+    <div id="major_tags"></div>
+    <div>Known minor tags (click to copy):</div>
+    <div id="minor_tags"></div>
     <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
     Synthetic elements:
     <a onclick="addSynth()">[ADD]</a>

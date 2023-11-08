@@ -117,7 +117,7 @@ class Cache {
     }
   }
 }
-const cache = new Cache(window.localStorage, 'PUBMED', 5);
+const cache = new Cache(window.localStorage, 'PUBMED', 6);
 
 class Xml {
   static parse(xml) {
@@ -555,16 +555,17 @@ function parsePMIDAuthors(article) {
 }
 
 function formatAuthors(rawAuthors, maxAuthors) {
-  let authors = rawAuthors.map(x => {
+  const authors = rawAuthors.map(x => {
     const [lastName, initials] = x;
     if (initials == '') return lastName;
     return `${lastName} ${initials}`;
   });
+  let displayedAuthors = authors;
   if (maxAuthors >= 0 && authors.length > maxAuthors) {
-    authors = authors.slice(0, maxAuthors);
-    authors.push('et al');
+    displayedAuthors = displayedAuthors.slice(0, maxAuthors - 1);
+    displayedAuthors.push(`... ${authors[authors.length - 1]}`);
   }
-  return authors.join(', ');
+  return displayedAuthors.join(', ');
 }
 
 function parsePMIDDoi(article) {
