@@ -158,6 +158,38 @@ class Metronome {
   }
 }
 
+function geometricDelta(x, y) {
+  // 0: same, 1: very different.
+  return 1 - (x < y ? x / y : y / x);
+}
+
+class BpmDetector {
+  constructor() {
+    this.bpm = -2;  // -2: never tapped, -1: tapped once, >0: active
+    this.lastTap = 0;
+  }
+
+  tap() {
+    const t = performance.now() * 1e-3;
+    if (this.bpm == -2) {
+      // Never tapped. Update the time and move to the next BPM state.
+      this.bpm = -1;
+    } else {
+      const newBpm = 60.0 / (t - this.lastTap);
+      if (this.bpm == -1 || geometricDelta(this.bpm, newBpm) > 0.1) {
+        // This is the first BPM calculation or the BPM has changed drastically,
+        // so just set the BPM to the new value, rather than smoothly updating.
+        this.bpm = newBpm;
+      } else {
+        // Smoothly update the BPM.
+        this.bpm += 0.1 * (newBpm - this.bpm);
+      }
+    }
+    this.lastTap = t;
+    return this.bpm;
+  }
+}
+
 const kPlayButton = "M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM9.64109 7.19733C9.14132 6.89192 8.5 7.2516 8.5 7.83729V16.1627C8.5 16.7484 9.14132 17.1081 9.64109 16.8027L16.4528 12.64C16.9313 12.3475 16.9313 11.6525 16.4528 11.36L9.64109 7.19733Z";
 const kPauseButton = "M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM8 8C8 7.44772 8.44772 7 9 7H10C10.5523 7 11 7.44772 11 8V16C11 16.5523 10.5523 17 10 17H9C8.44772 17 8 16.5523 8 16V8ZM13 8C13 7.44772 13.4477 7 14 7H15C15.5523 7 16 7.44772 16 8V16C16 16.5523 15.5523 17 15 17H14C13.4477 17 13 16.5523 13 16V8Z";
 
@@ -226,6 +258,13 @@ function onLoad() {
     window.requestAnimationFrame(frame);
   };
   frame();
+
+  const bpmDetector = new BpmDetector();
+  const domBpmOutput = document.getElementById('bpm_output');
+  document.getElementById('tap_button').addEventListener('click', () => {
+    const bpm = bpmDetector.tap();
+    domBpmOutput.innerText = bpm < 0 ? '' : `${bpm.toFixed(1)} BPM`;
+  });
 }
 window.addEventListener('load', onLoad);
 </script>
@@ -290,6 +329,27 @@ input {
 #play_button:hover svg path {
   --svgcolor: #f5f5f5;
 }
+.hr {
+  width: 100%;
+  border: 1px solid #424242;
+  margin: 32px 0;
+}
+#tap_button {
+  margin-left: 16px;
+  background-color: #ffc107;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #212121;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+#tap_button:hover {
+  background-color: #f5f5f5;
+}
+#bpm_output {
+  color: #1e88e5;
+}
 </style>
 </head>
 <body>
@@ -310,6 +370,14 @@ input {
   </div>
   <div class="row">
     <span id="play_button"></span>
+  </div>
+  <div class="hr"></div>
+  <div class="row">
+    <span>Detect BPM:</span>
+    <span id="tap_button">TAP</span>
+  </div>
+  <div class="row">
+    <span id="bpm_output"></span>
   </div>
 </div>
 </body>
