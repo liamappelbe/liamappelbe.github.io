@@ -176,7 +176,7 @@ class BpmDetector {
       this.bpm = -1;
     } else {
       const newBpm = 60.0 / (t - this.lastTap);
-      if (this.bpm == -1 || geometricDelta(this.bpm, newBpm) > 0.1) {
+      if (this.bpm == -1 || geometricDelta(this.bpm, newBpm) > 0.2) {
         // This is the first BPM calculation or the BPM has changed drastically,
         // so just set the BPM to the new value, rather than smoothly updating.
         this.bpm = newBpm;
