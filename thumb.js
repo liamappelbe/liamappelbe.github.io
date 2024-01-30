@@ -8,34 +8,39 @@ let generateThumbnail_context = null;
 function generateThumbnail(image, options, addNote) {
   const kRGB = 0;
   const kHSV = 1;
-  const kHSL = 1;
+  const kHSL = 2;
+  const kOklab = 3;
   const kSpaces = {
     rgb: kRGB,
     hsv: kHSV,
     hsl: kHSL,
+    oklab: kOklab,
   };
 
   const small = options.small ?? false;
   const wide = options.wide ?? true;
   const invis = options.invis ?? false;
   const clamp = options.clamp ?? true;
-  const white = options.white ?? true;
   const dither = options.dither ?? 1;
-  const space = kSpaces[options.space] ?? kRGB;
+  const space = kSpaces[options.space] ?? kOklab;
   const chanw = options.chanWeight ?? [1, 1, 1];
   const len = invis ? 0.000001 : wide ? 1 : 2;
   const base = small ? 3 * 12 + 5 /*F3*/ : 2 * 12 + 8 /*G#2*/;
   const h = small ? 32 : 50;
   const w = wide ? 2 * h + 1 : h;
 
-  function fclamp(x) {
-    return x <= 0 ? 0 : x >= 1 ? 1 : x;
+  function fclamp(x, lo, hi) {
+    return x <= lo ? lo : x >= hi ? hi : x;
   }
 
   function fmod(x, y = 1) {
     const z = x / y;
     return (z - Math.floor(z)) * y;
   }
+
+  // These depend on the color space.
+  let clampMin = null;
+  let clampMax = null;
 
   class Color {
     constructor(r, g, b, a) {
@@ -116,6 +121,46 @@ function generateThumbnail(image, options, addNote) {
       return this._unhue(h, c, m);
     }
 
+    get rgb2Oklab() {
+      const r = this.r;
+      const g = this.g;
+      const b = this.b;
+
+      const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+      const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+      const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+
+      const l_ = Math.cbrt(l);
+      const m_ = Math.cbrt(m);
+      const s_ = Math.cbrt(s);
+
+      return new Color(
+          0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+          1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+          0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+      );
+    }
+
+    get oklab2Rgb() {
+      const L = this.r;
+      const a = this.g;
+      const b = this.b;
+
+      const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+      const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+      const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+      const l = l_ * l_ * l_;
+      const m = m_ * m_ * m_;
+      const s = s_ * s_ * s_;
+
+      return new Color(
+          +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+      );
+    }
+
     get _vald() {
       return this.b;
     }
@@ -164,7 +209,10 @@ function generateThumbnail(image, options, addNote) {
     }
 
     get clamp() {
-      return new Color(fclamp(this.r), fclamp(this.g), fclamp(this.b));
+      return new Color(
+          fclamp(this.r, clampMin.r, clampMax.r),
+          fclamp(this.g, clampMin.g, clampMax.g),
+          fclamp(this.b, clampMin.b, clampMax.b));
     }
 
     min(c) {
@@ -172,71 +220,25 @@ function generateThumbnail(image, options, addNote) {
           Math.min(this.r, c.r), Math.min(this.g, c.g), Math.min(this.b, c.b));
     }
 
+    max(c) {
+      return new Color(
+          Math.max(this.r, c.r), Math.max(this.g, c.g), Math.max(this.b, c.b));
+    }
+
     get rgb2Space() {
       if (space == kHSV) return this.rgb2Hsvc;
       if (space == kHSL) return this.rgb2Hslc;
+      if (space == kOklab) return this.rgb2Oklab;
       return this;
     }
 
     get space2Rgb() {
       if (space == kHSV) return this.hsvc2Rgb;
       if (space == kHSL) return this.hslc2Rgb;
+      if (space == kOklab) return this.oklab2Rgb;
       return this;
     }
   }
-
-  /*function testSpaces(
-      r, g, b, h = null, sv = null, v = null, sl = null, l = null) {
-    function fnear(x, y) {
-      return Math.abs(x - y) < 1e-6;
-    }
-    function isNear(c0, c1) {
-      return fnear(c0.r, c1.r) && fnear(c0.g, c1.g) && fnear(c0.b, c1.b);
-    }
-    if (h !== null) h /= 6.0;
-    const rgb = new Color(r, g, b);
-    const hsv = rgb.rgb2Hsv;
-    console.assert(hsv.r >= 0 && hsv.r <= 1, rgb, hsv);
-    console.assert(hsv.g >= 0 && hsv.g <= 1, rgb, hsv);
-    console.assert(hsv.b >= 0 && hsv.b <= 1, rgb, hsv);
-    if (h !== null) console.assert(fnear(h, hsv.r), rgb, hsv);
-    if (sv !== null) console.assert(fnear(sv, hsv.g), rgb, hsv);
-    if (v !== null) console.assert(fnear(v, hsv.b), rgb, hsv);
-    const hsl = rgb.rgb2Hsl;
-    console.assert(hsl.r >= 0 && hsl.r <= 1, rgb, hsl);
-    console.assert(hsl.g >= 0 && hsl.g <= 1, rgb, hsl);
-    console.assert(hsl.b >= 0 && hsl.b <= 1, rgb, hsl);
-    if (h !== null) console.assert(fnear(h, hsl.r), rgb, hsl);
-    if (sl !== null) console.assert(fnear(sl, hsl.g), rgb, hsl);
-    if (l !== null) console.assert(fnear(l, hsl.b), rgb, hsl);
-    const rgbv = hsv.hsv2Rgb;
-    console.assert(isNear(rgb, rgbv), rgb, hsv, rgbv);
-    const rgbl = hsl.hsl2Rgb;
-    console.assert(isNear(rgb, rgbl), rgb, hsl, rgbl);
-    const rgbvc = rgb.rgb2Hsvc.hsvc2Rgb;
-    console.assert(isNear(rgb, rgbvc), rgb, rgb.rgb2Hsv, rgb.rgb2Hsvc, rgbvc);
-    const rgblc = rgb.rgb2Hslc.hslc2Rgb;
-    console.assert(isNear(rgb, rgblc), rgb, rgb.rgb2Hsl, rgb.rgb2Hslc, rgblc);
-  }
-
-  //         R  G  B h6 sv  v sl  l
-  testSpaces(0, 0, 0, 0, 0, 0, 0, 0);
-  testSpaces(1, 1, 1, 0, 0, 1, 0, 1);
-  testSpaces(0.5, 0.5, 0.5, 0, 0, 0.5, 0, 0.5);
-  testSpaces(1, 0, 0, 0, 1, 1, 1, 0.5);
-  testSpaces(1, 1, 0, 1, 1, 1, 1, 0.5);
-  testSpaces(0, 1, 0, 2, 1, 1, 1, 0.5);
-  testSpaces(0, 1, 1, 3, 1, 1, 1, 0.5);
-  testSpaces(0, 0, 1, 4, 1, 1, 1, 0.5);
-  testSpaces(1, 0, 1, 5, 1, 1, 1, 0.5);
-  testSpaces(0.75, 0.75, 0, 1, 1, 0.75, 1, 0.375);
-  testSpaces(0, 0.5, 0, 2, 1, 0.5, 1, 0.25);
-  testSpaces(0.5, 1, 1, 3, 0.5, 1, 1, 0.75);
-  testSpaces(0.5, 0.5, 1, 4, 0.5, 1, 1, 0.75);
-  testSpaces(0.75, 0.25, 0.75, 5, 2 / 3, 0.75, 0.5, 0.5);
-  for (let i = 0; i < 1000; ++i) {
-    testSpaces(Math.random(), Math.random(), Math.random());
-  }*/
 
   function hexColor(red, green, blue) {
     return (new Color(red / 0xFF, green / 0xFF, blue / 0xFF)).rgb2Space;
@@ -280,8 +282,18 @@ function generateThumbnail(image, options, addNote) {
     hexColor(0x00, 0x45, 0x1F), hexColor(0x4E, 0x34, 0x2E),
     hexColor(0x8D, 0x6E, 0x63), hexColor(0x8E, 0x76, 0xFF),
     hexColor(0x21, 0x21, 0x21), hexColor(0xE0, 0xD3, 0x18),
+    hexColor(0x82, 0x77, 0x17), hexColor(0xFF, 0xEA, 0x00),
+    hexColor(0xE9, 0x1E, 0x63), hexColor(0x71, 0x00, 0xA6),
+    hexColor(0x21, 0x21, 0x21), hexColor(0xFF, 0xFF, 0xFF),
+    hexColor(0x1E, 0xC5, 0x7A), hexColor(0x6C, 0xF3, 0xB7),
   ];
-  const kWhiteInst = 23;
+
+  clampMin = new Color(Infinity, Infinity, Infinity);
+  clampMax = new Color(-Infinity, -Infinity, -Infinity);
+  for (let k = 0; k < kColors.length; ++k) {
+    clampMin = clampMin.min(kColors[k]);
+    clampMax = clampMax.max(kColors[k]);
+  }
 
   const kNote =
       ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -313,11 +325,7 @@ function generateThumbnail(image, options, addNote) {
   const imgData = buf.getImageData(0, 0, w, h);
   const a = [];
   for (let i = 0; i < imgData.data.length; i += 4) {
-    let c = hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]);
-    if (white && nearest(c) == kWhiteInst) {
-      c = c.min(kColors[kWhiteInst]);
-    }
-    a.push(c);
+    a.push(hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]));
   }
   const b = [];
   for (let j = 0; j < h; ++j) {

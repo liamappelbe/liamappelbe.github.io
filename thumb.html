@@ -42,7 +42,6 @@ function onLoad() {
   domWide = document.getElementById("wide");
   domClamp = document.getElementById("clamp");
   domInvis = document.getElementById("invis");
-  domWhite = document.getElementById("white");
   domDither = document.getElementById("dither");
   domSpace = document.getElementById("space");
   domChan0 = document.getElementById("chan0");
@@ -161,8 +160,14 @@ function downloadFile() {
   }
 }
 
+const kLabels = {
+  rgb: 'RGB',
+  hsv: 'HSV',
+  hsl: 'HSL',
+  oklab: 'LAB',
+};
 function setChannelWeightLabels(space) {
-  const label = space.toUpperCase();
+  const label = kLabels[space];
   const nodes = [domChan0Label, domChan1Label, domChan2Label];
   for (let i = 0; i < 3; ++i) {
     nodes[i].innerText = label[i];
@@ -189,7 +194,6 @@ function runThumbnailGenerator(img) {
     wide: domWide.checked,
     invis: domInvis.checked,
     clamp: domClamp.checked,
-    white: domWhite.checked,
     dither: parseFloat(domDither.value),
     space: domSpace.value,
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
@@ -317,26 +321,24 @@ canvas {
       <input type="checkbox" id="clamp" checked onchange="onChange()"/>
       <label for="clamp">Clamp dithered colors</label>
       <br/><br/>
-      <input type="checkbox" id="white" checked onchange="onChange()"/>
-      <label for="white">Clamp white</label>
-      <br/><br/>
       <label for="dither">Dither factor</label>
       <input type="range" id="dither" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/><br/>
       <label for="space">Color space:</label>
       <select id="space" onchange="onChange()">
-        <option value="rgb" selected>RGB</option>
+        <option value="rgb">RGB</option>
         <option value="hsv">HSV</option>
         <option value="hsl">HSL</option>
+        <option value="oklab" selected>Oklab</option>
       </select>
       <br/><br/>
       Channel weights:<br/>
-      <label id="chan0label" for="chan0">R</label>
+      <label id="chan0label" for="chan0">L</label>
       <input type="range" id="chan0" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/>
-      <label id="chan1label" for="chan1">G</label>
+      <label id="chan1label" for="chan1">A</label>
       <input type="range" id="chan1" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/>
