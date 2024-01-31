@@ -24,6 +24,7 @@ function generateThumbnail(image, options, addNote) {
   const dither = options.dither ?? 1;
   const space = kSpaces[options.space] ?? kOklab;
   const chanw = options.chanWeight ?? [1, 1, 1];
+  const palSize = options.palSize ?? 0;
   const len = invis ? 0.000001 : wide ? 1 : 2;
   const base = small ? 3 * 12 + 5 /*F3*/ : 2 * 12 + 8 /*G#2*/;
   const h = small ? 32 : 50;
@@ -204,6 +205,18 @@ function generateThumbnail(image, options, addNote) {
       return new Color(this.r + k * c.r, this.g + k * c.g, this.b + k * c.b);
     }
 
+    add(c) {
+      return new Color(this.r + c.r, this.g + c.g, this.b + c.b);
+    }
+
+    mul(k) {
+      return new Color(k * this.r, k * this.g, k * this.b);
+    }
+
+    emul(c) {
+      return new Color(this.r * c.r, this.g * c.g, this.b * c.b);
+    }
+
     addScalar(k) {
       return new Color(this.r + k, this.g + k, this.b + k);
     }
@@ -244,6 +257,23 @@ function generateThumbnail(image, options, addNote) {
     return (new Color(red / 0xFF, green / 0xFF, blue / 0xFF)).rgb2Space;
   }
 
+  if (generateThumbnail_context == null) {
+    const view = document.createElement('canvas');
+    const buf = view.getContext('2d');
+    generateThumbnail_context = {view: view, buf: buf};
+  }
+  const view = generateThumbnail_context.view;
+  const buf = generateThumbnail_context.buf;
+  view.width = w;
+  view.height = h;
+
+  buf.drawImage(image, 0, 0, w, h);
+  const imgData = buf.getImageData(0, 0, w, h);
+  const a = [];
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    a.push(hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]));
+  }
+
   function pixIndex(w, h, i, j) {
     return j * w + i;
   }
@@ -256,7 +286,123 @@ function generateThumbnail(image, options, addNote) {
     }
   }
 
-  const kColors = [
+  function nearest(c, p) {
+    let mk = 0;
+    let md2 = 0;
+    for (let k = 0; k < p.length; ++k) {
+      const d2 = c.dist2(p[k]);
+      if (k == 0 || d2 < md2) {
+        mk = k;
+        md2 = d2;
+      }
+    }
+    return mk;
+  }
+
+  function generatePaletteInitialGuess(n) {
+    // As a first approximation, we're going to cut the image up into n chunks
+    // and take the average of each chunk as one of the palette colors.
+    const bukn = [];
+    const buckets = [];
+    for (let k = 0; k < n; ++k) {
+      buckets[k] = new Color(0, 0, 0);
+      bukn[k] = 0;
+    }
+
+    // Divide the image into n roughly square chunks. Cut the image into rows.
+    // Divide the rows into 2 groups, upper and lower. The upper group of
+    // rowshas denseCol columns, and there are denseRows of them. The lower
+    // group of rows has sparseCol columns, and there are sparseRows of them.
+    const rows = Math.round(Math.sqrt(n));
+    const sparseCols = Math.floor(n / rows);
+    const denseCols = sparseCols + 1;
+    const sparseRows = rows * denseCols - n;
+    const denseRows = rows - sparseRows;
+    const sparseOffset = denseRows * denseCols;
+    const cellArea = w * h / n;
+    const sparseColWidth = w / sparseCols;
+    const sparseRowHeight = cellArea / sparseColWidth;
+    const denseColWidth = w / denseCols;
+    const denseRowHeight = cellArea / denseColWidth;
+    const boundary = denseRowHeight * denseRows;
+
+    for (let j = 0; j < h; ++j) {
+      for (let i = 0; i < w; ++i) {
+        let k = null;
+        if (j < boundary) {
+          const r = fclamp(Math.floor(j / denseRowHeight), 0, denseRows - 1);
+          const c = fclamp(Math.floor(i * denseCols / w), 0, denseCols - 1);
+          k = c + denseCols * r;
+        } else {
+          const r = fclamp(
+              Math.floor((j - boundary) / sparseRowHeight), 0, sparseRows - 1);
+          const c = fclamp(Math.floor(i * sparseCols / w), 0, sparseCols - 1);
+          k = sparseOffset + c + sparseCols * r;
+        }
+        bukn[k] += 1;
+        buckets[k] = buckets[k].add(a[pixIndex(w, h, i, j)]);
+      }
+    }
+
+    for (let k = 0; k < n; ++k) {
+      // Take the average of the chunk, and add a tiny amount of noise, just in
+      // case two buckets are identical (very unlikely).
+      const rand = new Color(
+          Math.random() * 1e-9, Math.random() * 1e-9, Math.random() * 1e-9);
+      buckets[k] = rand.mulAdd(buckets[k], 1 / bukn[k]);
+    }
+
+    return buckets;
+  }
+
+  function generatePalette(n) {
+    const pal = generatePaletteInitialGuess(n);
+
+    // k-means optimisation. Iteratively improve the palette by gathering all
+    // the pixels into their nearest bucket, then taking the average of that
+    // bucket as the new palette color.
+    const bukn = [];
+    const buckets = [];
+    const buckets2 = [];
+    const buckets3 = [];
+    let delta = 1e6;
+    let loop = 0;
+    while (delta > 1e-6 && loop < 100) {
+      ++loop;
+      for (let k = 0; k < n; ++k) {
+        buckets[k] = new Color(0, 0, 0);
+        buckets2[k] = new Color(0, 0, 0);
+        buckets3[k] = new Color(0, 0, 0);
+        bukn[k] = 0;
+      }
+
+      for (const c of a) {
+        const k = nearest(c, pal);
+        bukn[k] += 1;
+        buckets[k] = buckets[k].add(c);
+        const c2 = c.emul(c);
+        buckets2[k] = buckets2[k].add(c2);
+        buckets3[k] = buckets3[k].add(c2.emul(c));
+      }
+
+      delta = 0;
+      for (let k = 0; k < n; ++k) {
+        let newp = null;
+        if (bukn[k] == 0) {
+          newp = new Color(Math.random(), Math.random(), Math.random());
+        } else {
+          newp = buckets[k].mul(1 / bukn[k]);
+        }
+        delta += pal[k].dist2(newp);
+        pal[k] = newp;
+      }
+      delta /= n;
+    }
+
+    return pal;
+  }
+
+  const kColors = palSize > 0 ? generatePalette(palSize) : [
     hexColor(0x03, 0xA9, 0xF4), hexColor(0xFF, 0x98, 0x00),
     hexColor(0xB7, 0x1C, 0x1C), hexColor(0xE9, 0x1E, 0x63),
     hexColor(0x4C, 0xAF, 0x50), hexColor(0x21, 0x21, 0x21),
@@ -298,40 +444,11 @@ function generateThumbnail(image, options, addNote) {
   const kNote =
       ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  function nearest(c) {
-    let mk = 0;
-    let md2 = 0;
-    for (let k = 0; k < kColors.length; ++k) {
-      const d2 = c.dist2(kColors[k]);
-      if (k == 0 || d2 < md2) {
-        mk = k;
-        md2 = d2;
-      }
-    }
-    return mk;
-  }
-
-  if (generateThumbnail_context == null) {
-    const view = document.createElement('canvas');
-    const buf = view.getContext('2d');
-    generateThumbnail_context = {view: view, buf: buf};
-  }
-  const view = generateThumbnail_context.view;
-  const buf = generateThumbnail_context.buf;
-  view.width = w;
-  view.height = h;
-
-  buf.drawImage(image, 0, 0, w, h);
-  const imgData = buf.getImageData(0, 0, w, h);
-  const a = [];
-  for (let i = 0; i < imgData.data.length; i += 4) {
-    a.push(hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]));
-  }
   const b = [];
   for (let j = 0; j < h; ++j) {
     for (let i = 0; i < w; ++i) {
       const c = a[pixIndex(w, h, i, j)];
-      const mk = nearest(c);
+      const mk = nearest(c, kColors);
       const mc = kColors[mk];
       b.push(mc);
       const e = c.diff(mc);

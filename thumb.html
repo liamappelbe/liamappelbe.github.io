@@ -27,6 +27,8 @@ let domChan2 = null;
 let domChanLabel0 = null;
 let domChanLabel1 = null;
 let domChanLabel2 = null;
+let domCustomPal = null;
+let domPalNum = null;
 let domAdvanced = null;
 let domAdvancedWrap = null;
 let domInputView = null;
@@ -50,6 +52,8 @@ function onLoad() {
   domChan0Label = document.getElementById("chan0label");
   domChan1Label = document.getElementById("chan1label");
   domChan2Label = document.getElementById("chan2label");
+  domCustomPal = document.getElementById("cutompal");
+  domPalNum = document.getElementById("palnum");
   domAdvanced = document.getElementById("advanced");
   domAdvancedWrap = document.getElementById("advanced_wrap");
   domInputView = document.getElementById("input_view");
@@ -197,6 +201,7 @@ function runThumbnailGenerator(img) {
     dither: parseFloat(domDither.value),
     space: domSpace.value,
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
+    // palSize: domCustomPal.checked ? parseInt(domPalNum.value) : 0,
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
   outputNotes = [];
@@ -346,6 +351,12 @@ canvas {
       <input type="range" id="chan2" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/><br/>
+      <!-- <input type="checkbox" id="cutompal" onchange="onChange()"/>
+      <label for="cutompal">Use custom palette</label>
+      <br/><br/>
+      <input type="number" id="palnum" min="1" max="100" value="16" onchange="onChange()"/>
+      <label for="palnum">Custom palette colors</label>
+      <br/><br/> -->
     </div>
     <div id="views">
       <span>
