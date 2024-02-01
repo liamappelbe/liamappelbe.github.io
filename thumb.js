@@ -17,7 +17,7 @@ function generateThumbnail(image, options, addNote) {
     oklab: kOklab,
   };
 
-  const small = options.small ?? false;
+  const size = options.size;
   const wide = options.wide ?? true;
   const invis = options.invis ?? false;
   const clamp = options.clamp ?? true;
@@ -26,9 +26,27 @@ function generateThumbnail(image, options, addNote) {
   const chanw = options.chanWeight ?? [1, 1, 1];
   const palSize = options.palSize ?? 0;
   const len = invis ? 0.000001 : wide ? 1 : 2;
-  const base = small ? 3 * 12 + 5 /*F3*/ : 2 * 12 + 8 /*G#2*/;
-  const h = small ? 32 : 50;
-  const w = wide ? 2 * h + 1 : h;
+
+  let base;
+  let h;
+  let w;
+  let tmul;
+  if (size == 'small') {
+    base = 3 * 12 + 5 /*F3*/;
+    h = 32;
+    w = wide ? 2 * h + 1 : h;
+    tmul = wide ? 1 : 2;
+  } else if (size == 'embed') {
+    base = 2 * 12 + 10 /*A#2*/;
+    h = 39;
+    w = 75;
+    tmul = 1;
+  } else {
+    base = 2 * 12 + 8 /*G#2*/;
+    h = 50;
+    w = wide ? 2 * h + 1 : h;
+    tmul = wide ? 1 : 2;
+  }
 
   function fclamp(x, lo, hi) {
     return x <= lo ? lo : x >= hi ? hi : x;
@@ -267,6 +285,9 @@ function generateThumbnail(image, options, addNote) {
   view.width = w;
   view.height = h;
 
+  buf.fillStyle = 'black';
+  buf.rect(0, 0, w, h);
+  buf.fill();
   buf.drawImage(image, 0, 0, w, h);
   const imgData = buf.getImageData(0, 0, w, h);
   const a = [];
@@ -457,7 +478,7 @@ function generateThumbnail(image, options, addNote) {
       ditherPixel(a, w, h, i, j + 1, e, dither * 5 / 16.0, clamp)
       ditherPixel(a, w, h, i + 1, j + 1, e, dither * 1 / 16.0, clamp)
       const n = h - 1 - j + base;
-      addNote(kNote[n % 12] + Math.floor(n / 12), wide ? i : 2 * i, len, mk);
+      addNote(kNote[n % 12] + Math.floor(n / 12), tmul * i, len, mk);
     }
   }
   outData = new Uint8ClampedArray(4 * b.length);
