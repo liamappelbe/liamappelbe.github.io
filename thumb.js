@@ -25,7 +25,6 @@ function generateThumbnail(image, options, addNote) {
   const space = kSpaces[options.space] ?? kOklab;
   const chanw = options.chanWeight ?? [1, 1, 1];
   const palSize = options.palSize ?? 0;
-  const len = invis ? 0.000001 : wide ? 1 : 2;
 
   let base;
   let h;
@@ -47,6 +46,7 @@ function generateThumbnail(image, options, addNote) {
     w = wide ? 2 * h + 1 : h;
     tmul = wide ? 1 : 2;
   }
+  const len = invis ? 0.000001 : tmul;
 
   function fclamp(x, lo, hi) {
     return x <= lo ? lo : x >= hi ? hi : x;
