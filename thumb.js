@@ -57,6 +57,11 @@ function generateThumbnail(image, options, addNote) {
     return (z - Math.floor(z)) * y;
   }
 
+  const srgb2linear = (x) =>
+      x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+  const linear2srgb = (x) =>
+      x <= .0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - .055
+
   // These depend on the color space.
   let clampMin = null;
   let clampMax = null;
@@ -141,22 +146,21 @@ function generateThumbnail(image, options, addNote) {
     }
 
     get rgb2Oklab() {
-      const r = this.r;
-      const g = this.g;
-      const b = this.b;
+      const r = srgb2linear(this.r);
+      const g = srgb2linear(this.g);
+      const b = srgb2linear(this.b);
 
-      const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
-      const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
-      const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
-
-      const l_ = Math.cbrt(l);
-      const m_ = Math.cbrt(m);
-      const s_ = Math.cbrt(s);
+      const l3 = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+      const l = Math.cbrt(l3);
+      const m3 = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+      const m = Math.cbrt(m3);
+      const s3 = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+      const s = Math.cbrt(s3);
 
       return new Color(
-          0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-          1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-          0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+          0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
       );
     }
 
@@ -174,9 +178,9 @@ function generateThumbnail(image, options, addNote) {
       const s = s_ * s_ * s_;
 
       return new Color(
-          +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+          linear2srgb(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+          linear2srgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+          linear2srgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
       );
     }
 
@@ -270,6 +274,43 @@ function generateThumbnail(image, options, addNote) {
       return this;
     }
   }
+
+  /*for (const [r, g, b, l, a, b_] of [
+           [7, 35, 242, 0.45401, -0.02670, -0.28646],
+           [186, 26, 118, 0.52689, 0.20198, -0.02673],
+           [244, 51, 37, 0.62841, 0.19926, 0.11234],
+           [183, 152, 1, 0.68762, -0.01054, 0.14045],
+           [98, 234, 121, 0.83606, -0.16279, 0.10628],
+           [40, 159, 129, 0.63093, -0.11075, 0.01646],
+           [6, 61, 96, 0.34655, -0.03569, -0.07229],
+           [11, 2, 29, 0.13398, 0.02635, -0.05427],
+           [35, 34, 37, 0.25426, 0.00297, -0.00492],
+           [188, 187, 191, 0.79407, 0.00264, -0.00502],
+           [109, 109, 111, 0.53542, 0.00086, -0.00295],
+           [244, 242, 247, 0.96410, 0.00391, -0.00574]]) {
+    const c = new Color(r / 255.0, g / 255.0, b / 255.0);
+    const o = new Color(l, a, b_);
+    const oact = c.rgb2Oklab;
+    const cact = o.oklab2Rgb;
+    const e = Math.sqrt(o.dist2(oact));
+    if (e > 0.001) {
+      console.log(c, o, oact);
+    }
+    const e2 = Math.sqrt(c.dist2(cact));
+    if (e2 > 0.001) {
+      console.log(c, o, cact);
+    }
+  }
+
+  for (let i = 0; i < 100; ++i) {
+    const c = new Color(Math.random(), Math.random(), Math.random());
+    const o = c.rgb2Oklab;
+    const d = o.oklab2Rgb;
+    const e = Math.sqrt(c.dist2(d));
+    if (e > 0.001) {
+      console.log(c, o, d, e);
+    }
+  }*/
 
   function hexColor(red, green, blue) {
     return (new Color(red / 0xFF, green / 0xFF, blue / 0xFF)).rgb2Space;
