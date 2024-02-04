@@ -37,6 +37,7 @@ let ctxInput = null;
 let ctxOutput = null;
 let inputImage = null;
 let outputNotes = null;  // [[type, t, len, inst], ...]
+let outputPalette = null;
 
 function onLoad() {
   domImage = document.getElementById("image");
@@ -143,6 +144,12 @@ function protoToBlob(seq) {
   }
 }
 
+const kPaletteInst = 14;  // Square.
+const kCloneOffset = 1e4;
+function paletteInst(i) {
+  return kPaletteInst + (i + 1) * kCloneOffset;
+}
+
 function downloadFile() {
   if (outputNotes == null) return;
   const seq = new proto.Sequence();
@@ -154,9 +161,18 @@ function downloadFile() {
     np.setType(noteType);
     np.setTime(n[1]);
     np.setLength(n[2]);
-    np.setInstrument(n[3]);
+    np.setInstrument(outputPalette == null ? n[3] : paletteInst(n[3]));
     np.setVolume(0);
     seq.addNotes(np);
+  }
+  if (outputPalette != null) {
+    const settings = new proto.SequenceSettings();
+    for (let i = 0; i < outputPalette.length; ++i) {
+      const instSet = new proto.InstrumentSettings();
+      instSet.setColor(outputPalette[i].u32);
+      settings.getInstrumentsMap().set(paletteInst(i), instSet);
+    }
+    seq.setSettings(settings);
   }
   const blob = protoToBlob(seq);
   if (blob != null) {
@@ -201,15 +217,17 @@ function runThumbnailGenerator(img) {
     dither: parseFloat(domDither.value),
     space: domSpace.value,
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
-    // palSize: domCustomPal.checked ? parseInt(domPalNum.value) : 0,
+    palSize: domCustomPal.checked ? parseInt(domPalNum.value) : 0,
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
   outputNotes = [];
-  const result = generateThumbnail(img, options, (type, t, len, inst) => {
+  const [outImage, outPalette] = generateThumbnail(
+      img, options, (type, t, len, inst) => {
     outputNotes.push([type, t, len, inst]);
   });
+  outputPalette = outPalette;
   ctxOutput.drawImage(
-      result, 0, 0, domOutputView.width, domOutputView.height);
+      outImage, 0, 0, domOutputView.width, domOutputView.height);
 }
 </script>
 <style>
@@ -344,12 +362,12 @@ canvas {
       <input type="range" id="chan2" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/><br/>
-      <!-- <input type="checkbox" id="cutompal" onchange="onChange()"/>
+      <input type="checkbox" id="cutompal" checked onchange="onChange()"/>
       <label for="cutompal">Use custom palette</label>
       <br/><br/>
       <input type="number" id="palnum" min="1" max="100" value="16" onchange="onChange()"/>
       <label for="palnum">Custom palette colors</label>
-      <br/><br/> -->
+      <br/><br/>
     </div>
     <div id="views">
       <span>

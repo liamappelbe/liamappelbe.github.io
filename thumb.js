@@ -57,6 +57,10 @@ function generateThumbnail(image, options, addNote) {
     return (z - Math.floor(z)) * y;
   }
 
+  function hexchan(x) {
+    return fclamp(Math.floor(x * 0x100), 0, 0xFF);
+  }
+
   const srgb2linear = (x) =>
       x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
   const linear2srgb = (x) =>
@@ -182,6 +186,11 @@ function generateThumbnail(image, options, addNote) {
           linear2srgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
           linear2srgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
       );
+    }
+
+    get u32() {
+      return 0xFF000000 + (hexchan(this.r) << 16) + (hexchan(this.g) << 8) +
+          hexchan(this.b);
     }
 
     get _vald() {
@@ -532,5 +541,14 @@ function generateThumbnail(image, options, addNote) {
   }
   const out = new ImageData(outData, w, h);
   buf.putImageData(out, 0, 0);
-  return view;
+
+  let palette = null;
+  if (palSize > 0) {
+    palette = [];
+    for (const c of kColors) {
+      palette.push(c.space2Rgb);
+    }
+  }
+
+  return [view, palette];
 }
