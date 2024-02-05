@@ -33,6 +33,8 @@ let domAdvanced = null;
 let domAdvancedWrap = null;
 let domInputView = null;
 let domOutputView = null;
+let domCopyOrDownload = null;
+let domOnlyDownload = null;
 let ctxInput = null;
 let ctxOutput = null;
 let inputImage = null;
@@ -59,12 +61,15 @@ function onLoad() {
   domAdvancedWrap = document.getElementById("advanced_wrap");
   domInputView = document.getElementById("input_view");
   domOutputView = document.getElementById("output_view");
+  domCopyOrDownload = document.getElementById("copy_or_download");
+  domOnlyDownload = document.getElementById("only_download");
   ctxInput = domInputView.getContext("2d");
   ctxOutput = domOutputView.getContext("2d");
 
   ctxOutput.imageSmoothingEnabled = false;
 
   hitCountRequest('thumb', '-1a9p7wtyt50p3');
+  onChange();
 }
 window.addEventListener("load", onLoad);
 
@@ -194,8 +199,19 @@ function setChannelWeightLabels(space) {
   }
 }
 
+function setDownloadMessage() {
+  if (domCustomPal.checked) {
+    domCopyOrDownload.classList.add('hidden');
+    domOnlyDownload.classList.remove('hidden');
+  } else {
+    domCopyOrDownload.classList.remove('hidden');
+    domOnlyDownload.classList.add('hidden');
+  }
+}
+
 function onChange() {
   setChannelWeightLabels(domSpace.value);
+  setDownloadMessage();
   if (inputImage == null) return;
   runThumbnailGenerator(inputImage);
 }
@@ -380,8 +396,13 @@ canvas {
       </span>
     </div>
     <br/><br/>
-    <a onclick="copyNotes()">Copy the notes to the clipboard</a> or
-    <a onclick="downloadFile()">download the sequence file</a>
+    <div id="copy_or_download" class="hidden">
+      <a onclick="copyNotes()">Copy the notes to the clipboard</a> or
+      <a onclick="downloadFile()">download the sequence file</a>
+    </div>
+    <div id="only_download">
+      <a onclick="downloadFile()">Download the sequence file</a>
+    </div>
   </div>
 </div>
 </body>
