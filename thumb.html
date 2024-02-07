@@ -55,7 +55,7 @@ function onLoad() {
   domChan0Label = document.getElementById("chan0label");
   domChan1Label = document.getElementById("chan1label");
   domChan2Label = document.getElementById("chan2label");
-  domCustomPal = document.getElementById("cutompal");
+  domCustomPal = document.getElementById("custompal");
   domPalNum = document.getElementById("palnum");
   domAdvanced = document.getElementById("advanced");
   domAdvancedWrap = document.getElementById("advanced_wrap");
@@ -378,8 +378,8 @@ canvas {
       <input type="range" id="chan2" min="0" max="2" value="1" step="0.1"
           onchange="onChange()"/>
       <br/><br/>
-      <input type="checkbox" id="cutompal" checked onchange="onChange()"/>
-      <label for="cutompal">Use custom palette</label>
+      <input type="checkbox" id="custompal" checked onchange="onChange()"/>
+      <label for="custompal">Use custom palette</label>
       <br/><br/>
       <input type="number" id="palnum" min="1" max="100" value="16" onchange="onChange()"/>
       <label for="palnum">Custom palette colors</label>
