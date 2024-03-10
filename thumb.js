@@ -25,6 +25,7 @@ function generateThumbnail(image, options, addNote) {
   const space = kSpaces[options.space] ?? kOklab;
   const chanw = options.chanWeight ?? [1, 1, 1];
   const palSize = options.palSize ?? 0;
+  const aspectRatio = options.aspectRatio ?? 1;
 
   let base;
   let h;
@@ -40,6 +41,11 @@ function generateThumbnail(image, options, addNote) {
     h = 39;
     w = 75;
     tmul = 1;
+  } else if (size == 'full') {
+    base = 2 * 12 + 0 /*C2*/;
+    h = 72;
+    w = 72 * aspectRatio;
+    tmul = wide ? 1 : 2;
   } else {
     base = 2 * 12 + 8 /*G#2*/;
     h = 50;

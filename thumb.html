@@ -78,10 +78,36 @@ function setImage(url = null) {
   img.crossOrigin = "Anonymous";
   img.onload = () => {
     inputImage = img;
+    domInputView.width = inputImage.width.toString();
+    domInputView.height = inputImage.height.toString();
+    resizeIOCanvas();
     onChange();
     URL.revokeObjectURL(url);  // Does nothing if not an object URL.
   };
   img.src = url ?? `https://picsum.photos/300?random=${Math.random()}`;
+}
+
+function resizeIOCanvas() {
+  if (inputImage == null) return;
+  let width = inputImage.width.toString();
+  let height = inputImage.height;
+  if (domSize.value == 'full') {
+    domInputView.style.width = '40vw';
+    domInputView.style.aspectRatio = (width / height).toString();
+    domOutputView.style.width = '40vw';
+    domOutputView.style.aspectRatio = (width / height).toString();
+  } else if (domSize.value == 'embed') {
+    domInputView.style.width = '577px';
+    domInputView.style.aspectRatio = (75 / 39).toString();
+    domOutputView.style.width = '577px';
+    domOutputView.style.aspectRatio = (75 / 39).toString();
+  } else {
+    domInputView.style.width = '300px';
+    domInputView.style.aspectRatio = 1;
+    domOutputView.style.width = '300px';
+    domOutputView.style.aspectRatio = 1;
+  }
+  onChange();
 }
 
 function setInputFile(files) {
@@ -234,6 +260,7 @@ function runThumbnailGenerator(img) {
     space: domSpace.value,
     chanWeight: [domChan0.value, domChan1.value, domChan2.value],
     palSize: domCustomPal.checked ? parseInt(domPalNum.value) : 0,
+    aspectRatio: img.width / img.height
   };
   ctxInput.drawImage(img, 0, 0, domInputView.width, domInputView.height);
   outputNotes = [];
@@ -304,7 +331,7 @@ input[type="file"] {
 canvas {
   border: 1px solid #f5f5f5;
   width: 300px;
-  height: 300px;
+  aspect-ratio: 1;
 }
 .view_label {
   width: 100%;
@@ -334,10 +361,11 @@ canvas {
     image.
     <br/><br/>
     <label for="size">Size:</label>
-    <select id="size" onchange="onChange()">
+    <select id="size" onchange="resizeIOCanvas()">
       <option value="normal" selected>Normal</option>
       <option value="small">Small</option>
       <option value="embed">Embed</option>
+      <option value="full">Full</option>
     </select>
     <br/><br/>
     <input type="checkbox" id="wide" checked onchange="onChange()"/>
