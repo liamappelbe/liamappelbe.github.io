@@ -3,23 +3,8 @@
 <head>
 <title>OS Sequence File Editor</title>
 <link rel="icon" href="res/favicon.ico">
+<script src="load_os.js"></script>
 <script type="text/javascript">
-const exports={};
-function isNumber(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
-function numSan(x, valueIfNaN = 0) { return isNumber(x) ? x : valueIfNaN; }
-</script>
-<script src="https://onlinesequencer.net/resources/google-protobuf.js"></script>
-<script src="https://onlinesequencer.net/proto/js/instrumentsettings.js"></script>
-<script src="https://onlinesequencer.net/proto/js/marker.js"></script>
-<script src="https://onlinesequencer.net/proto/js/note.js"></script>
-<script src="https://onlinesequencer.net/proto/js/notetype.js"></script>
-<script src="https://onlinesequencer.net/proto/js/sequence.js"></script>
-<script src="https://onlinesequencer.net/proto/js/sequencesettings.js"></script>
-<script src="https://onlinesequencer.net/ajax/settings.php"></script>
-<script src="https://onlinesequencer.net/app/instrumentManager.js"></script>
-<script src="https://onlinesequencer.net/app/consoleCommands.js"></script>
-<script>
-
 let domErrorLog;
 let domEditor;
 let domFileInput;
@@ -79,8 +64,9 @@ function loadProtoBlob(e) {
   let p = null;
   try {
     p = proto.Sequence.deserializeBinary(e.target.result);
-  } catch {
+  } catch (e) {
     log("File is corrupted, or not a sequence");
+    console.error(e);
   }
   if (p == null) return;
   fillEditor(p);
