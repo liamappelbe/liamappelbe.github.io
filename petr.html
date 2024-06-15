@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Petr's Miracle</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+const tau = 2 * Math.PI;
+let root = null;
+function randf(lo, hi = 0) { return (hi - lo) * Math.random() + lo; }
+function clamp(x, lo, hi) { return x <= lo ? lo : x >= hi ? hi : x; }
+
+class Cplx {
+  constructor(r, i = 0) {
+    this.r = r;
+    this.i = i;
+  }
+  get x() { return this.r; }
+  get y() { return this.i; }
+  get rad2() { return this.r * this.r + this.i * this.i; }
+  get rad() { return Math.sqrt(this.rad2); }
+  get arg() { return Math.atan2(this.i, this.r); }
+  get conj() { return new Cplx(this.r, -this.i); }
+  get neg() { return new Cplx(-this.r, -this.i); }
+
+  get unit() {
+    const l = this.rad;
+    if (l == 0) return new Cplx(0, 0);
+    return this.rdiv(l);
+  }
+
+  radd(r) { return new Cplx(this.r + r, this.i + r); }
+  rsub(r) { return new Cplx(this.r - r, this.i - r); }
+  rmul(r) { return new Cplx(this.r * r, this.i * r); }
+  rdiv(r) { return new Cplx(this.r / r, this.i / r); }
+
+  add(o) {
+    o = cplx(o);
+    return new Cplx(this.r + o.r, this.i + o.i);
+  }
+
+  sub(o) {
+    o = cplx(o);
+    return new Cplx(this.r - o.r, this.i - o.i);
+  }
+
+  mul(o) {
+    o = cplx(o);
+    return new Cplx(this.r * o.r - this.i * o.i, this.r * o.i + this.i * o.r);
+  }
+
+  smul(o) {
+    o = cplx(o);
+    return new Cplx(this.r * o.r, this.i * o.i);
+  }
+
+  div(o) {
+    const l2 = this.rad2;
+    if (l2 == 0) return new Cplx(0, 0);
+    o = cplx(o);
+    return new Cplx((this.r * o.r + this.i * o.i) / l2,
+                    (this.i * o.r - this.r * o.i) / l2);
+  }
+
+  dot(o) {
+    o = cplx(o);
+    return this.r * o.r + this.i * o.i;
+  }
+
+  cross(o) {
+    o = cplx(o);
+    return this.r * o.i - this.i * o.r;
+  }
+
+  dist(o) { return this.sub(o).rad; }
+}
+function cplx(rOrZ, i = 0) {
+  return (typeof rOrZ === 'number') ? new Cplx(rOrZ, i) : rOrZ;
+}
+function real(rOrZ) { return (typeof rOrZ === 'number') ? rOrZ : rOrZ.r; }
+function imag(rOrZ) { return (typeof rOrZ === 'number') ? 0 : rOrZ.i; }
+function rotor(theta) { return Cplx(Math.cos(theta), Math.sin(theta)); }
+function cplxr(rad, theta) {
+  return new Cplx(rad * Math.cos(theta), rad * Math.sin(theta));
+}
+
+function nearestPointOnLine(p, u, v) {
+  const uv = u.sub(v);
+  return uv.rmul(clamp(-uv.dot(v.sub(p)) / uv.rad2, 0.0, 1.0)).add(v);
+}
+function distToLine(p, u, v) { return nearestPointOnLine(p, u, v).dist(p); }
+
+class Vertex {
+  constructor(z, p = null, n = null) {
+    this.z = z;
+    this.p = p != null ? p : this;
+    this.n = n != null ? n : this;
+    this.cp = null;
+    this.cn = null;
+  }
+}
+
+class Polygon {
+  constructor(a = []) {
+    this.v = null;
+    this.m = 0;
+    for (const z of a) this.v = this.add(z, this.v);
+    this.updateIndex();
+  }
+
+  updateIndex() {
+    this.index = [];
+    this.forEach((v) => this.index.push(v));
+  }
+
+  add(z, p) {
+    ++this.m;
+    const v = new Vertex(z, p, p?.n);
+    v.n.p = v;
+    v.p.n = v;
+    this.updateIndex();
+    return v;
+  }
+
+  del(v) {
+    if (this.m <= 3) return;
+    --this.m;
+    if (this.v == v) this.v = v.n;
+    v.n.p = v.p;
+    v.p.n = v.n;
+    v.n = v;
+    v.p = v;
+    this.updateIndex();
+  }
+
+  forEach(f) {
+    let v = this.v;
+    if (v == null) return;
+    while (true) {
+      f(v);
+      v = v.n;
+      if (v == this.v) break;
+    }
+  }
+
+  forEachZip(o, f) {
+    console.assert(this.m == o.m);
+    let v = o.v;
+    this.forEach((u) => {
+      f(u, v);
+      v = v.n;
+    });
+    console.assert(v == o.v);
+  }
+
+  vertexMean() {
+    let s = cplx(0, 0);
+    this.forEach((v) => s = s.add(v.z));
+    return s.rdiv(this.m);
+  }
+
+  get area() {
+    let a = 0;
+    this.forEach((p) => {
+      const u = p.z;
+      const v = p.n.z;
+      a += (u.x - v.x) * 0.5 * (u.y + v.y);
+    });
+    return a;
+  }
+}
+
+class RootPolygon extends Polygon {
+  constructor(a = []) {
+    super(a);
+    this.curvy = false;
+    this.updateControlPoints();
+  }
+
+  updateControlPoints() {
+    this.forEach((o) => {
+      const t = o.p.z;
+      const u = o.z;
+      const v = o.n.z;
+      const ut = t.sub(u);
+      const uv = v.sub(u);
+      const utl = ut.rad;
+      const uvl = uv.rad;
+      const utu = ut.rdiv(utl);
+      const uvu = uv.rdiv(uvl);
+      const tv = uvu.sub(utu).unit;
+      const d = tv.rmul(0.5 * Math.min(utl, uvl));
+      let ca = u.sub(d);
+      let cb = u.add(d);
+
+      if (o.cp != null) {
+        if ((o.cp.dist(ca) + o.cn.dist(cb)) > (o.cp.dist(cb) + o.cn.dist(ca))) {
+          const cc = ca;
+          ca = cb;
+          cb = cc;
+        }
+      }
+      o.cp = ca;
+      o.cn = cb;
+    });
+  }
+
+  pointOnEdgeOfVertex(o, t) {
+    const u = o.z;
+    const v = o.n.z;
+    if (this.curvy) {
+      const t2 = t * t;
+      const _t = 1 - t;
+      const _t2 = _t * _t;
+      const ut = u.rmul(_t2 * _t);
+      const vt = v.rmul(t2 * t);
+      const uct = o.cn.rmul(3 * t * _t2);
+      const vct = o.n.cp.rmul(3 * t2 * _t);
+      return ut.add(uct).add(vct).add(vt);
+    } else {
+      return u.add(v.sub(u).rmul(t));
+    }
+  }
+
+  pointOnEdge(edgeAndFrac) {
+    const edge = Math.floor(edgeAndFrac);
+    const t = edgeAndFrac - edge;
+    const edgeIndex = ((edge % this.m) + this.m) % this.m;
+    return this.pointOnEdgeOfVertex(this.index[edgeIndex], t);
+  }
+
+  findVert(p, mind) {
+    let minv = null;
+    this.forEach((v) => {
+      const d = v.z.dist(p);
+      if (d < mind) {
+        mind = d;
+        minv = v;
+      }
+    });
+    return minv;
+  }
+
+  findEdge(p, mind) {
+    let minv = null;
+    this.forEach((o) => {
+      if (this.curvy) {
+        let u = o.z;
+        for (let t = 0.1; t < 1.05; t += 0.1) {
+          let v = this.pointOnEdgeOfVertex(o, t);
+          const d = distToLine(p, u, v);
+          if (d < mind) {
+            mind = d;
+            minv = o;
+          }
+          u = v;
+        }
+      } else {
+        const d = distToLine(p, o.z, o.n.z);
+        if (d < mind) {
+          mind = d;
+          minv = o;
+        }
+      }
+    });
+    return minv;
+  }
+
+  approximate(n, t) {
+    const a = [];
+    const dt = this.m * 1.0 / n;
+    for (let i = 0; i < n; ++i) {
+      a.push(this.pointOnEdge(t));
+      t += dt;
+    }
+    return new Polygon(a);
+  }
+}
+
+function createAngleSequence(n) {
+  const a = [];
+  const t = tau / n;
+  for (let i = 1; i < n - 1; ++i) {
+    const j = 1 + Math.floor(i / 2);
+    const k = i % 2 < 0.5 ? n - j : j;
+    a.push(k * t);
+  }
+  console.assert(a.length == n - 2);
+  return a;
+}
+
+function polyOfSequence(p, t) {
+  const t2 = (tau / 2 - t) / 2;
+  const l = 0.5 / Math.cos(t2);
+  const r = cplxr(l, t2);
+  const a = [];
+  p.forEach((v) => {
+    const d = v.n.z.sub(v.z);
+    const q = d.mul(r);
+    a.push(v.z.add(q));
+  });
+  return new Polygon(a);
+}
+
+class Sequence {
+  constructor(q) {
+    this.a = [];
+    let p = q;
+    for (const t of createAngleSequence(q.m)) {
+      p = polyOfSequence(p, t);
+      this.a.push(p);
+    }
+    this.c = this.a[this.a.length - 1].vertexMean();
+  }
+}
+
+function isLeftClick(event) { return event.button === 0; }
+function isRightClick(event) { return event.button === 2; }
+
+let epoch = 0;
+let approxT = 0.6180339887498949;
+let lastT = Date.now() / 1000;
+let camPos = cplx(0, 0);
+let camSize = 1;
+function go() {
+  const myEpoch = ++epoch;
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext('2d');
+  const res = cplx(canvas.width, canvas.height);
+
+  const drawTri = document.getElementById('draw_tri').checked;
+  const drawAllPolys = document.getElementById('draw_all_polys').checked;
+  const drawAltPolys = document.getElementById('draw_alt_polys').checked;
+  const drawCentroid = document.getElementById('draw_cent').checked;
+  const curvyMode = document.getElementById('curvy').checked;
+  const rotateApprox = document.getElementById('rotate_approx').checked;
+
+  const domCurvyInstr = document.getElementById('curvy_instructions');
+  if (curvyMode) {
+    domCurvyInstr.classList.remove('hidden');
+  } else {
+    domCurvyInstr.classList.add('hidden');
+  }
+
+  if (root == null) {
+    root = new RootPolygon([
+        cplxr(randf(0.1, 0.4), (randf(0.19)) * tau),
+        cplxr(randf(0.1, 0.4), ((4 / 5) + randf(0.19)) * tau),
+        cplxr(randf(0.1, 0.4), ((3 / 5) + randf(0.19)) * tau),
+        cplxr(randf(0.1, 0.4), ((2 / 5) + randf(0.19)) * tau),
+        cplxr(randf(0.1, 0.4), ((1 / 5) + randf(0.19)) * tau)]);
+  }
+  root.curvy = curvyMode;
+
+  let approx = null;
+  let seq = null;
+  const onPolyChange = () => {
+    root.updateControlPoints();
+    if (root.curvy) {
+      const numApprox = parseInt(document.getElementById('approx').value);
+      approx = root.approximate(numApprox, approxT * 0.3);
+    }
+    seq = new Sequence(approx ?? root);
+  }
+  onPolyChange();
+
+  let clickv = null;
+  let clickPan = false;
+  let clickPos = null;
+  let mousePos = camPos;
+
+  const pixScale = (x) => x * camSize / res.x;
+
+  const circle = (z, r, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.ellipse(z.x, z.y, r, r, 0, 0, tau);
+    ctx.fill();
+  };
+
+  const dot = (z, clr) => circle(z, pixScale(5), clr);
+
+  const line = (u, v, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(u.x, u.y);
+    ctx.lineTo(v.x, v.y);
+    ctx.stroke();
+  };
+
+  const bez = (u, cu, cv, v, clr) => {
+    ctx.strokeStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(u.x, u.y);
+    ctx.bezierCurveTo(cu.x, cu.y, cv.x, cv.y, v.x, v.y);
+    ctx.stroke();
+  };
+
+  const poly = (p, clr) => {
+    p.forEach((v) => line(v.z, v.n.z, clr));
+    p.forEach((v) => dot(v.z, clr));
+  };
+
+  const curvyPoly = (p, clr) => {
+    p.forEach((v) => bez(v.z, v.cn, v.n.cp, v.n.z, clr));
+    p.forEach((v) => dot(v.z, clr));
+  };
+
+  const rootPoly = (p, clr) => (p.curvy ? curvyPoly : poly)(p, clr);
+
+  const triangle = (u, v, w, clr) => {
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.moveTo(u.x, u.y);
+    ctx.lineTo(v.x, v.y);
+    ctx.lineTo(w.x, w.y);
+    ctx.fill();
+  };
+
+  const update = () => {
+    if (epoch != myEpoch) return;
+    const camSizeT = res.rdiv(camSize);
+    const camPosT = res.smul(camPos.rdiv(-camSize).radd(0.5));
+    ctx.setTransform(camSizeT.x, 0, 0, camSizeT.y, camPosT.x, camPosT.y);
+    ctx.lineWidth = pixScale(3);
+
+    const t = Date.now() / 1000;
+    const dt = t - lastT;
+    lastT = t;
+
+    if (curvyMode) {
+      approxT += dt;
+      onPolyChange();
+    }
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(camPos.x - 0.5 * camSize, camPos.y - 0.5 * camSize,
+                 camSize, camSize);
+
+    const alpha = 1.0 / (seq.a.length + 2);
+    let prev = approx ?? root;
+    let idx = 0;
+    for (const p of seq.a) {
+      if (drawTri) {
+        prev.forEachZip(p, (u, v) => {
+          triangle(u.p.z, u.z, v.z, `rgba(128, 128, 128, ${alpha})`);
+        });
+      }
+      const isLastPoly = (p == seq.a[seq.a.length - 1]);
+      if (isLastPoly || drawAllPolys || (drawAltPolys && (idx % 2 == 1))) {
+        poly(p, isLastPoly ? '#02F' : '#A0400080');
+      }
+      prev = p;
+      ++idx;
+    }
+    if (approx != null) poly(approx, '#0BB');
+    rootPoly(root, '#0F0');
+    if (drawCentroid) {
+      dot(seq.c, '#02F');
+    }
+
+    window.requestAnimationFrame(update);
+  };
+
+  const cursorPos = (e) => cplx(
+      ((e.offsetX / res.x) - 0.5) * camSize + camPos.x,
+      ((e.offsetY / res.y) - 0.5) * camSize + camPos.y);
+
+  canvas.onmousedown = (e) => {
+    const p = cursorPos(e);
+    clickPos = p;
+    mousePos = p;
+    clickv = root.findVert(p, pixScale(15));
+    if (isRightClick(e)) {
+      if (clickv != null) {
+        root.del(clickv);
+        onPolyChange();
+      }
+    } else if (isLeftClick(e)) {
+      if (clickv == null) {
+        const clicke = root.findEdge(p, pixScale(15));
+        if (clicke != null) {
+          clickv = root.add(p, clicke);
+          onPolyChange();
+        } else {
+          clickPan = true;
+        }
+      }
+    }
+  };
+  canvas.onmousemove = (e) => {
+    const p = cursorPos(e);
+    mousePos = p;
+    if (clickv != null) {
+      clickv.z = p;
+      onPolyChange();
+    } else if (clickPan) {
+      camPos = camPos.add(clickPos.sub(p));
+    }
+  };
+  canvas.onmouseup = (e) => {
+    if (isLeftClick(e)) {
+      clickv = null;
+      clickPan = false;
+    }
+  };
+  canvas.oncontextmenu = (e) => e.preventDefault();
+  canvas.onwheel = (e) => {
+    const oldCamSize = camSize;
+    camSize *= Math.pow(2, e.deltaY * 0.005);
+    camPos = mousePos.sub(mousePos.sub(camPos).rdiv(oldCamSize).rmul(camSize));
+  }
+
+  update();
+}
+
+window.addEventListener('load', go);
+
+function uncheck(id) {
+  document.getElementById(id).checked = false;
+}
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: top;
+}
+#left {
+  flex-shrink: 0.5;
+  width: 50%;
+}
+#right {
+  flex-shrink: 1;
+  width: 50%;
+}
+#view {
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.hidden {
+  display: none;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Petr's Miracle</h1>
+</div>
+<div id="wrap">
+  <div id="left">
+    This toy explores the
+    <a href="https://en.wikipedia.org/wiki/Petr%E2%80%93Douglas%E2%80%93Neumann_theorem">
+      Petr–Douglas–Neumann theorem</a>.
+    Starting with any N sided polygon, we add a triangle to each side, and
+    generate a new N sided polygon from the tips of those triangles. The
+    triangle has a specific angle at the tip, and we repeat this process with a
+    sequence of angles. After N-2 repetitions, we end up with a regular
+    N sided polygon.
+    For details about the sequence of angles, why this works, and how it's
+    related to the Discreet Fourier Transform (?!?!), check out
+    <a href="https://youtu.be/WLAW5yz5O3E">this Mathologer video</a>.
+    <br>
+
+    <h3>Controls</h3>
+    <ul>
+      <li>The green polygon is the input. The blue polygon is the output.</li>
+      <li>Click and drag a vertex on the green polygon to move it.</li>
+      <li>Click on a green line to add a new vertex.</li>
+      <li>Right click on a vertex to delete it.</li>
+      <li>Scroll to zoom. Click and drag on the background to pan.</li>
+    </ul>
+
+    <h3>Options</h3>
+    <input type="checkbox" id="curvy" onchange="go()"/>
+    <label for="curvy">Curvy mode</label>
+    <br>
+    <label for="approx">Curve approximation points</label>
+    <input type="range" id="approx" min="3" max="30" value="3" step="1"
+        onchange="go()"/>
+    <br>
+    <input type="checkbox" id="rotate_approx" onchange="go()"/>
+    <label for="rotate_approx">Rotate approximation</label>
+    <br>
+    <input type="checkbox" id="draw_tri" checked onchange="go()"/>
+    <label for="draw_tri">Draw triangles</label>
+    <br>
+    <input type="checkbox" id="draw_all_polys"
+        onchange="uncheck('draw_alt_polys'); go()"/>
+    <label for="draw_all_polys">Draw all polygons</label>
+    <br>
+    <input type="checkbox" id="draw_alt_polys"
+        onchange="uncheck('draw_all_polys'); go()"/>
+    <label for="draw_alt_polys">Draw alternating polygons</label>
+    <br>
+    <input type="checkbox" id="draw_cent" checked onchange="go()"/>
+    <label for="draw_cent">Draw centroid</label>
+    <br>
+
+    <div id="curvy_instructions" class="hidden">
+      <h3>Curvy mode</h3>
+      One of the unanswered questions in the Mathologer video was what happens
+      in the limit as you try to approximate a curve with polygons with more and
+      more vertices. Does the regular polygon generated by this process approach
+      a specific circle?
+      <br><br>
+      Curvy mode explores this by turning the N sided polygon defined by the
+      points you create into a smooth curve, then approximating that curve by
+      placing points along it (the teal polygon).
+      <br><br>
+      What happens if the approximation points are rotated around the curve?
+      How does this change as you increase the number of points?
+      <br><br>
+    </div>
+  </div>
+  <div><canvas id="view" width="800px" height="800px"></canvas></div>
+  <div id="right"></div>
+</div>
+</body>
+</html>
