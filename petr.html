@@ -428,8 +428,10 @@ function go() {
     const dt = t - lastT;
     lastT = t;
 
-    if (curvyMode) {
+    if (rotateApprox) {
       approxT += dt;
+    }
+    if (curvyMode) {
       onPolyChange();
     }
 
