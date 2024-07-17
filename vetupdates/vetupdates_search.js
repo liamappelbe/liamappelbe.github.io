@@ -47,9 +47,7 @@ const kMajorTags = new Set([
   'trauma',
 ]);
 
-function isMajorTag(tag) {
-  return kMajorTags.has(tag.toLowerCase().trim());
-}
+function isMajorTag(tag) { return kMajorTags.has(tag.toLowerCase().trim()); }
 
 async function asyncRequest(url) {
   let errorCode = null;
@@ -217,17 +215,13 @@ function newPubMedTag(parent, pmid) {
 }
 
 const reClean = /[^a-zA-Z0-9]+/g;
-function cleanText(t) {
-  return t.replaceAll(reClean, ' ').trim();
-}
+function cleanText(t) { return t.replaceAll(reClean, ' ').trim(); }
 
 function fixCase(t) {
   return t.slice(0, 1).toUpperCase() + t.slice(1).toLowerCase();
 }
 
-function cleanTitle(t) {
-  return t.split(' ').map(fixCase).join(' ');
-}
+function cleanTitle(t) { return t.split(' ').map(fixCase).join(' '); }
 
 function removeThe(t) {
   if (t.toLowerCase().startsWith('the ')) return t.substring(4);
@@ -360,10 +354,9 @@ async function buildVetUpdatesSearch(node) {
 }
 
 class VetUpdatesSearch extends HTMLElement {
-  constructor() {
-    super();
-    buildVetUpdatesSearch(this);
-  }
+  constructor() { super(); }
+  connectedCallback() { buildVetUpdatesSearch(this); }
+  attributeChangedCallback() { buildVetUpdatesSearch(this); }
 }
 
 function buildDropdownMenu(node) {

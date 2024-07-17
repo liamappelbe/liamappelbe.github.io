@@ -35,7 +35,7 @@ let domBottom = null;
 class State {
   constructor() {
     this.ids = [];
-    this.errorIds = [];
+    this.errorText = '';
     this.synths = [];
   }
 }
@@ -56,18 +56,19 @@ class ArticleInfo {
 
 function loadState() {
   const saved = window.localStorage.getItem("save");
-  if (saved == null) {
-    state = new State();
-  } else {
-    state = JSON.parse(saved);
-    if (state.ids == null) state.ids = [];
-    if (state.errorIds == null) state.errorIds = [];
-    if (state.synths == null) state.synths = [];
+  state = new State();
+  if (saved != null) {
+    jsonState = JSON.parse(saved);
+    state.ids = jsonState[0] ?? [];
+    state.synths = jsonState[1] ?? [];
   }
 }
 
 function saveState() {
-  window.localStorage.setItem("save", JSON.stringify(state));
+  window.localStorage.setItem("save", JSON.stringify([
+    state.ids,
+    state.synths,
+  ]));
 }
 
 function clearState() {
@@ -76,14 +77,14 @@ function clearState() {
 
 function fillDomFromState() {
   domIds.value = state.ids.join('\n');
-  domErrors.value = state.errorIds.join('\n');
+  domErrors.value = state.errorText;
   emptyDiv(domBottom);
   for (const s of state.synths) addSynth(s);
 }
 
 function fillStateFromDom() {
   state.ids = domIds.value.split(/[\n\t ,]+/).filter(id => id != '');
-  state.errorIds = domErrors.value.split(/[\n\t ,]+/).filter(id => id != '');
+  state.errorText = domErrors.value;
   state.synths = [];
   for (const synth of domBottom.getElementsByClassName('synth')) {
     const f = (cls) => synth.getElementsByClassName('synth-' + cls)[0].value;
@@ -91,6 +92,13 @@ function fillStateFromDom() {
         null, f('title'), f('authors'), f('date'), f('doi'), f('journal'),
         f('journal-abbr'), f('url')));
   }
+}
+
+function addError(msg) {
+  if (state.errorText != '') {
+    state.errorText += '\n';
+  }
+  state.errorText += msg;
 }
 
 function newButton(
@@ -156,39 +164,25 @@ async function generate() {
     }
   }
 
-  /*function cleanSynthAuthor(a) {
-    const aa = cleanText(a).split(' ');
-    let b = '';
-    for (let i = 0; i < aa.length - 1; ++i) {
-      b += aa[i][0].toUpperCase();
-    }
-    return `${b} ${fixCase(aa[aa.length - 1])}`;
-  }
-  const cleanSynthAuthors = a =>
-    cleanText(a).split(',').map(cleanSynthAuthor).join(', ');*/
-  const cleanSynthAuthors = a => a;
-
   domWrap.classList.add('loading');
   domLoad.classList.add('loading');
   emptyDiv(domFormatted);
   domTags.value = '';
 
   fillStateFromDom();
+  state.errorText = '';
   saveState();
 
-  const fulfilledIds = [];
-  const rejectedIds = [];
   const results = await Promise.all(state.ids.map(getArticle));
   domWrap.classList.remove('loading');
   domLoad.classList.remove('loading');
 
   for (const ar of results) {
     if (ar.err != null) {
-      rejectedIds.push(ar.id);
+      addError(`Invalid ID: ${ar.id}`);
       console.error(ar.id, ar.err);
       continue;
     }
-    fulfilledIds.push(ar.id);
   }
 
   const articlesByJournal = new Map();
@@ -202,16 +196,10 @@ async function generate() {
   }
 
   for (const [journal, articles] of articlesByJournal) {
-    // domTags.value += '<div>\n';
-    // domTags.value += `  <div class="sticky_heading">${journal}</div>\n`;
-    // domTags.value += '  <ul>\n';
-
-    // const heading = newElement('h2', domFormatted, [], journal);
-
     const ul = newElement('ul', domFormatted);
     for (const ai of articles) {
       const aid = ai.aid;
-      const authors = cleanSynthAuthors(ai.authors);
+      const authors = ai.authors;
       if (aid != null) {
         domTags.value += `<li><pub-med ${
                 aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
@@ -233,12 +221,8 @@ async function generate() {
       const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
       newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
     }
-    // domTags.value += '  </ul>\n';
-    // domTags.value += '</div>\n\n';
   }
 
-  state.ids = fulfilledIds;
-  state.errorIds = state.errorIds.concat(rejectedIds);
   saveState();
   fillDomFromState();
 
@@ -533,7 +517,7 @@ a, .synth-delete {
       <textarea id="idin" rows="20" cols="40"></textarea>
       <br/>
       <br/>
-      Bad IDs:
+      Errors:
       <br/>
       <textarea id="errors" rows="6" cols="40"></textarea>
     </div>
