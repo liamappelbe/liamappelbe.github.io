@@ -4,6 +4,7 @@ const kApiEndpoint =
     kLocalDev ? 'http://localhost:8080' : 'https://squeakysqueenoctopus.com';
 const kAdvancedSearchApi = kApiEndpoint + '/zpqk';
 const kSearchApi = kApiEndpoint + '/gqmo';
+const kGetIdsApi = kApiEndpoint + '/rmdl';
 const kMetadataApi = kApiEndpoint + '/meta';
 const kRetries = 10;
 const kMajorTagText = 'Topics';
@@ -102,6 +103,12 @@ async function advancedSearchRequest(q) {
 
 async function searchRequest(q) {
   return JSON.parse(await asyncRequest(kSearchApi + '?' + q));
+}
+
+async function getIdsRequest(pmids, pmcids) {
+  const q = [encodeIdQuery('p', pmids), encodeIdQuery('c', pmcids)];
+  return JSON.parse(await asyncRequest(
+      kGetIdsApi + '?' + q.filter(w => w.length > 0).join('&')));
 }
 
 function getUniqueElementId() {
@@ -238,6 +245,11 @@ function cleanMetadata(a) {
     return 0;
   });
   return b;
+}
+
+function encodeIdQuery(q, v) {
+  if (v.length == 0) return '';
+  return q + '=' + encodeURIComponent(v.join(','));
 }
 
 function encodeTextQuery(q, t) {
@@ -396,6 +408,7 @@ if (typeof (module) != 'undefined') {
     metadataRequest,
     advancedSearchRequest,
     searchRequest,
+    getIdsRequest,
     kMajorTags,
   };
 }

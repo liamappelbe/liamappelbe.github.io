@@ -22,7 +22,7 @@ module = {};
 </script>
 <script src="vetupdates_search.js"></script>
 <script>
-const {metadataRequest, kMajorTags} = module.exports;
+const {metadataRequest, kMajorTags, getIdsRequest} = module.exports;
 
 let domWrap = null;
 let domLoad = null;
@@ -138,10 +138,12 @@ async function wait(seconds) {
 }
 
 class ArticleResult {
-  constructor(id, article, err) {
+  constructor(id, aid, article, err) {
     this.id = id;
+    this.aid = aid;
     this.article = article;
     this.err = err;
+    this.seen = false;
   }
 }
 
@@ -156,12 +158,34 @@ async function generate() {
     try {
       const aid = await asyncPubMedConvertId(id);
       const art = await getArticleImpl(aid);
-      return new ArticleResult(id, new ArticleInfo(
+      return new ArticleResult(id, aid, new ArticleInfo(
           aid, art.title, art.authors, art.getDateText(), art.doi,
           art.journalName, art.journalAbbr, art.getLink()), null);
     } catch (err) {
-      return new ArticleResult(id, null, err);
+      return new ArticleResult(id, null, null, err);
     }
+  }
+
+  async function checkUsed(results) {
+    const pmids = [];
+    const pmcids = [];
+    for (const ar of results) {
+      if (ar.aid == null) continue;
+      if (ar.aid.pmid != null) {
+        pmids.push(ar.aid.pmid);
+      } else if (ar.aid.pmcid != null) {
+        pmcids.push(ar.aid.pmcid);
+      }
+    }
+    const known = new Set(await getIdsRequest(pmids, pmcids));
+    for (const ar of results) {
+      if (ar.aid == null) continue;
+      if (known.has(parseInt(ar.aid.pmid)) ||
+          known.has(-parseInt(ar.aid.pmcid))) {
+        ar.seen = true;
+      }
+    }
+    return results;
   }
 
   domWrap.classList.add('loading');
@@ -173,7 +197,7 @@ async function generate() {
   state.errorText = '';
   saveState();
 
-  const results = await Promise.all(state.ids.map(getArticle));
+  const results = await checkUsed(await Promise.all(state.ids.map(getArticle)));
   domWrap.classList.remove('loading');
   domLoad.classList.remove('loading');
 
@@ -181,7 +205,8 @@ async function generate() {
     if (ar.err != null) {
       addError(`Invalid ID: ${ar.id}`);
       console.error(ar.id, ar.err);
-      continue;
+    } else if (ar.seen) {
+      addError(`Reused ID: ${ar.id}`);
     }
   }
 
@@ -519,7 +544,7 @@ a, .synth-delete {
       <br/>
       Errors:
       <br/>
-      <textarea id="errors" rows="6" cols="40"></textarea>
+      <textarea id="errors" rows="8" cols="40"></textarea>
     </div>
     <div class="middle">
       <span>Elements: <a onclick="selectTextArea('tags')">[SELECT]</a></span>
