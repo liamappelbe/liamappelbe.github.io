@@ -108,8 +108,9 @@ async function asyncRequest(url) {
 }
 
 function apiForSite(api, siteId, query = '') {
-  if (query.length > 0) query = '&' + query;
-  return api + '?' + encodeTextQuery('s', siteId) + query;
+  let result = api + '?s=' + siteId;
+  if (query.length > 0) result += '&' + query;
+  return result;
 }
 
 async function metadataRequest(siteId) {
@@ -273,12 +274,10 @@ function encodeIdQuery(q, v) {
 }
 
 function encodeTextQuery(q, t) {
-  if (t.length == 0) return '';
+  if (t.value.length == 0) return '';
   return q + '=' +
-      encodeURIComponent(cleanText(t).toLowerCase().split(' ').join(','));
+      encodeURIComponent(cleanText(t.value).toLowerCase().split(' ').join(','));
 }
-
-function encodeTextInputQuery(q, t) { return encodeTextQuery(q, t.value); }
 
 function encodeOptionQuery(q, o) {
   if (o.children[0].children[0].children[0].checked) return '';
@@ -328,7 +327,7 @@ async function buildVetUpdatesSearch(node) {
 
   const doSearch = async () => {
     clearResults();
-    const q = encodeTextInputQuery('q', searchInput);
+    const q = encodeTextQuery('q', searchInput);
     const result = await searchRequest(siteId, q);
     fillResults(result);
   };
@@ -341,14 +340,14 @@ async function buildVetUpdatesSearch(node) {
 
   const doAdvSearch = async () => {
     clearResults();
-    const t = encodeTextInputQuery('t', titleInput);
+    const t = encodeTextQuery('t', titleInput);
     const j = encodeOptionQuery('j', journalInput);
     const d = encodeDateQuery('d', fromDateInput);
     const e = encodeDateQuery('e', toDateInput);
-    const a = encodeTextInputQuery('a', authorsInput);
+    const a = encodeTextQuery('a', authorsInput);
     const g = encodeOptionQuery('g', tagsInput);
-    const k = encodeTextInputQuery('k', keywordsInput);
-    const w = encodeTextInputQuery('w', abstractInput);
+    const k = encodeTextQuery('k', keywordsInput);
+    const w = encodeTextQuery('w', abstractInput);
     const result =
         await advancedSearchRequest(siteId, [t, j, d, e, a, g, k, w]);
     fillResults(result);
