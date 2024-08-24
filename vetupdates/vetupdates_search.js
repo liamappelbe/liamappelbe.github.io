@@ -10,45 +10,60 @@ const kRetries = 10;
 const kMajorTagText = 'Topics';
 const kMinorTagText = 'Subtopics';
 
-const kMajorTags = new Set([
-  'acid base',
-  'analgesia',
-  'anesthesia',
-  'cardiovascular',
-  'coagulation',
-  'cpr',
-  'critical illness',
-  'electrolytes',
-  'endocrine',
-  'environmental',
-  'extracorporeal',
-  'fluid therapy',
-  'gi and nutrition',
-  'hemolymphatic',
-  'hepatobiliary and pancreas',
-  'immunology',
-  'infectious',
-  'integument',
-  'monitoring',
-  'musculoskeletal',
-  'neurology',
-  'ophthalmology',
-  'pharmacology',
-  'pocus',
-  'radiology',
-  'renal',
-  'reproduction',
-  'respiratory',
-  'sepsis sirs mods',
-  'shock and ischemia',
-  'statistics',
-  'surgery',
-  'toxicology',
-  'transfusion',
-  'trauma',
-]);
+class Site {
+  constructor(id, majorTags) {
+    this.id = id;
+    this.majorTags = new Set(majorTags);
+  }
+}
 
-function isMajorTag(tag) { return kMajorTags.has(tag.toLowerCase().trim()); }
+const kAllSites = new Map([
+  new Site(
+      'V',
+      [
+        'acid base',
+        'analgesia',
+        'anesthesia',
+        'cardiovascular',
+        'coagulation',
+        'cpr',
+        'critical illness',
+        'electrolytes',
+        'endocrine',
+        'environmental',
+        'extracorporeal',
+        'fluid therapy',
+        'gi and nutrition',
+        'hemolymphatic',
+        'hepatobiliary and pancreas',
+        'immunology',
+        'infectious',
+        'integument',
+        'monitoring',
+        'musculoskeletal',
+        'neurology',
+        'ophthalmology',
+        'pharmacology',
+        'pocus',
+        'radiology',
+        'renal',
+        'reproduction',
+        'respiratory',
+        'sepsis sirs mods',
+        'shock and ischemia',
+        'statistics',
+        'surgery',
+        'toxicology',
+        'transfusion',
+        'trauma',
+      ]),
+  new Site('R', []),
+].map(site => [site.id, site]));
+
+function getMajorTags(siteId) { return kAllSites.get(siteId).majorTags; }
+function isMajorTag(siteId, tag) {
+  return getMajorTags(siteId).has(tag.toLowerCase().trim());
+}
 
 async function asyncRequest(url) {
   let errorCode = null;
@@ -92,23 +107,28 @@ async function asyncRequest(url) {
   throw 'Network Error. Try reloading the page.';
 }
 
-async function metadataRequest() {
-  return JSON.parse(await asyncRequest(kMetadataApi));
+function apiForSite(api, siteId, query = '') {
+  if (query.length > 0) query = '&' + query;
+  return api + '?' + encodeTextQuery('s', siteId) + query;
 }
 
-async function advancedSearchRequest(q) {
-  return JSON.parse(await asyncRequest(
-      kAdvancedSearchApi + '?' + q.filter(w => w.length > 0).join('&')));
+async function metadataRequest(siteId) {
+  return JSON.parse(await asyncRequest(apiForSite(kMetadataApi, siteId)));
 }
 
-async function searchRequest(q) {
-  return JSON.parse(await asyncRequest(kSearchApi + '?' + q));
+async function advancedSearchRequest(siteId, q) {
+  return JSON.parse(await asyncRequest(apiForSite(
+      kAdvancedSearchApi, siteId, q.filter(w => w.length > 0).join('&'))));
 }
 
-async function getIdsRequest(pmids, pmcids) {
+async function searchRequest(siteId, q) {
+  return JSON.parse(await asyncRequest(apiForSite(kSearchApi, siteId, q)));
+}
+
+async function getIdsRequest(siteId, pmids, pmcids) {
   const q = [encodeIdQuery('p', pmids), encodeIdQuery('c', pmcids)];
   return JSON.parse(await asyncRequest(
-      kGetIdsApi + '?' + q.filter(w => w.length > 0).join('&')));
+      apiForSite(kGetIdsApi, siteId, q.filter(w => w.length > 0).join('&'))));
 }
 
 function getUniqueElementId() {
@@ -253,10 +273,12 @@ function encodeIdQuery(q, v) {
 }
 
 function encodeTextQuery(q, t) {
-  if (t.value.length == 0) return '';
+  if (t.length == 0) return '';
   return q + '=' +
-      encodeURIComponent(cleanText(t.value).toLowerCase().split(' ').join(','));
+      encodeURIComponent(cleanText(t).toLowerCase().split(' ').join(','));
 }
+
+function encodeTextInputQuery(q, t) { return encodeTextQuery(q, t.value); }
 
 function encodeOptionQuery(q, o) {
   if (o.children[0].children[0].children[0].checked) return '';
@@ -281,6 +303,7 @@ function encodeDateQuery(q, d) {
 }
 
 async function buildVetUpdatesSearch(node) {
+  const siteId = node.getAttribute('site') ?? 'V';
   const smpRow = newDiv(node, ['input-row']);
   const advCol = newDiv(node, ['input-col', 'hidden']);
   const advRow1 = newDiv(advCol, ['input-row']);
@@ -305,8 +328,8 @@ async function buildVetUpdatesSearch(node) {
 
   const doSearch = async () => {
     clearResults();
-    const q = encodeTextQuery('q', searchInput);
-    const result = await searchRequest(q);
+    const q = encodeTextInputQuery('q', searchInput);
+    const result = await searchRequest(siteId, q);
     fillResults(result);
   };
   const searchInput = newTextInput(smpRow, ['text-input'], 'Search', doSearch);
@@ -318,15 +341,16 @@ async function buildVetUpdatesSearch(node) {
 
   const doAdvSearch = async () => {
     clearResults();
-    const t = encodeTextQuery('t', titleInput);
+    const t = encodeTextInputQuery('t', titleInput);
     const j = encodeOptionQuery('j', journalInput);
     const d = encodeDateQuery('d', fromDateInput);
     const e = encodeDateQuery('e', toDateInput);
-    const a = encodeTextQuery('a', authorsInput);
+    const a = encodeTextInputQuery('a', authorsInput);
     const g = encodeOptionQuery('g', tagsInput);
-    const k = encodeTextQuery('k', keywordsInput);
-    const w = encodeTextQuery('w', abstractInput);
-    const result = await advancedSearchRequest([t, j, d, e, a, g, k, w]);
+    const k = encodeTextInputQuery('k', keywordsInput);
+    const w = encodeTextInputQuery('w', abstractInput);
+    const result =
+        await advancedSearchRequest(siteId, [t, j, d, e, a, g, k, w]);
     fillResults(result);
   };
   const dateInput = (row, title) => {
@@ -358,10 +382,10 @@ async function buildVetUpdatesSearch(node) {
     smpRow.classList.remove('hidden');
   });
 
-  const [journals, tags] = (await metadataRequest()).map(cleanMetadata);
+  const [journals, tags] = (await metadataRequest(siteId)).map(cleanMetadata);
   for (const journal of journals) newDropOptionsItem(journalInput, journal);
   for (const tag of tags) {
-    newDropOptionsItem(tagsInput, tag, isMajorTag(tag) ? 0 : 1);
+    newDropOptionsItem(tagsInput, tag, isMajorTag(siteId, tag) ? 0 : 1);
   }
 }
 
@@ -409,7 +433,7 @@ if (typeof (module) != 'undefined') {
     advancedSearchRequest,
     searchRequest,
     getIdsRequest,
-    kMajorTags,
+    getMajorTags,
   };
 }
 })();

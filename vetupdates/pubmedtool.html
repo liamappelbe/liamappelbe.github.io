@@ -11,6 +11,7 @@ const kPubMedApiSuffix = [
   'tool=tiusic.com',
   'email=liamappelbe@gmail.com',
 ].join('&');
+const kSiteId = new URLSearchParams(window.location.search).get('s') ?? 'V';
 let module = {};
 </script>
 <script src="pubmed_abstracts.js"></script>
@@ -22,7 +23,7 @@ module = {};
 </script>
 <script src="vetupdates_search.js"></script>
 <script>
-const {metadataRequest, kMajorTags, getIdsRequest} = module.exports;
+const {metadataRequest, getMajorTags, getIdsRequest} = module.exports;
 
 let domWrap = null;
 let domLoad = null;
@@ -177,7 +178,7 @@ async function generate() {
         pmcids.push(ar.aid.pmcid);
       }
     }
-    const known = new Set(await getIdsRequest(pmids, pmcids));
+    const known = new Set(await getIdsRequest(kSiteId, pmids, pmcids));
     for (const ar of results) {
       if (ar.aid == null) continue;
       if (known.has(parseInt(ar.aid.pmid)) ||
@@ -308,14 +309,15 @@ function cleanTagName(tag) {
 
 async function fillKnownTags() {
   const majorTags = document.getElementById('major_tags');
-  for (const tag of kMajorTags) {
+  const siteMajorTags = getMajorTags(kSiteId);
+  for (const tag of siteMajorTags) {
     newButton(majorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
   }
-  const [journals, tags] = await metadataRequest();
+  const [journals, tags] = await metadataRequest(kSiteId);
   tags.sort();
   const minorTags = document.getElementById('minor_tags');
   for (const tag of tags) {
-    if (!kMajorTags.has(tag)) {
+    if (!siteMajorTags.has(tag)) {
       newButton(minorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
     }
   }
