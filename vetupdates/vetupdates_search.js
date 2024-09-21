@@ -74,12 +74,12 @@ const kAllSites = new Map([
         'mri',
         'musculoskeletal',
         'nervous system',
-        'pet nm',
+        'pet and nm',
         'radiation oncology',
         'respiratory',
         'ultrasound',
         'urinary',
-        'x rays',
+        'xrays',
       ]),
 ].map(site => [site.id, site]));
 
