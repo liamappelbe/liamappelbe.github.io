@@ -57,7 +57,30 @@ const kAllSites = new Map([
         'transfusion',
         'trauma',
       ]),
-  new Site('R', []),
+  new Site(
+      'R',
+      [
+        'artificial intelligence',
+        'cardiovascular',
+        'ct',
+        'endocrine',
+        'exotics',
+        'gastrointestinal and pancreas',
+        'genital',
+        'hematopoietic',
+        'hepatobiliary',
+        'imaging guided procedures',
+        'lymphatic',
+        'mri',
+        'musculoskeletal',
+        'nervous system',
+        'pet nm',
+        'radiation oncology',
+        'respiratory',
+        'ultrasound',
+        'urinary',
+        'x rays',
+      ]),
 ].map(site => [site.id, site]));
 
 function getMajorTags(siteId) { return kAllSites.get(siteId).majorTags; }
