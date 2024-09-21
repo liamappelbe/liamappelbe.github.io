@@ -307,20 +307,47 @@ function cleanTagName(tag) {
   return tag[0].toUpperCase() + tag.substr(1);
 }
 
-async function fillKnownTags() {
-  const majorTags = document.getElementById('major_tags');
-  const siteMajorTags = getMajorTags(kSiteId);
-  for (const tag of siteMajorTags) {
-    newButton(majorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
+let siteMajorTags = null;
+let siteMinorTags = null;
+async function loadKnownTags() {
+  siteMajorTags ??= getMajorTags(kSiteId);
+  siteMinorTags ??= await (async () => {
+    const [journals, tags] = await metadataRequest(kSiteId);
+    tags.sort();
+    return tags.filter((tag) => !siteMajorTags.has(tag));
+  })();
+  reflowTags();
+}
+
+function reflowTagColumns(nodeId, tags, numCols, colWidth) {
+  const node = document.getElementById(nodeId);
+  emptyDiv(node);
+  const numRows = Math.ceil(tags.length / numCols);
+  const rows = [];
+  for (let i = 0; i < numRows; ++i) {
+    rows.push(newDiv(node, ['tag-row']));
   }
-  const [journals, tags] = await metadataRequest(kSiteId);
-  tags.sort();
-  const minorTags = document.getElementById('minor_tags');
-  for (const tag of tags) {
-    if (!siteMajorTags.has(tag)) {
-      newButton(minorTags, ['tag-button'], cleanTagName(tag), () => copyText(tag));
+  let pc = null;
+  for (let i = 0; i < tags.length; ++i) {
+    const tag = tags[i];
+    const r = rows[i % numRows];
+    const btn = newButton(
+        r, ['tag-button'], cleanTagName(tag), () => copyText(tag));
+    btn.style.minWidth = `${colWidth}px`;
+    const c = tag[0];
+    if (pc != c) {
+      btn.classList.add('tag-button-new-letter');
     }
+    pc = c;
   }
+}
+
+function reflowTags() {
+  const rect = document.getElementById('major_tags').getBoundingClientRect();
+  const numCols = Math.floor(rect.width / 250);
+  const colWidth = Math.floor(rect.width / numCols);
+  reflowTagColumns('major_tags', Array.from(siteMajorTags), numCols, colWidth);
+  reflowTagColumns('minor_tags', siteMinorTags, numCols, colWidth);
 }
 
 function copyText(text) {
@@ -335,10 +362,15 @@ function onLoad() {
   domTags = document.getElementById('tags');
   domErrors = document.getElementById('errors');
   domBottom = document.getElementById('bottom');
-  fillKnownTags();
+  loadKnownTags();
   refreshUI();
 }
 window.addEventListener("load", onLoad);
+
+function onResize() {
+  reflowTags();
+}
+window.addEventListener("resize", onResize);
 
 function clearAll() {
   clearState();
@@ -514,18 +546,27 @@ a, .synth-delete {
   color: #f44336;
 }
 #major_tags, #minor_tags {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  column-gap: 12px;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 16px;
 }
+.tag-row {
+  display: flex;
+  flex-direction: row;
+}
 .tag-button {
-  color: #ffc107;
+  color: #ff5722;
   cursor: pointer;
   text-decoration: underline;
 }
+.tag-button:hover {
+  color: #ffc107;
+}
 .tag-button:active {
-  color: #ff5722;
+  color: #ffffff;
+}
+.tag-button-new-letter::first-letter {
+  color: #ffffff;
 }
 
 </style>
