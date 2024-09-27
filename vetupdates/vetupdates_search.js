@@ -65,6 +65,7 @@ const kAllSites = new Map([
         'ct',
         'endocrine',
         'exotics',
+        'fluoroscopy',
         'gastrointestinal and pancreas',
         'genital',
         'hematopoietic',
