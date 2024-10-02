@@ -43,6 +43,7 @@ const kAllSites = new Map([
         'musculoskeletal',
         'neurology',
         'ophthalmology',
+        'patient care',
         'pharmacology',
         'pocus',
         'radiology',
