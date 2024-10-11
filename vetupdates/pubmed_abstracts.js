@@ -8,7 +8,7 @@ const kIdConvUrl = 'https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/';
 const kRetries = 10;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
 const kBatchDelay = 300;
-const kBatchLimit = 100;
+const kBatchLimit = 30;
 const kCacheFreshTimeSec = 60 * 60 * 24 * 7;  // 1 week in seconds.
 
 const kDoiUrl = 'https://doi.org/';
@@ -56,13 +56,9 @@ class Cache {
     return val;
   }
 
-  nowSec() {
-    return Math.floor(Date.now() / 1000);
-  }
+  nowSec() { return Math.floor(Date.now() / 1000); }
 
-  isStale(t) {
-    return (this.nowSec() - t) >= kCacheFreshTimeSec;
-  }
+  isStale(t) { return (this.nowSec() - t) >= kCacheFreshTimeSec; }
 
   getValueWithTime(key) {
     const datedVal = this.storage.getItem(key);
@@ -131,26 +127,16 @@ class Xml {
       return null;
     }
   }
-  constructor(node) {
-    this.node = node;
-  }
-  get tag() {
-    return this.node.tagName;
-  }
-  get text() {
-    return this.node.textContent;
-  }
+  constructor(node) { this.node = node; }
+  get tag() { return this.node.tagName; }
+  get text() { return this.node.textContent; }
   * _children() {
     for (const n of this.node.children) {
       yield new Xml(n);
     }
   }
-  get children() {
-    return this._children();
-  }
-  attr(name) {
-    return this.node.getAttribute(name);
-  }
+  get children() { return this._children(); }
+  attr(name) { return this.node.getAttribute(name); }
   all(type) {
     const a = [];
     for (const n of this.children) {
@@ -264,11 +250,14 @@ async function asyncRequest(url) {
           } else {
             errorResponse = r.responseText;
             errorCode = r.status;
-            if (errorCode == 400) {
+            // Pubmed is currently returning 400 errors on timeouts, so disable
+            // this special case because we want to retry those errors.
+            // TODO: Re-enable this special case when they fix their bug.
+            /*if (errorCode == 400) {
               // Special case 400 errors, because it means that the request was
-              // bad, so don't bother retrying.
+              // malformed, so don't bother retrying.
               bail = true;
-            }
+            }*/
             reject();
           }
         };
@@ -407,9 +396,7 @@ class Article {
     return this.type == kIdKind_PMCID ? 'PMC' + this.id : this.id;
   }
 
-  getLink() {
-    return kLink + this.getPrefixedId();
-  }
+  getLink() { return kLink + this.getPrefixedId(); }
 
   serialize() {
     return this.abstract.reduce((a, x) => {
@@ -778,9 +765,7 @@ class ArticleId {
         doi == null ? null : maybeStripPrefix(doi.toLowerCase(), kDoiUrl);
   }
 
-  prefixedPmcid() {
-    return this.pmcid == null ? null : 'PMC' + this.pmcid;
-  }
+  prefixedPmcid() { return this.pmcid == null ? null : 'PMC' + this.pmcid; }
 }
 
 function xmlToMapOfArticleIds(data) {
@@ -1025,9 +1010,7 @@ class PubMedImpl {
     newBtn(this.node, ['pub-med-copy'], e => this._copy(e), 'Copy citation');
   }
 
-  _openPubMed() {
-    newLink(null, [], this.article.getLink()).click();
-  }
+  _openPubMed() { newLink(null, [], this.article.getLink()).click(); }
 
   _hideAbstract() {
     domTooltip.classList.remove('shown');
@@ -1150,13 +1133,9 @@ class PubMed extends HTMLElement {
     this.impl = new PubMedImpl(this);
   }
 
-  connectedCallback() {
-    this.impl.rebuild();
-  }
+  connectedCallback() { this.impl.rebuild(); }
 
-  attributeChangedCallback() {
-    this.impl.rebuild();
-  }
+  attributeChangedCallback() { this.impl.rebuild(); }
 }
 
 window.addEventListener('load', () => customElements.define('pub-med', PubMed));
