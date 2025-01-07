@@ -1,6 +1,5 @@
 // TODO:
 //  - Playlist thumbnails (2x2, so need 4 copy buttons).
-//  - Configurable dither direction.
 //  - Configurable clamping limits.
 //  - Tweakable colors.
 
@@ -25,6 +24,7 @@ function generateThumbnail(image, options, addNote) {
   const space = kSpaces[options.space] ?? kOklab;
   const chanw = options.chanWeight ?? [1, 1, 1];
   const palSize = options.palSize ?? 0;
+  const diag = options.diag ?? 0.1;
 
   let base;
   let h;
@@ -48,18 +48,14 @@ function generateThumbnail(image, options, addNote) {
   }
   const len = invis ? 0.000001 : tmul;
 
-  function fclamp(x, lo, hi) {
-    return x <= lo ? lo : x >= hi ? hi : x;
-  }
+  function fclamp(x, lo, hi) { return x <= lo ? lo : x >= hi ? hi : x; }
 
   function fmod(x, y = 1) {
     const z = x / y;
     return (z - Math.floor(z)) * y;
   }
 
-  function hexchan(x) {
-    return fclamp(Math.floor(x * 0x100), 0, 0xFF);
-  }
+  function hexchan(x) { return fclamp(Math.floor(x * 0x100), 0, 0xFF); }
 
   const srgb2linear = (x) =>
       x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
@@ -88,13 +84,9 @@ function generateThumbnail(image, options, addNote) {
       return e.r * e.r + e.g * e.g + e.b * e.b;
     }
 
-    _val() {
-      return Math.max(Math.max(this.r, this.g), this.b);
-    }
+    _val() { return Math.max(Math.max(this.r, this.g), this.b); }
 
-    _chroma(val) {
-      return val - Math.min(Math.min(this.r, this.g), this.b);
-    }
+    _chroma(val) { return val - Math.min(Math.min(this.r, this.g), this.b); }
 
     _hue(val, chroma) {
       if (chroma <= 0) return 0;
@@ -193,9 +185,7 @@ function generateThumbnail(image, options, addNote) {
           hexchan(this.b);
     }
 
-    get _vald() {
-      return this.b;
-    }
+    get _vald() { return this.b; }
 
     _conical(d) {
       const t = 2 * Math.PI * this.r;
@@ -215,42 +205,28 @@ function generateThumbnail(image, options, addNote) {
       return c._conical(c._vald);
     }
 
-    get hsvc2Rgb() {
-      return this._unconical(this._vald).hsv2Rgb;
-    }
+    get hsvc2Rgb() { return this._unconical(this._vald).hsv2Rgb; }
 
-    get _lumd() {
-      return 2 * Math.min(this.b, 1 - this.b);
-    }
+    get _lumd() { return 2 * Math.min(this.b, 1 - this.b); }
 
     get rgb2Hslc() {
       const c = this.rgb2Hsl;
       return c._conical(c._lumd);
     }
 
-    get hslc2Rgb() {
-      return this._unconical(this._lumd).hsl2Rgb;
-    }
+    get hslc2Rgb() { return this._unconical(this._lumd).hsl2Rgb; }
 
     mulAdd(c, k) {
       return new Color(this.r + k * c.r, this.g + k * c.g, this.b + k * c.b);
     }
 
-    add(c) {
-      return new Color(this.r + c.r, this.g + c.g, this.b + c.b);
-    }
+    add(c) { return new Color(this.r + c.r, this.g + c.g, this.b + c.b); }
 
-    mul(k) {
-      return new Color(k * this.r, k * this.g, k * this.b);
-    }
+    mul(k) { return new Color(k * this.r, k * this.g, k * this.b); }
 
-    emul(c) {
-      return new Color(this.r * c.r, this.g * c.g, this.b * c.b);
-    }
+    emul(c) { return new Color(this.r * c.r, this.g * c.g, this.b * c.b); }
 
-    addScalar(k) {
-      return new Color(this.r + k, this.g + k, this.b + k);
-    }
+    addScalar(k) { return new Color(this.r + k, this.g + k, this.b + k); }
 
     get clamp() {
       return new Color(
@@ -345,17 +321,19 @@ function generateThumbnail(image, options, addNote) {
     a.push(hexColor(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2]));
   }
 
-  function pixIndex(w, h, i, j) {
-    return j * w + i;
+  function randOrder(n) {
+    const o = [];
+    for (let i = 0; i < n; ++i) o.push(i);
+    for (let i = 0; i < n; ++i) {
+      const j = i + Math.floor((n - i) * Math.random());
+      const t = o[i];
+      o[i] = o[j];
+      o[j] = t;
+    }
+    return o;
   }
 
-  function ditherPixel(a, w, h, i, j, e, x, clamp) {
-    if (i >= 0 && i < w && j >= 0 && j < h) {
-      const k = pixIndex(w, h, i, j);
-      const c = a[k].mulAdd(e, x);
-      a[k] = clamp ? c.clamp : c;
-    }
-  }
+  function pixIndex(w, h, i, j) { return j * w + i; }
 
   function nearest(c, p) {
     let mk = 0;
@@ -516,20 +494,45 @@ function generateThumbnail(image, options, addNote) {
       ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   const b = [];
-  for (let j = 0; j < h; ++j) {
-    for (let i = 0; i < w; ++i) {
-      const c = a[pixIndex(w, h, i, j)];
-      const mk = nearest(c, kColors);
-      const mc = kColors[mk];
-      b.push(mc);
-      const e = c.diff(mc);
-      ditherPixel(a, w, h, i + 1, j, e, dither * 7 / 16.0, clamp)
-      ditherPixel(a, w, h, i - 1, j + 1, e, dither * 3 / 16.0, clamp)
-      ditherPixel(a, w, h, i, j + 1, e, dither * 5 / 16.0, clamp)
-      ditherPixel(a, w, h, i + 1, j + 1, e, dither * 1 / 16.0, clamp)
-      const n = h - 1 - j + base;
-      addNote(kNote[n % 12] + Math.floor(n / 12), tmul * i, len, mk);
+  b.length = w * h;
+
+  const forAdj = (i, j, fn) => {
+    for (let di = -1; di <= 1; ++di) {
+      for (let dj = -1; dj <= 1; ++dj) {
+        if (di == 0 && dj == 0) continue;
+        const ui = i + di;
+        const uj = j + dj;
+        if (ui < 0 || uj < 0 || ui >= w || uj >= h) continue;
+        const k = pixIndex(w, h, ui, uj);
+        if (b[k] != null) continue;
+        fn(ui, uj, (di == 0 || dj == 0) ? 1 : diag);
+      }
     }
+  };
+
+  for (const k of randOrder(w * h)) {
+    const i = k % w;
+    const j = Math.floor(k / w);
+    const c = a[k];
+    const mk = nearest(c, kColors);
+    const mc = kColors[mk];
+    b[k] = mc;
+    const e = c.diff(mc);
+
+    let denom = 0;
+    forAdj(i, j, (ui, uj, factor) => {
+      denom += factor;
+    });
+    if (denom > 0) {
+      forAdj(i, j, (ui, uj, factor) => {
+        const uk = pixIndex(w, h, ui, uj);
+        const uc = a[uk].mulAdd(e, dither * factor / denom);
+        a[uk] = clamp ? uc.clamp : uc;
+      });
+    }
+
+    const n = h - 1 - j + base;
+    addNote(kNote[n % 12] + Math.floor(n / 12), tmul * i, len, mk);
   }
   outData = new Uint8ClampedArray(4 * b.length);
   for (let i = 0; i < b.length; ++i) {
