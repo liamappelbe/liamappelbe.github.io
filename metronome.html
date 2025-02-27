@@ -46,6 +46,11 @@ class LiveValue {
     this._view.innerText = this._format(this.value);
     return this.value;
   }
+
+  setValue(value) {
+    this._input.value = value;
+    update();
+  }
 }
 
 class Tick {
@@ -95,9 +100,13 @@ class Metronome {
     window.clearTimeout(this.delayedSuspend);
     this.ctx.resume();
     this.playing = true;
+    this.nextCycle();
+    this._update(this.epoch);
+  }
+
+  nextCycle() {
     this.nextBeatTime = this.ctx.currentTime + 0.1;
     this.lastBeatTime = this.nextBeatTime - (60 / this.bpm);
-    this._update(this.epoch);
   }
 
   stop() {
@@ -155,6 +164,22 @@ class Metronome {
   beatFrac() {
     return wrap(unlerp(
         this.ctx.currentTime, this.lastBeatTime, this.nextBeatTime));
+  }
+}
+
+class MetronomeArmState {
+  constructor() {
+    this.neg = false;
+    this.prev = 0;
+  }
+
+  update(frac) {
+    if (this.neg) frac = 1 - frac;
+    if (Math.abs(frac - this.prev) > 0.5) {
+      this.neg = !this.neg;
+      frac = 1 - frac;
+    }
+    return this.prev = frac;
   }
 }
 
@@ -220,6 +245,7 @@ function onLoad() {
 
   const svgPlay = makeButtonSvg(kPlayButton);
   const svgPause = makeButtonSvg(kPauseButton);
+  const svgMetArm = document.getElementById('metronome_arm');
 
   const setupToggle = (id, onChange) => {
     const button = document.getElementById(id);
@@ -233,6 +259,7 @@ function onLoad() {
   };
 
   const metronome = new Metronome();
+  const metArmState = new MetronomeArmState();
 
   setupToggle('play_button', (playButton, value) => {
     emptyDiv(playButton);
@@ -251,10 +278,21 @@ function onLoad() {
     return `rgb(${g}, ${g}, ${g})`;
   };
 
+  const metArmRot = (playing, x) => {
+    if (!playing) return '0';
+    const r = lerp(metArmState.update(x), -1, 1);
+    return `${r}rad`;
+  };
+
   const frame = () => {
     metronome.config(bpm.update(), swing.update());
-    const clr = bgColor(metronome.isPlaying(), metronome.beatFrac());
-    document.body.style.setProperty('background-color', clr);
+    const playing = metronome.isPlaying();
+    const frac = metronome.beatFrac();
+    const count = metronome.beatCount;
+
+    document.body.style.setProperty('background-color', bgColor(playing, frac));
+    svgMetArm.style.rotate = metArmRot(playing, frac, count);
+
     window.requestAnimationFrame(frame);
   };
   frame();
@@ -262,8 +300,14 @@ function onLoad() {
   const bpmDetector = new BpmDetector();
   const domBpmOutput = document.getElementById('bpm_output');
   document.getElementById('tap_button').addEventListener('click', () => {
-    const bpm = bpmDetector.tap();
-    domBpmOutput.innerText = bpm < 0 ? '' : `${bpm.toFixed(1)} BPM`;
+    const detectedBpm = bpmDetector.tap();
+    if (detectedBpm < 0) {
+      domBpmOutput.innerText = '';
+    } else {
+      domBpmOutput.innerText = `${detectedBpm.toFixed(1)} BPM`;
+      bpm.setValue(detectedBpm);
+      metronome.nextCycle();
+    }
   });
 }
 window.addEventListener('load', onLoad);
@@ -306,6 +350,7 @@ h1, #index {
 .row {
   display: flex;
   flex-direction: row;
+  align-items: center;
 }
 .view {
   width: 96px;
@@ -328,6 +373,14 @@ input {
 }
 #play_button:hover svg path {
   --svgcolor: #f5f5f5;
+}
+#metronome {
+  display: block;
+  width: 192px;
+  height: 128px;
+}
+#metronome_arm {
+  transform-origin: 50% 90%;
 }
 .hr {
   width: 100%;
@@ -370,6 +423,9 @@ input {
   </div>
   <div class="row">
     <span id="play_button"></span>
+    <div id="metronome">
+      <svg version="1.1" viewBox="0.0 0.0 207.8740157480315 132.28346456692913" fill="none" stroke="none" stroke-linecap="square" stroke-miterlimit="10" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><clipPath id="p.0"><path d="m0 0l207.87401 0l0 132.28346l-207.87401 0l0 -132.28346z" clip-rule="nonzero"/></clipPath><g clip-path="url(#p.0)"><path fill="#000000" fill-opacity="0.0" d="m0 0l207.87401 0l0 132.28346l-207.87401 0z" fill-rule="evenodd"/><path fill="#000000" fill-opacity="0.0" d="m104.125984 120.0l-0.06298828 -104.0" fill-rule="evenodd"/><path id="metronome_arm" stroke="#f5f5f5" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="butt" d="m104.125984 120.0l-0.06298828 -104.0" fill-rule="evenodd"/><path fill="#000000" fill-opacity="0.0" d="m16.82724 63.43192l0 0c19.140926 -29.550846 51.940735 -47.40252 87.14907 -47.431885c35.208336 -0.029362679 68.03788 17.767576 87.228065 47.286453l-87.14138 56.650513z" fill-rule="evenodd"/><path stroke="#ffc107" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="butt" d="m16.82724 63.43192l0 0c19.140926 -29.550846 51.940735 -47.40252 87.14907 -47.431885c35.208336 -0.029362679 68.03788 17.767576 87.228065 47.286453l-87.14138 56.650513z" fill-rule="evenodd"/></g></svg>
+    </div>
   </div>
   <div class="hr"></div>
   <div class="row">
