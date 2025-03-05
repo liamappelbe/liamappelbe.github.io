@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html ondrop="onDrop(event)" ondragover="onDragOver(event)">
+<head>
+<title>PubMed Formatter</title>
+<link rel="icon" href="../res/favicon.ico">
+<script>
+
+// TODO: Upgrade drag & drop to handle all 3 ID types?
+
+const kPubMedApiSuffix = [
+  'tool=tiusic.com',
+  'email=liamappelbe@gmail.com',
+].join('&');
+const kSiteId = new URLSearchParams(window.location.search).get('s') ?? 'V';
+let module = {};
+</script>
+<script src="pubmed_abstracts.js"></script>
+<script type="text/javascript">
+const {newElement, newDiv, newLink, emptyDiv, cleanText, fixCase,
+       asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
+       asyncPubMedConvertId} = module.exports;
+module = {};
+</script>
+<script src="vetupdates_search.js"></script>
+<script>
+const {metadataRequest, getMajorTags, getIdsRequest} = module.exports;
+
+let domWrap = null;
+let domLoad = null;
+let domIds = null;
+let domFormatted = null;
+let domTags = null;
+let domErrors = null;
+let domBottom = null;
+
+class State {
+  constructor() {
+    this.ids = [];
+    this.errorText = '';
+    this.synths = [];
+  }
+}
+let state = null;
+
+class ArticleInfo {
+  constructor(aid, title, authors, date, doi, journal, journalAbbr, url) {
+    this.aid = aid;
+    this.title = title;
+    this.authors = authors;
+    this.date = date;
+    this.doi = doi;
+    this.journal = journal;
+    this.journalAbbr = journalAbbr;
+    this.url = url;
+  }
+}
+
+function loadState() {
+  const saved = window.localStorage.getItem("save");
+  state = new State();
+  if (saved != null) {
+    jsonState = JSON.parse(saved);
+    state.ids = jsonState[0] ?? [];
+    state.synths = jsonState[1] ?? [];
+  }
+}
+
+function saveState() {
+  window.localStorage.setItem("save", JSON.stringify([
+    state.ids,
+    state.synths,
+  ]));
+}
+
+function clearState() {
+  window.localStorage.removeItem("save");
+}
+
+function fillDomFromState() {
+  domIds.value = state.ids.join('\n');
+  domErrors.value = state.errorText;
+  emptyDiv(domBottom);
+  for (const s of state.synths) addSynth(s);
+}
+
+function fillStateFromDom() {
+  state.ids = domIds.value.split(/[\n\t ,]+/).filter(id => id != '');
+  state.errorText = domErrors.value;
+  state.synths = [];
+  for (const synth of domBottom.getElementsByClassName('synth')) {
+    const f = (cls) => synth.getElementsByClassName('synth-' + cls)[0].value;
+    state.synths.push(new ArticleInfo(
+        null, f('title'), f('authors'), f('date'), f('doi'), f('journal'),
+        f('journal-abbr'), f('url')));
+  }
+}
+
+function addError(msg) {
+  if (state.errorText != '') {
+    state.errorText += '\n';
+  }
+  state.errorText += msg;
+}
+
+function newButton(
+    parent, classes = [], text = null, onclick = null) {
+  const btn = newDiv(parent, classes, text);
+  if (onclick != null) btn.addEventListener('click', onclick);
+  return btn;
+}
+
+function newTextInput(parent, classes = [], hint = null, value = null) {
+  const inp = newElement('input', parent, classes);
+  inp.setAttribute('type', 'text');
+  if (hint != null) inp.setAttribute('placeholder', hint);
+  if (value != null) inp.value = value;
+  return inp;
+}
+
+function addSynth(s = null) {
+  const synth = newDiv(domBottom, ['synth']);
+  newButton(synth, ['synth-delete'], '[DELETE]', () => {
+    domBottom.removeChild(synth);
+  });
+  newTextInput(synth, ['synth-input', 'synth-title'], 'Title', s?.title);
+  newTextInput(synth, ['synth-input', 'synth-authors'], 'Authors', s?.authors);
+  newTextInput(synth, ['synth-input', 'synth-date'], 'Date', s?.date);
+  newTextInput(synth, ['synth-input', 'synth-doi'], 'DOI', s?.doi);
+  newTextInput(synth, ['synth-input', 'synth-journal'], 'Journal', s?.journal);
+  newTextInput(synth, ['synth-input', 'synth-journal-abbr'],
+      'Journal Abbreviation', s?.journalAbbr);
+  newTextInput(synth, ['synth-input', 'synth-url'], 'URL', s?.url);
+}
+
+async function wait(seconds) {
+  return new Promise((resolve, reject) => {
+    window.setTimeout(resolve, 1000 * seconds);
+  });
+}
+
+class ArticleResult {
+  constructor(id, aid, article, err) {
+    this.id = id;
+    this.aid = aid;
+    this.article = article;
+    this.err = err;
+    this.seen = false;
+  }
+}
+
+async function generate() {
+  function getArticleImpl(aid) {
+    if (aid.pmid != null) return asyncPubMedGetArticleFromPmid(aid.pmid);
+    if (aid.pcmid != null) return asyncPubMedGetArticleFromPcmid(aid.pcmid);
+    throw "Missing ID";
+  }
+
+  async function getArticle(id) {
+    try {
+      const aid = await asyncPubMedConvertId(id);
+      const art = await getArticleImpl(aid);
+      return new ArticleResult(id, aid, new ArticleInfo(
+          aid, art.title, art.authors, art.getDateText(), art.doi,
+          art.journalName, art.journalAbbr, art.getLink()), null);
+    } catch (err) {
+      return new ArticleResult(id, null, null, err);
+    }
+  }
+
+  async function checkUsed(results) {
+    const pmids = [];
+    const pmcids = [];
+    for (const ar of results) {
+      if (ar.aid == null) continue;
+      if (ar.aid.pmid != null) {
+        pmids.push(ar.aid.pmid);
+      } else if (ar.aid.pmcid != null) {
+        pmcids.push(ar.aid.pmcid);
+      }
+    }
+    const known = new Set(await getIdsRequest(kSiteId, pmids, pmcids));
+    for (const ar of results) {
+      if (ar.aid == null) continue;
+      if (known.has(parseInt(ar.aid.pmid)) ||
+          known.has(-parseInt(ar.aid.pmcid))) {
+        ar.seen = true;
+      }
+    }
+    return results;
+  }
+
+  domWrap.classList.add('loading');
+  domLoad.classList.add('loading');
+  emptyDiv(domFormatted);
+  domTags.value = '';
+
+  fillStateFromDom();
+  state.errorText = '';
+  saveState();
+
+  const results = await checkUsed(await Promise.all(state.ids.map(getArticle)));
+  domWrap.classList.remove('loading');
+  domLoad.classList.remove('loading');
+
+  for (const ar of results) {
+    if (ar.err != null) {
+      addError(`Invalid ID: ${ar.id}`);
+      console.error(ar.id, ar.err);
+    } else if (ar.seen) {
+      addError(`Reused ID: ${ar.id}`);
+    }
+  }
+
+  const articlesByJournal = new Map();
+  for (const ai of results.map(ar => ar.article).concat(state.synths)) {
+    if (ai == null || ai.err != null) continue;
+    const journal = ai.journal;
+    if (!articlesByJournal.has(journal)) {
+      articlesByJournal.set(journal, []);
+    }
+    articlesByJournal.get(journal).push(ai);
+  }
+
+  for (const [journal, articles] of articlesByJournal) {
+    const ul = newElement('ul', domFormatted);
+    for (const ai of articles) {
+      const aid = ai.aid;
+      const authors = ai.authors;
+      if (aid != null) {
+        domTags.value += `<li><pub-med ${
+                aid.pmid != null ? `pmid="${aid.pmid}"` : `pmcid="${aid.pmcid}"`
+            } tags=""></pub-med></li>\n`;
+      } else {
+        domTags.value += `<li>\n`;
+        domTags.value += `  <a href="${ai.url}" target="_blank">\n`;
+        domTags.value += `    <div class="pub-med-title">${ai.title}</div>\n`;
+        domTags.value += `    <div class="pub-med-authors">${authors}</div>\n`;
+        domTags.value += `    <div class="pub-med-journal"> - ${ai.journalAbbr}</div>\n`;
+        domTags.value += `    <div class="pub-med-date"> - ${ai.date}</div>\n`;
+        domTags.value += `  </a>\n`;
+        domTags.value += `</li>\n`;
+      }
+
+      const li = newElement('li', ul);
+      newDiv(li, ['title'], ai.title);
+      newDiv(li, ['authors'], authors);
+      const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
+      newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
+    }
+  }
+
+  saveState();
+  fillDomFromState();
+
+  selectElement('formatted');
+}
+
+function selectElement(id) {
+  const range = document.createRange();
+  range.selectNodeContents(document.getElementById(id));
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function selectTextArea(id) {
+  document.getElementById(id).select();
+}
+
+function onDragOver(e) { e.preventDefault(); }
+async function onDrop(e) {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  let files = [];
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind == "file") files.push(item.getAsFile());
+    }
+  } else {
+    files = dt.files;
+  }
+  if (files.length == 0) return;
+  const text = await files[0].text();
+  const isPmidList = (t) => {
+    const m = t.match(/([0-9]*\n?\r?)*/);
+    if (m == null || m.length == 0) return false;
+    return m[0] == t;
+  };
+  const domPmids = document.getElementById('idin');
+  if (isPmidList(text)) {
+    domPmids.value = text;
+  } else {
+    const pmids = [...text.matchAll(/PMID:\s*([0-9]+)/g)].map(x => x[1]);
+    domPmids.value = pmids.join('\n');
+  }
+  generate();
+}
+
+async function refreshUI() {
+  loadState();
+  fillDomFromState();
+  await wait(0);
+  generate();
+}
+
+function cleanTagName(tag) {
+  return tag[0].toUpperCase() + tag.substr(1);
+}
+
+let siteMajorTags = null;
+let siteMinorTags = null;
+async function loadKnownTags() {
+  siteMajorTags ??= getMajorTags(kSiteId);
+  siteMinorTags ??= await (async () => {
+    const [journals, tags] = await metadataRequest(kSiteId);
+    tags.sort();
+    return tags.filter((tag) => !siteMajorTags.has(tag));
+  })();
+  reflowTags();
+}
+
+function reflowTagColumns(nodeId, tags, numCols, colWidth) {
+  const node = document.getElementById(nodeId);
+  emptyDiv(node);
+  const numRows = Math.ceil(tags.length / numCols);
+  const rows = [];
+  for (let i = 0; i < numRows; ++i) {
+    rows.push(newDiv(node, ['tag-row']));
+  }
+  let pc = null;
+  for (let i = 0; i < tags.length; ++i) {
+    const tag = tags[i];
+    const r = rows[i % numRows];
+    const btn = newButton(
+        r, ['tag-button'], cleanTagName(tag), () => copyText(tag));
+    btn.style.minWidth = `${colWidth}px`;
+    const c = tag[0];
+    if (pc != c) {
+      btn.classList.add('tag-button-new-letter');
+    }
+    pc = c;
+  }
+}
+
+function reflowTags() {
+  const rect = document.getElementById('major_tags').getBoundingClientRect();
+  const numCols = Math.floor(rect.width / 250);
+  const colWidth = Math.floor(rect.width / numCols);
+  reflowTagColumns('major_tags', Array.from(siteMajorTags), numCols, colWidth);
+  reflowTagColumns('minor_tags', siteMinorTags, numCols, colWidth);
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+}
+
+function onLoad() {
+  domWrap = document.getElementById('wrap');
+  domLoad = document.getElementById('loadanim');
+  domIds = document.getElementById('idin');
+  domFormatted = document.getElementById('formatted');
+  domTags = document.getElementById('tags');
+  domErrors = document.getElementById('errors');
+  domBottom = document.getElementById('bottom');
+  loadKnownTags();
+  refreshUI();
+}
+window.addEventListener("load", onLoad);
+
+function onResize() {
+  reflowTags();
+}
+window.addEventListener("resize", onResize);
+
+function clearAll() {
+  clearState();
+  refreshUI();
+}
+
+</script>
+<style>
+body {
+  background-color: #212121;
+  margin: 0;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+a, .synth-delete {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 2px;
+}
+#wrap.loading {
+  opacity: 50%;
+  pointer-events: none;
+}
+#top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 16px;
+}
+#mid {
+  margin-top: 16px;
+}
+#bottom {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: stretch;
+  gap: 16px;
+}
+#idin, #errors {
+  resize: none;
+}
+.middle {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.right {
+  flex-grow: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#tags, #formatted {
+  width: 100%;
+  flex-grow: 1;
+  background-color: #FFF;
+  color: black;
+  font-size: 1em;
+}
+#formatted {
+  font-family: sans-serif;
+  overflow-y: scroll;
+}
+#tags {
+  font-size: 0.7em;
+  white-space: pre;
+  overflow: scroll;
+}
+#formatted a {
+  color: black;
+  font-family: sans-serif;
+}
+.title {
+  font-weight: bold;
+}
+.authors {
+  font-style: italic;
+}
+.cite {
+}
+#loadanim {
+  display: none;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 100;
+  position: absolute;
+  height: 50%;
+}
+#loadanim.loading {
+  display: flex;
+}
+#loadanim div {
+  display: inline-block;
+  position: relative;
+  width: 240px;
+  height: 240px;
+}
+#loadanim div div {
+  display: inline-block;
+  position: absolute;
+  left: 24px;
+  width: 48px;
+  background: #4fc3f7;
+  animation: loadanim 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+}
+#loadanim div div:nth-child(1) {
+  left: 24px;
+  animation-delay: -0.24s;
+}
+#loadanim div div:nth-child(2) {
+  left: 96px;
+  animation-delay: -0.12s;
+}
+#loadanim div div:nth-child(3) {
+  left: 168px;
+  animation-delay: 0;
+}
+@keyframes loadanim {
+  0% {
+    top: 24px;
+    height: 192px;
+  }
+  50%, 100% {
+    top: 72px;
+    height: 96px;
+  }
+}
+.synth {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  gap: 16px;
+}
+.synth-input {
+  flex-grow: 1;
+}
+.warning {
+  color: #f44336;
+}
+#major_tags, #minor_tags {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+.tag-row {
+  display: flex;
+  flex-direction: row;
+}
+.tag-button {
+  color: #ff5722;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.tag-button:hover {
+  color: #ffc107;
+}
+.tag-button:active {
+  color: #ffffff;
+}
+.tag-button-new-letter::first-letter {
+  color: #ffffff;
+}
+
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="../index.html">&lt;</a>
+  <h1>PubMed Formatter</h1>
+</div>
+<div id="loadanim"><div><div></div><div></div><div></div></div></div>
+<div id="wrap">
+  <div id="top">
+    <div class="left">
+      Input PMID/PMCID/DOI: <a onclick="generate()">== GO =></a>
+      <br/>
+      <textarea id="idin" rows="20" cols="40"></textarea>
+      <br/>
+      <br/>
+      Errors:
+      <br/>
+      <textarea id="errors" rows="8" cols="40"></textarea>
+    </div>
+    <div class="middle">
+      <span>Elements: <a onclick="selectTextArea('tags')">[SELECT]</a></span>
+      <textarea id="tags" rows="30" cols="80"></textarea>
+    </div>
+    <div class="right">
+      <span>
+        Formatted: <a onclick="selectElement('formatted')">[SELECT]</a>
+      </span>
+      <div id="formatted"></div>
+    </div>
+  </div>
+  <div id="mid">
+    <div>Major tags (click to copy):</div>
+    <div id="major_tags"></div>
+    <div>Known minor tags (click to copy):</div>
+    <div id="minor_tags"></div>
+    <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
+    Synthetic elements:
+    <a onclick="addSynth()">[ADD]</a>
+    <a onclick="generate()">== GO =></a>
+  </div>
+  <div id="bottom">
+  </div>
+</div>
+</body>
+</html>
