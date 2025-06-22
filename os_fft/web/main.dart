@@ -901,7 +901,8 @@ void setInputFiles(List<File> files) {
   show(domGoRow);
   hide(domOutputRow);
   domSelectedFile.innerText = '${file.name}:';
-  if (!file.type.startsWith('audio/wav')) {
+  if (!(file.type.startsWith('audio/wav') ||
+        file.type.startsWith('audio/vnd.wav'))) {
     reportError('Not a WAV file.');
     return;
   }

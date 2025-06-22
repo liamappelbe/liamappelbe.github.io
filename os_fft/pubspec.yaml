@@ -7,8 +7,9 @@ environment:
 
 dependencies:
   fftea:
-    path:
-      ../../../fftea
+    git:
+      url: git@github.com:liamappelbe/fftea.git
+      ref: web
   protobuf: ^2.1.0
   wav: ^1.2.0
 
