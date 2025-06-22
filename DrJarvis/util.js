@@ -143,14 +143,8 @@ let domThumbImage = null;
 async function setThumbImage(url = null) {
   return new Promise((resolve, reject) => {
     domThumbImage.src = url ?? `https://picsum.photos/seed/${randSeed}/200`;
-    const resolveOnce = () => {
-      if (resolve == null) return;
-      const r = resolve;
-      resolve = null;
-      r();
-    };
-    domThumbImage.onload = resolveOnce;
-    window.setTimeout(resolveOnce, 10000);
+    domThumbImage.onload = resolve;
+    window.setTimeout(reject, 10000);
   });
 }
 
