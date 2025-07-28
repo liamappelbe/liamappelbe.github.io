@@ -820,12 +820,15 @@ function makeConvBatcher() {
       asyncPubMedIdConv, response => xmlToMapOfArticleIds(Xml.parse(response)));
 }
 const asyncPubMedConvertIds_Batchers =
-    [makeConvBatcher(), makeConvBatcher(), makeConvBatcher()];
+    [makeConvBatcher(), null, makeConvBatcher()];
 function asyncPubMedConvertId(id) {
   id = id.toLowerCase();
   const idKind = identifyIdKind(id);
   if (idKind == null) return Promise.reject('Bad ID (C)');
-  return asyncPubMedConvertIds_Batchers[idKind].get(id);
+  const batcher = asyncPubMedConvertIds_Batchers[idKind];
+  // TODO: Remove this when pubmed's idconv API is back.
+  if (batcher == null) return Promise.resolve(new ArticleId(id, null, null));
+  return batcher.get(id);
 }
 
 function asyncGetFilledArticleId(aid) {
