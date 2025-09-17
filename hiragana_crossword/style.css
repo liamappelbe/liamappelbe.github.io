@@ -1,0 +1,248 @@
+.hidden {
+  display: none;
+}
+
+#win-message {
+  text-align: center;
+  font-size: 1.5em;
+  color: #2a8f2a;
+  margin-bottom: 1em;
+}
+
+[data-clue-index]::before {
+  content: attr(data-clue-index);
+  margin-right: 5px;
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 0.8em;
+  color: #9e9e9e;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.crossword-cell {
+  position: relative;
+}
+
+#buttons button {
+  display: block;
+  font-size: 1.1em;
+  padding: 0.5em 1.5em;
+  background: #2a8f2a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  font-family: monospace;
+}
+
+#buttons button:hover {
+  background: #217a21;
+}
+
+body {
+  background: #212121;
+  color: #f5f5f5;
+  font-family: monospace;
+  margin: 0;
+  flex-grow: 1;
+}
+
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+
+h1,
+#index {
+  color: #ffc107;
+  text-align: center;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+
+#buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.crossword-grid {
+  border-collapse: collapse;
+  margin: 0 auto 2em auto;
+}
+
+.crossword-cell {
+  width: 2.5em;
+  height: 2.5em;
+  border: 1px solid #bbb;
+  text-align: center;
+  vertical-align: middle;
+  background: #fff;
+  position: relative;
+  padding: 0;
+}
+
+.crossword-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  text-align: center;
+  font-size: 1.5em;
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+  font-family: monospace;
+}
+
+.crossword-input:focus {
+  background: #e3f0ff;
+}
+
+.crossword-block {
+  background: #212121;
+  color: #212121;
+  border: 1px solid #212121;
+}
+
+#mid-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+}
+
+#hiragana-keyboard {
+  font-size: 20px;
+  background: #424242;
+  border-radius: 8px;
+}
+
+#hiragana-keyboard td {
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: center;
+}
+
+#hiragana-keyboard td:hover {
+  background: #037ffc;
+}
+
+#hiragana-keyboard td.empty {
+  background: none;
+  cursor: default;
+}
+
+#hiragana-keyboard td.dakuten {
+  background: rgba(3, 69, 252, 0.3);
+}
+
+#hiragana-keyboard td.enabled {
+  background: rgba(3, 69, 252, 1);
+}
+
+#clues-container {
+  width: min(1100px, 95%);
+  margin: 0.5em auto 2em auto;
+  background: #424242;
+  border-radius: 8px;
+  padding: 1em 1.25em;
+}
+
+h2 {
+  color: #ffc107;
+  font-family: monospace;
+}
+
+#clues-list {
+  list-style: none;
+  padding: 0.25em 0 0 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+  align-items: flex-start;
+}
+
+#clues-list li {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 60px;
+  max-width: 420px;
+  margin: 0;
+  padding-right: 0.5rem;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+#clues-list li:hover,
+.clue:hover {
+  cursor: pointer;
+}
+
+.clue.low-highlight {
+  background: #90b9ee;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px #8ca0b355;
+  color: #3a4a5a;
+}
+
+.clue.highlight {
+  background: #ffe57c;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px #ffc53355;
+  color: #b36b00;
+}
+
+#clues-list li::before {
+  content: attr(data-index) " ";
+  color: #666;
+  margin-right: 0.35rem;
+}
+
+.crossword-cell.low-highlight {
+  background: #b8c9e1;
+  box-shadow: inset 0 0 0 2px #8ca0b355;
+}
+
+.crossword-cell.low-highlight .crossword-input {
+  background: transparent;
+}
+
+.crossword-cell.low-highlight .crossword-input:focus {
+  background: rgba(180, 200, 220, 0.35);
+}
+
+.crossword-cell.highlight {
+  background: #fff1b8;
+  box-shadow: inset 0 0 0 2px rgba(255, 197, 51, 0.55);
+}
+
+[data-clue-index].highlight::before,
+.crossword-cell.highlight[data-clue-index]::before {
+  color: #b36b00;
+}
+
+.crossword-cell.highlight .crossword-input {
+  background: transparent;
+}
+
+.crossword-cell.highlight .crossword-input:focus {
+  background: rgba(255, 241, 204, 0.6);
+}
