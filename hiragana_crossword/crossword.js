@@ -26,6 +26,18 @@ class Crossword {
     }
     return chunks.join('\n');
   }
+
+  encode() {
+    const cc = this._clues.map((c) => c.encode()).join('\n');
+    return [this._rows, this._cols, this._grid, cc].join('\n');
+  }
+
+  static decode(s) {
+    const a = s.split('\n');
+    return new Crossword(
+        parseInt(a[0]), parseInt(a[1]), a[2],
+        a.slice(3).map((cs) => Clue.decode(cs)));
+  }
 }
 
 class Clue {
@@ -48,10 +60,10 @@ class Clue {
   contains(row, col) {
     if (this._isDown) {
       return this._col === col && this._row <= row &&
-        this._row + this._length > row;
+          this._row + this._length > row;
     } else {
       return this._row === row && this._col <= col &&
-        this._col + this._length > col;
+          this._col + this._length > col;
     }
   }
 
@@ -62,18 +74,67 @@ class Clue {
       fn(this._row + i * dy, this._col + i * dx);
     }
   }
+
+  encode() {
+    return [
+      this._row,
+      this._col,
+      this._index,
+      this._isDown ? 1 : 0,
+      this._length,
+      this._text,
+    ].join('\t');
+  }
+
+  static decode(cs) {
+    const a = cs.split('\t');
+    return new Clue(
+        parseInt(a[0]),
+        parseInt(a[1]),
+        parseInt(a[2]),
+        parseInt(a[3]) == 1,
+        parseInt(a[4]),
+        a[5],
+    );
+  }
 }
 
 const kModeHir = 0;
 const kModeEng = 1;
 
-function generateCrossword(mode) {
+function createGenerator(mode) {
   const md = kMetaDict.all();
   const d = mode == kModeHir ? md.japView() : md.engView();
-  const gen = new CrosswordGenerator(10, d);
-  while (!gen.step()) {
-  }
+  return new CrosswordGenerator(10, d);
+}
+
+function generateCrossword(mode) {
+  const gen = createGenerator(mode);
+  while (!gen.step());
   return gen.result();
+}
+
+async function generateCrosswordAsync(mode) {
+  const gen = createGenerator(mode);
+  while (!gen.step()) await wait();
+  return gen.result();
+}
+
+async function calculateWordDistributions(hirDist, engDist) {
+  function loop(mode, dist) {
+    const gen = createGenerator(mode);
+    while (!gen.step());
+    gen._resultBuilder.forEachWord(w => {
+      dist.set(w, (dist.get(w) ?? 0) + 1);
+    });
+  }
+
+  while (true) {
+    loop(kModeHir, hirDist);
+    loop(kModeEng, engDist);
+    await wait();
+    distLoops += 1;
+  }
 }
 
 const kCandidates = 10;
@@ -87,6 +148,7 @@ class CrosswordGenerator {
     this._candidates = [];
     this._nextCandidates = [];
     this._phase = kGenerationPhase;
+    this._resultBuilder = null;
     this._result = null;
   }
 
@@ -236,6 +298,7 @@ class CrosswordGenerator {
     const flipped = best.cols() > best.rows();
 
     // Convert to Crossword object.
+    this._resultBuilder = best;
     this._result = best.build(flipped);
   }
 }
@@ -277,7 +340,6 @@ class CrosswordBuilder {
 
   build(flipped) {
     const g = flipped ? new FlippedGrid(this._grid) : this._grid;
-    console.log(this._toString(g));
     const gs = flip2DArray(this._to2DArray(g)).map(r => r.join('')).join('');
     return new Crossword(g.rows(), g.cols(), gs, this._generateClues(g));
   }
@@ -313,7 +375,7 @@ class CrosswordBuilder {
     const openness = open / filled;  // [0, 1]
     const squareness = Math.min(rows, cols) / Math.max(rows, cols);  // [0, 1]
     this._quality = filled * kFilledWeight + density * kDensityWeight +
-      openness * kOpennessWeight + squareness * kSquarenessWeight;
+        openness * kOpennessWeight + squareness * kSquarenessWeight;
     // console.log('Quality factors:', filled * kFilledWeight,
     //   density * kDensityWeight, openness * kOpennessWeight,
     //   squareness * kSquarenessWeight, 'total:', this._quality);
@@ -344,15 +406,15 @@ class CrosswordBuilder {
   forEachOpenUnigram(fn) {
     for (const vertical of [true, false]) {
       this._forEachOpenUnigramDir(
-        this._grid, vertical, (c, x, y) => fn(c, x, y, vertical));
+          this._grid, vertical, (c, x, y) => fn(c, x, y, vertical));
     }
   }
 
   forEachOpenBigram(fn) {
     for (const vertical of [true, false]) {
       this._forEachOpenBigramDir(
-        this._grid, vertical,
-        (b, x0, y0, x1, y1) => fn(b, x0, y0, x1, y1, vertical));
+          this._grid, vertical,
+          (b, x0, y0, x1, y1) => fn(b, x0, y0, x1, y1, vertical));
     }
   }
 
@@ -360,7 +422,7 @@ class CrosswordBuilder {
     if (grid.get(x - dx, y - dy) != null) return null;
     if (grid.get(x + dx, y + dy) == null) return null;
     let word = '';
-    for (let i = 0; ; ++i) {
+    for (let i = 0;; ++i) {
       const c = grid.get(x + i * dx, y + i * dy);
       if (c == null) break;
       word += c;
@@ -387,7 +449,7 @@ class CrosswordBuilder {
 
   _forEachOpenBigramDir(grid, vertical, fn) {
     this._forEachOpenUnigramDir(grid, vertical, (c0, x0, y0) => {
-      for (let i = 2; ; ++i) {
+      for (let i = 2;; ++i) {
         const x1 = x0 + _dx(vertical, i);
         const y1 = y0 + _dy(vertical, i);
         if (!grid.inside(x1, y1)) break;
@@ -419,7 +481,6 @@ class CrosswordBuilder {
       clues.push(new Clue(y - oy, x - ox, null, vertical, word.length, text));
     });
     clues.sort((a, b) => a.row() - b.row() || a.col() - b.col());
-    console.log(new Array(clues));
     let row = null;
     let col = null;
     let index = 0;
@@ -430,7 +491,6 @@ class CrosswordBuilder {
       col = c.col();
     }
     clues.sort((a, b) => a.index() - b.index() || a.isDown() - b.isDown());
-    console.log(new Array(clues));
     return clues;
   }
 

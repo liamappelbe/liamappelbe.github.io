@@ -1,3 +1,5 @@
+function wait() { return new Promise(resolve => setTimeout(resolve, 0)); }
+
 class MultiMapBuilder {
   constructor() { this._map = new Map(); }
 
@@ -188,6 +190,21 @@ class Grid {
       a.push(col);
     }
     return a;
+  }
+
+  encode(cellEncoder, cellDelimiter) {
+    let a = [];
+    this.forEach((c) => a.push(cellEncoder(c)));
+    return [this.rows(), this.cols(), a.join(cellDelimiter)].join('\n');
+  }
+
+  static decode(s, cellDecoder, cellDelimiter) {
+    const [rs, cs, as] = s.split('\n');
+    const a = as.split(cellDelimiter);
+    const grid = new Grid(null, 0, parseInt(cs) - 1, 0, parseInt(rs) - 1);
+    let k = 0;
+    grid.forEach((_, x, y) => grid.set(x, y, cellDecoder(a[k++])));
+    return grid;
   }
 }
 
@@ -388,18 +405,18 @@ const kRomanji = new Map([
   ['kya', 'きゃ'], ['kyo', 'きょ'], ['kyu', 'きゅ'], ['ma', 'ま'],
   ['me', 'め'],    ['mi', 'み'],    ['mo', 'も'],    ['mu', 'む'],
   ['mya', 'みゃ'], ['myo', 'みょ'], ['myu', 'みゅ'], ['n', 'ん'],
-  ['na', 'な'],    ['ne', 'ね'],    ['ni', 'に'],    ['no', 'の'],
-  ['nu', 'ぬ'],    ['nya', 'にゃ'], ['nyo', 'にょ'], ['nyu', 'にゅ'],
-  ['o', 'お'],     ['pa', 'ぱ'],    ['pe', 'ぺ'],    ['pi', 'ぴ'],
-  ['po', 'ぽ'],    ['pu', 'ぷ'],    ['pya', 'ぴゃ'], ['pyo', 'ぴょ'],
-  ['pyu', 'ぴゅ'], ['ra', 'ら'],    ['re', 'れ'],    ['ri', 'り'],
-  ['ro', 'ろ'],    ['ru', 'る'],    ['rya', 'りゃ'], ['ryo', 'りょ'],
-  ['ryu', 'りゅ'], ['sa', 'さ'],    ['se', 'せ'],    ['sha', 'しゃ'],
-  ['shi', 'し'],   ['sho', 'しょ'], ['shu', 'しゅ'], ['so', 'そ'],
-  ['su', 'す'],    ['ta', 'た'],    ['te', 'て'],    ['to', 'と'],
-  ['tsu', 'つ'],   ['u', 'う'],     ['wa', 'わ'],    ['wo', 'を'],
-  ['ya', 'や'],    ['yo', 'よ'],    ['yu', 'ゆ'],    ['za', 'ざ'],
-  ['ze', 'ぜ'],    ['zo', 'ぞ'],    ['zu', 'ず'],
+  ['N', 'ん'],     ['na', 'な'],    ['ne', 'ね'],    ['ni', 'に'],
+  ['no', 'の'],    ['nu', 'ぬ'],    ['nya', 'にゃ'], ['nyo', 'にょ'],
+  ['nyu', 'にゅ'], ['o', 'お'],     ['pa', 'ぱ'],    ['pe', 'ぺ'],
+  ['pi', 'ぴ'],    ['po', 'ぽ'],    ['pu', 'ぷ'],    ['pya', 'ぴゃ'],
+  ['pyo', 'ぴょ'], ['pyu', 'ぴゅ'], ['ra', 'ら'],    ['re', 'れ'],
+  ['ri', 'り'],    ['ro', 'ろ'],    ['ru', 'る'],    ['rya', 'りゃ'],
+  ['ryo', 'りょ'], ['ryu', 'りゅ'], ['sa', 'さ'],    ['se', 'せ'],
+  ['sha', 'しゃ'], ['shi', 'し'],   ['sho', 'しょ'], ['shu', 'しゅ'],
+  ['so', 'そ'],    ['su', 'す'],    ['ta', 'た'],    ['te', 'て'],
+  ['to', 'と'],    ['tsu', 'つ'],   ['u', 'う'],     ['wa', 'わ'],
+  ['wo', 'を'],    ['ya', 'や'],    ['yo', 'よ'],    ['yu', 'ゆ'],
+  ['za', 'ざ'],    ['ze', 'ぜ'],    ['zo', 'ぞ'],    ['zu', 'ず'],
 ]);
 
 function test() {

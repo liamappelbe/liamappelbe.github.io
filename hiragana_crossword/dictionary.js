@@ -378,7 +378,7 @@ break,,,yasumi
 trip,,,ryokou
 which month,,,nangatsu
 which day (of the month),,,nannichi
-which day (of the week),,,nanyoubi
+which day (of the week),,,naNyoubi
 walking,,,aruite
 hotel,,,hoteru
 sunday,,,nichiyoubi
@@ -386,7 +386,7 @@ monday,,,getsuyoubi
 tuesday,,,kayoubi
 wednesday,,,suiyoubi
 thursday,,,mokuyoubi
-friday,,,kinyoubi
+friday,,,kiNyoubi
 saturday,,,doyoubi
 january,,,ichigatsu
 february,,,nigatsu
@@ -532,7 +532,7 @@ man,,,otoko,otokonohito
 woman,,,onna,onnanohito
 inn,,,ryokan,
 drawer,,,hikidashi,
-ramen shop,,,raamenya,
+ramen shop,,,raameNya,
 soba shop,,,sohaya,
 pocket,,,poketto,
 no one,,,daremo~masen,

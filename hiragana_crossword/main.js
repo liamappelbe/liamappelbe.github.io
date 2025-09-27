@@ -41,13 +41,7 @@ class UiClue {
     this._cellFocus = false;
   }
 
-  highlight(active) {
-    if (active) {
-      this.node.classList.add('highlight');
-    } else {
-      this.node.classList.remove('highlight');
-    }
-  }
+  highlight(active) { this.node.classList.toggle('highlight', active); }
 
   lowHighlightDueToHover(active) {
     this._hover = active;
@@ -60,26 +54,38 @@ class UiClue {
   }
 
   _updateLowHighlight() {
-    if (this._hover || this._cellFocus) {
-      this.node.classList.add('low-highlight');
-    } else {
-      this.node.classList.remove('low-highlight');
-    }
+    this.node.classList.toggle('low-highlight', this._hover || this._cellFocus);
+  }
+
+  errorHilight(active) {
+    this.node.classList.toggle('error-highlight', active);
   }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   function newEnglishCrossword() {
-    renderCrossword(generateCrossword(kModeEng));
-    document.getElementById('hiragana-keyboard').classList.add('hidden');
+    renderCrossword(kModeEng, generateCrossword(kModeEng), null);
   }
 
   function newHiraganaCrossword() {
-    renderCrossword(generateCrossword(kModeHir));
-    document.getElementById('hiragana-keyboard').classList.remove('hidden');
+    renderCrossword(kModeHir, generateCrossword(kModeHir), null);
   }
 
-  function renderCrossword(crossword) {
+  function renderCrossword(mode, crossword, prefilledCells) {
+    prefilledCells ??= new Grid();
+
+    document.getElementById('hiragana-keyboard')
+        .classList.toggle('hidden', mode != kModeHir);
+
+    const onUpdate = () => {
+      const cellValues = new Grid();
+      uiCells.forEach((uiCell, r, c) => {
+        if (uiCell != null) cellValues.set(r, c, uiCell.getValue());
+      });
+      saveCrossword(mode, crossword, cellValues);
+      checkSolved();
+    };
+
     const rows = crossword.rows();
     const cols = crossword.cols();
     const container = document.getElementById('crossword-container');
@@ -209,6 +215,7 @@ window.addEventListener('DOMContentLoaded', () => {
           td.appendChild(input);
 
           const uiCell = new UiCell(td, input);
+          uiCell.setValue(prefilledCells.get(r, c));
           uiCells.set(r, c, uiCell);
 
           // When focused, select the contents so a single keystroke replaces it
@@ -249,14 +256,14 @@ window.addEventListener('DOMContentLoaded', () => {
               e.preventDefault();
               uiCell.setValue(key);
               focusNextCell(r, c);
-              checkSolved();
+              onUpdate();
               return;
             }
 
             if (key === 'Backspace' || key === 'Delete') {
               e.preventDefault();
               uiCell.clear();
-              checkSolved();
+              onUpdate();
               return;
             }
 
@@ -291,7 +298,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (text.length > 0) {
               uiCell.setValue(text);
               focusNextCell(r, c);
-              checkSolved();
+              onUpdate();
             }
           });
 
@@ -299,7 +306,7 @@ window.addEventListener('DOMContentLoaded', () => {
           input.addEventListener('input', () => {
             uiCell.setValue(input.value);
             focusNextCell(r, c);
-            checkSolved();
+            onUpdate();
           });
         } else {
           td.classList.add('crossword-block');
@@ -346,25 +353,45 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkSolved() {
-      if (isSolved()) {
+      const errors = getSolvedStatus();
+      if (errors == null) {
+        winMsg.textContent = '';
+      } else if (errors.size == 0) {
         winMsg.textContent = '🎉 You solved the puzzle!';
       } else {
-        winMsg.textContent = '';
+        winMsg.textContent = '❌ There are mistakes';
       }
+      hilightErrors(errors ?? new Set());
     }
 
-    function isSolved() {
+    // Three possible results:
+    //  - Puzzle has unfilled cells that should be filled, return null
+    //  - Otherwise, return a list of all the errors, Set<UiClue>
+    //      If the puzzle is solved, the error list will be empty
+    function getSolvedStatus() {
+      const errors = new Set();
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          const cell = crossword.cell(row, col).toUpperCase();
+          const cell = normalize(crossword.cell(row, col));
           if (cell !== kInvalidCell) {
-            if (uiCells.get(row, col).getValue() !== cell) {
-              return false;
+            const uiCell = uiCells.get(row, col);
+            const uiCellValue = uiCell.getValue();
+            if (uiCellValue !== cell) {
+              if (uiCellValue == '') {
+                return null;
+              } else {
+                for (const clue of uiCell.clues) errors.add(clue);
+              }
             }
           }
         }
       }
-      return true;
+      return errors;
+    }
+
+    function hilightErrors(errors) {
+      // Errors is a non-null Set<UiClue>.
+      for (const clue of uiClues.values()) clue.errorHilight(errors.has(clue));
     }
   }
 
@@ -412,9 +439,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function applyDakuMod(mod) {
       for (let r = 0; r < kHira.length - 1; ++r) {
+        const silenced = mod[r] == null;
         const hr = mod[r] ?? kHira[r];
         for (let c = 0; c < hr.length; c++) {
-          table.childNodes[r].childNodes[c].textContent = hr[c];
+          const td = table.childNodes[r].childNodes[c];
+          td.textContent = hr[c];
+          td.classList.toggle('silenced', silenced);
         }
       }
     }
@@ -479,8 +509,39 @@ window.addEventListener('DOMContentLoaded', () => {
     keyboard.appendChild(table);
   }
 
+  const db = new Storage('HiraganaCrossword');
+
+  function tryLoadCrossword() {
+    const encoded = db.get('crossword');
+    if (encoded == null) return false;
+    const [mode, crossword, prefilledCells] = decode(encoded);
+    renderCrossword(mode, crossword, prefilledCells);
+    return true;
+  }
+
+  function saveCrossword(mode, crossword, prefilledCells) {
+    db.set('crossword', encode(mode, crossword, prefilledCells));
+  }
+
+  function encode(mode, crossword, prefilledCells) {
+    const ps = prefilledCells.encode(c => (c || '') == '' ? ' ' : c, '');
+    return [mode, crossword.encode(), ps].join('\n\n');
+  }
+
+  function decode(s) {
+    const [ms, cs, ps] = s.split('\n\n');
+    const p = Grid.decode(ps, c => c == ' ' ? null : c, '');
+    return [parseInt(ms), Crossword.decode(cs), p];
+  }
+
   buildHiraganaKeyboard();
-  newHiraganaCrossword();
+  if (!tryLoadCrossword()) newHiraganaCrossword();
   document.getElementById('new-eng-btn').onclick = newEnglishCrossword;
   document.getElementById('new-hir-btn').onclick = newHiraganaCrossword;
+
+  // calculateWordDistributions(hirDist, engDist);
 });
+
+const hirDist = new Map();
+const engDist = new Map();
+let distLoops = 0;

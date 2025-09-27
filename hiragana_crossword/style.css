@@ -156,11 +156,22 @@ h1,
   background: rgba(3, 69, 252, 1);
 }
 
+#hiragana-keyboard td.silenced {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
 #clues-container {
   width: min(1100px, 95%);
   margin: 0.5em auto 2em auto;
   background: #424242;
   border-radius: 8px;
+  padding: 1em 1.25em;
+}
+
+#instructions {
+  width: min(1100px, 95%);
+  margin: 0.5em auto 2em auto;
   padding: 1em 1.25em;
 }
 
@@ -201,6 +212,13 @@ h2 {
   border-radius: 4px;
   box-shadow: 0 0 0 2px #8ca0b355;
   color: #3a4a5a;
+}
+
+.clue.error-highlight {
+  background: #ff7c7c;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px #ff333355;
+  color: #b30000;
 }
 
 .clue.highlight {
