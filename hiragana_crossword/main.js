@@ -209,10 +209,11 @@ window.addEventListener('DOMContentLoaded', () => {
           input.type = 'text';
           input.maxLength = 1;
           input.className = 'crossword-input';
-          // Helpful attributes for UX
+          if (mode != kModeEng) input.inputMode = 'kana';
           input.autocomplete = 'off';
           input.spellcheck = false;
           td.appendChild(input);
+          console.log(input);
 
           const uiCell = new UiCell(td, input);
           uiCell.setValue(prefilledCells.get(r, c));
