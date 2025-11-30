@@ -213,7 +213,6 @@ window.addEventListener('DOMContentLoaded', () => {
           input.autocomplete = 'off';
           input.spellcheck = false;
           td.appendChild(input);
-          console.log(input);
 
           const uiCell = new UiCell(td, input);
           uiCell.setValue(prefilledCells.get(r, c));

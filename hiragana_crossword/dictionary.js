@@ -560,6 +560,66 @@ near,,,chikaku,
 boat,,,fune,,,`)
   ],
   [
+    'lesson 13', parseWordCsv(`
+also,,sorekara,
+near,close,chikai,
+far,,tooi,
+taxi stand,,takushii noriba,
+bus terminal,,basu noriba,
+dock,,booto noriba,
+bus stop,,basutei,
+police box,,kouban,
+hospital,,byouin,
+book store,,honnya,
+bakery,,pannya,
+ramen shop,,raamennya,
+eraser,,keshigomu,
+pencil,,enpitsu,
+scissors,,hasami,
+drawer,,hikidashi,
+paper clip,,kurippu,
+right there,,sugu soko,
+many,much,takusan,
+a little bit,,sukoshi,
+child,,kodomo,ko
+girl,,onna no ko,
+boy,,otoko no ko,
+woman (polite),,onna no hito,
+man (polite),,otoko no hito,
+on,,ue,
+front,,mae,
+next to,,tonari,
+behind,,ushiro,
+inside,,naka,
+under,,shita,
+about,,gurai,`)
+  ],
+  [
+    'lesson 14', parseWordCsv(`
+scarf,,sukaafu,
+are you sure,,iindesuka,
+because,,kara,
+earrings,,iyaringu,
+necklance,,nekkuresu,
+ring,,yubiwa,
+blouse,,burausu,
+bag,,kaban,baggu
+ticket,,chiketto,
+sweater,jumper,seetaa,
+tie,necktie,nekutai,
+souvenir,,omiyage,
+beani,,nitobo,
+money,,okane,
+schedule,plan,yotei,
+appointment,promise,yakusoku,
+time,,jikan,
+night,,yoru,
+wedding,marriage,kekkon,
+anniversary,,kinenbi,
+well (competence),,yoku,
+this evening,,konban,`)
+  ],
+  [
     'na-adjectives', parseComboCsv(`
 ,,,modifying noun,present positive,present negative,past positive,past negative
 ,,,na,desu,jaarimasen,deshita,jaarimasendeshita
@@ -570,7 +630,10 @@ famous,,,yuumeina,,,,
 pretty,clean,,kireina,,,,
 easy,simple,,kantanna,,,,
 hard,serious,,taihenna,,,,
-free,,,himana,,,,`)
+free,,,himana,,,,
+lovely,nice,,sutekina,,,,
+like,favorite,,sukina,,,,
+skilled,,,jouzuna,,,,`)
   ],
   [
     'verbs', parseComboCsv(`
@@ -600,6 +663,13 @@ take,,,torimasu,,,
 climb,,,noborimasu,,,
 show,,,misemasu,,,
 exist (inanimate),,,arimasu,,,
-exist (animate),,,imasu,,,`)
+exist (animate),,,imasu,,,
+make,,,tsukurimasu,,,
+have,,,arimasu,,,
+give,,,agemasu,,,
+receive,,,moraimasu,,,
+lend,loan,,kashimasu,,,
+borrow,,,karimasu,,,
+draw,write,,kakimasu,,,`)
   ],
 ]);
