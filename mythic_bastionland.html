@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mythic Bastionland Tools</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+function roll0(n) { return Math.floor(Math.random() * n); }
+function roll1(n) { return roll0(n) + 1; }
+function pick(opts) { return opts[roll0(opts.length)]; }
+
+let rollCount = [];
+let rollSum = 0;
+function clickRoll(nn) {
+  let logText = " ";
+  if (nn != null) {
+    const rr = [];
+    for (const n of nn) {
+      const r = roll1(n);
+      rollCount[n] = 1 + (rollCount[n] ?? 0);
+      rollSum += r;
+      rr.push(r);
+    }
+    logText = rr.join(", ");
+  } else {
+    rollCount = [];
+    rollSum = 0;
+  }
+  const counts = rollCount.map((n, i) => n == null ? null : `${n}d${i}`)
+      .filter((m) => m != null).join(" + ");
+  document.getElementById("roll_log").innerText = logText;
+  document.getElementById("roll_sum_log").innerText =
+      counts == "" ? " " : `${counts} = ${rollSum}`;
+}
+
+function safeInt(value) {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+let explorePhase = 0;
+function clickExplorePhase() {
+  const btn = document.getElementById("phase");
+  btn.dataset.phase = (explorePhase = (safeInt(btn.dataset.phase) + 1) % 3);
+}
+
+let exploreWeatherEnabled = true;
+let currentWeather = 0;
+function clickExploreWeather(btn) {
+  exploreWeatherEnabled = btn.classList.toggle("on");
+  if (!exploreWeatherEnabled) currentWeather = 0;
+}
+
+const kTravellingBlind = [
+  ["Turned around, no progress", false],
+  ["Drift a hex to the left", true],
+  ["Drift a hex to the right", true],
+  ["Travel OK", true],
+  ["Travel OK", true],
+  ["Travel OK", true],
+];
+
+const kWildernessRoll = [
+  ["Random next omen", true],
+  ["Nearest next omen", false],
+  ["Nearest next omen", false],
+  [null, false],
+  [null, false],
+  [null, false],
+];
+function wildernessRoll(noMythMsg) {
+  let [msg, roll] = pick(kWildernessRoll);
+  msg ??= noMythMsg;
+  if (roll) msg += ` (${roll1(6)})`;
+  return msg;
+}
+
+const kDireWeatherRoll = [ 4, 2, 2, 0, 0, 0 ];
+const kPhaseName = ["morning", "afternoon", "night"];
+
+function clickExploreGo() {
+  let log = "";
+
+  let mayHaveTravelled = true;
+
+  log += "=== TRAVEL ===\n";
+  log += `It's ${kPhaseName[explorePhase]}\n`;
+  const night = explorePhase == 2;
+  if (night) {
+    log += "Travelling at night?\n";
+    log += " - Lose D6 SPI\n";
+    log += " - If no guide or light?\n";
+    const [msg, moved] = pick(kTravellingBlind);
+    mayHaveTravelled &&= moved;
+    log += `   - Travelling blind: ${msg}\n`;
+  } else {
+    log += "Travel OK\n";
+  }
+
+  log += "\n=== PHASE ENDING ===\n";
+  if (exploreWeatherEnabled) {
+    currentWeather = (currentWeather + 1) * pick(kDireWeatherRoll);
+    if (currentWeather >= 4) {
+      log += "Dire weather!\n";
+      log += " - Can't leave the hex\n";
+      if (night) {
+        log += " - Can't sleep (lose D6 CLA)\n";
+      }
+      mayHaveTravelled = false;
+      currentWeather = 0;
+    } else if (currentWeather >= 2) {
+      log += "Weather is worsening\n";
+    } else {
+      log += "Weather is fine\n";
+    }
+  }
+  log += "Ending in a Myth hex?\n";
+  log += " - Find the next omen, and get the drop on it\n";
+  if (night) {
+    log += "Else, camping in a wilderness hex?\n";
+    log += ` - Wilderness roll: ${wildernessRoll("Nothing")}\n`;
+    log += " - Sleep prevented? Lose D6 CLA\n";
+    log += " - Food/water gathering prevented? Lose D6 VIG\n";
+  } else {
+    log += "Else, ending in a wilderness hex?\n";
+    log += ` - Wilderness roll: ${wildernessRoll("Found landmark")}\n`;
+  }
+
+  log += "\n=== SPARKS ===\n";
+  const sparks = [];
+  for (const t of [["Land", kSparkExLand], ["Water", kSparkExWater],
+                   ["Weather", kSparkExWeather], ["Flora", kSparkExFlora],
+                   ["Fauna", kSparkExFauna], ["Feature", kSparkExFeature]]) {
+    const row = [t[0]];
+    for (let i = 0; i < 3; ++i) {
+      row.push(spark(t[1]));
+    }
+    sparks.push(row);
+  }
+  log += prettyTable(sparks);
+
+  document.getElementById("explore_log").innerText = log;
+  clickExplorePhase();
+}
+
+function prettyTable(a) {
+  const m = [];
+  for (const row of a) {
+    for (let i = 0; i < row.length; ++i) {
+      m[i] = Math.max(m[i] ?? 0, row[i].length);
+    }
+  }
+  return a.map((row) => row.map((c, i) =>
+      pad(c, m[i], ' ')).join(' | ')).join('\n');
+}
+
+function pad(s, n, c) {
+  while (s.length < n) s += c;
+  return s;
+}
+
+const kSparkLand = [["Barren","Dry","Grey","Sparse","Sharp","Teeming","Still","Soft","Overgrown","Vivid","Sodden","Lush"],["Marsh","Heath","Crags","Peaks","Forest","Valley","Hills","Meadow","Bog","Lakes","Glades","Plain"]];
+const kSparkSky = [["Glittering","Violet","Sapphire","Pale","Fiery","Ivory","Slate","Pink","Golden","Bloody","Bright","Inky"],["Aurora","Haze","Marble","Glow","Billows","Swirl","Streaks","Dapple","Rays","Pillars","Shimmer","Swells"]];
+const kSparkWater = [["Crystal","Teal","Pearlescent","Mucky","Cobalt","Verdant","Frosted","Dark","Verdigris","Silver","Emerald","Jade"],["Silk","Ripples","Abyss","Churn","Froth","Mirror","Surge","Glass","Surf","Rapids","Spray","Bubbles"]];
+const kSparkWeather = [["Gentle","Fleeting","Persistent","Bright","Thin","Cool","Hot","Solid","Dull","Faint","Abundant","Harsh"],["Rain","Gusts","Cloud","Sunlight","Mist","Humidity","Thunder","Dust","Warmth","Drizzle","Breeze","Fog"]];
+const kSparkFlora = [["Aromatic","Ashen","Blooming","Twisted","Towering","Fruitful","Stinging","Vibrant","Brittle","Thorny","Sturdy","Resinous"],["Grasses","Heather","Shrubs","Brambles","Canopy","Ferns","Trunks","Vines","Conifers","Saplings","Reeds","Roots"]];
+const kSparkFauna = [["Watchful","Helpful","Graceful","Loud","Mischievous","Deceitful","Enlightening","Placid","Beautiful","Mighty","Hostile","Aloof"],["Ungulates","Songbirds","Canines","Rodents","Amphibians","Insects","Felines","Reptiles","Hawks","Mustelids","Fowl","Bears"]];
+const kSparkFeature = [["Buried","Colourful","Adorned","Spiked","Split","Entombed","Reflective","Veiled","Hot","Drowned","Desecrated","Isolated"],["Brook","Seat","Pit","Cave","Monolith","Mound","Cairn","Pond","Waterfall","Spring","Arch","Henge"]];
+const kSparkWonder = [["Pleasure","Secrets","Prophecy","Healing","Desire","Memory","Death","Strength","Temptation","Pain","Regret","Time"],["Light","Flames","Stones","Beasts","Sparks","Trails","Mist","Colours","Plants","Wind","Water","Shadows"]];
+const kSparkOtherworld = [["Acidic","Black","Smoke","Frozen","Dead","Broken","Colossal","Living","Burning","Sludge","White","Sweet"],["Flats","Labyrinth","Ruins","Stairs","Desert","Craters","Cavern","Jungle","Dunes","Tunnels","Island","Mountain"]];
+const kSparkHolding = [["Dark","Ruined","Hostile","Ancient","Ornate","Wild","Pristine","Fortified","Unfinished","Welcoming","Proud","Bright"],["Turrets","Tower","Wall","Battlements","Citadel","Gate","Spire","Dome","Beacons","Bridge","Pillars","Moat"]];
+const kSparkBailey = [["Filthy","Abandoned","Joyous","Sophisticated","Industrious","Humble","Majestic","Hallowed","Rustic","Solemn","Bustling","Immaculate"],["Marketplace","Forge","Library","Fountain","Temple","Forum","Tomb","Garden","Hall","Workshops","Arena","Garrison"]];
+const kSparkKeep = [["Hearth","Throne","Musicians","Pool","Advisers","Servants","Shrine","Table","Reliquary","Cauldron","Chandelier","Guards"],["Antlers","Silver","Heraldry","Bones","Flowers","Scripture","Jewels","Wreaths","Candles","Fur","Tapestries","Shields"]];
+const kSparkFood = [["Spiced","Herbal","Crunchy","Sour","Dry","Fermented","Salted","Wet","Fatty","Chewy","Sweet","Mild"],["Fish","Fruit","Stew","Mushrooms","Pie","Cheese","Nuts","Cake","Porridge","Bread","Vegetable","Meat"]];
+const kSparkGoods = [["Military","Abundant","Traditional","Specialist","Industrious","Innovative","Secretive","Simple","Strong","Decorated","Fine","Lucky"],["Textile","Livestock","Grain","Mead","Tools","Stone","Wood","Pottery","Metal","Leather","Honey","Herb"]];
+const kSparkLuxuries = [["Antique","Intricate","Unique","Scarce","Hazardous","Flawless","Luminous","Lost","Esoteric","Sacred","Mythical","Beautiful"],["Jewel","Wine","Spice","Fragrance","Silk","Fur","Artwork","Sword","Creature","Ore","Root","Scripture"]];
+const kSparkDrama = [["Betrayal","Jealousy","Rivalry","Infidelity","Coup","Ambition","Redemption","Revelation","Wrath","Greed","Banishment","Manipulation"],["Brawl","Poison","Oath","Feast","Letters","Disguise","Inheritance","Assassin","Family","Alcohol","Blackmail","Gold"]];
+const kSparkWoe = [["Secretive","Violent","Looming","Sudden","Ongoing","Prophecised","Mysterious","Sanctioned","Unseen","Vast","Escalating","Concealed"],["Disease","Famine","Raids","Invasion","Abduction","Storm","Fire","Revolt","Exodus","Beast","Killing","Theft"]];
+const kSparkNews = [["Duel","Birth","Market","Trial","Ritual","Mercenaries","Festival","Tournament","Punishment","Performance","Death","Marriage"],["Pensive","Joyous","Content","Divided","Furious","Sceptical","Adoring","Nostalgic","Unified","Bleak","Solemn","Optimist"]];
+const kSparkAppearance = [["Delicate","Short","Robust","Hard","Haggard","Cold","Warm","Youthful","Soft","Sickly","Tall","Rough"],["Armoured","Tattered","Vibrant","Crude","Eclectic","Traditional","Comfortable","Gaudy","Drab","Decorated","Functional","Elegant"]];
+const kSparkVoice = [["Whispering","Soothing","Smooth","Flat","Mumbled","Weak","Strong","Hesitant","Melodic","Gravelly","Erratic","Booming"],["Formal","Poetic","Precise","Intense","Rambling","Detached","Passionate","Terse","Relaxed","Blunt","Boisterous","Friendly"]];
+const kSparkPersonality = [["Cautious","Spiritual","Intellectual","Ambitious","Serene","Righteous","Empathetic","Unstable","Prying","Melancholic","Cynical","Rash"],["Botany","History","Music","Gambling","Animals","Art","Cookery","Craft","Fishing","Fashion","Hunting","Stories"]];
+const kSparkRelationship = [["Adoring","Reluctant","Secret","Estranged","Hateful","Distant","Harmonious","Intimate","Recent","Sworn","Tumultuous","Resentful"],["Kin","Friend","Lover","Spouse","Supporter","Ally","Rival","Successor","Mentor","Peer","Enemy","Guardian"]];
+const kSparkDesire = [["Escape","Wealth","Status","Knowledge","Mastery","Heirloom","Marriage","Truth","Travel","Power","Security","Forgiveness"],["Freedom","Love","Legacy","Recovery","Revenge","Duty","Fear","Guilt","Recognition","Defiance","Curiosity","Hatred"]];
+const kSparkTask = [["Investigate","Capture","Destroy","Transport","Retrieve","Mend","Break","Guard","Aid","Salvage","Conceal","Hunt"],["Knight","Seer","Vassals","Livestock","Monument","Gold","Ruin","Animals","Dwelling","Holding","Bridge","Warband"]];
+const kSparkBackground = [["Deprived","Pious","Outcast","Military","Insular","Nomadic","Drudgery","Mercantile","Feral","Prestigious","Academic","Pampered"],["War","Migration","Riding","Study","Exile","Joy","Sickness","Escape","Injury","Friendship","Execution","Romance"]];
+const kSparkAilment = [["Hidden","Mild","Intermittent","Growing","Medicated","Denied","Unexplained","Constant","Diminishing","Permanent","Debilitating","Obvious"],["Insomnia","Migraines","Arthritis","Nausea","Fixation","Blindness","Deafness","Melancholy","Shaking","Frailty","Coughing","Lethargy"]];
+const kSparkHeraldry = [["Light","Hot","Earthy","Rich","Metallic","Brilliant","Grey","Jewelled","Subdued","Airy","Cold","Dark"],["Beast","Bird","Fish","Weapon","Crown","Tree","Flower","Bodypart","Structure","Ring","Tool","Star"]];
+const kSparkSoldier = [["Mobile","Reluctant","Mounted","Renowned","Zealous","Conscript","Cowardly","Heavy","Bloodthirsty","Fancy","Fearsome","Mercenary"],["Skirmisher","Archer","Scout","Militia","Guard","Infiltrator","Raider","Veteran","Infantry","Rider","Charger","Knight"]];
+const kSparkWeapon = [["Short","Pole","Chain","Barbed","Forked","Curved","Weighted","Double","Crossed","Throwing","Thin","Long"],["Blade","Spear","Axe","Mace","Cleaver","Hammer","Spike","Hook","Club","Rod","Fang","Sword"]];
+const kSparkManoeuvres = [["Feint","Strike","Boast","Defend","Negotiate","Flurry","Rush","Taunt","Jab","Charge","Onslaught","Provoke"],["Demoralise","Confuse","Exploit","Stall","Relocate","Observe","Defeat","Expose","Surprise","Stagger","Weaken","Intimidate"]];
+const kSparkConflict = [["Border","Religion","Succession","Resource","Debt","Betrayal","Theft","Conquest","Marriage","Deceit","Waterway","Bloodfeud"],["War","Raids","Animosity","Truce","Skirmishes","Standoff","Occupation","Stalemate","Blockade","Tension","Forgotten","Negotiation"]];
+const kSparkDuel = [["Joust","Swords","Partner","Team","Unarmoured","Chained","Blood","Death","Surrender","Judged","Blunt","Javelins"],["Timed","Pit","Bridge","Immobile","Maze","Archers","Fire","Beasts","Mud","Night","Water","Cage"]];
+const kSparkBattlefield = [["River","Ruins","Hill","Forest","Lake","Outpost","Pass","Farm","Trail","Bridge","Wall","Dwelling"],["Smoke","Mud","Flies","Trenches","Tower","Boulders","Flowers","Streams","Thorns","Stink","Ravine","Tombs"]];
+const kSparkDeployment = [["Aggressive","Mobile","Tight","Deceptive","Shielded","Rigid","Flexible","Open","Focused","Dispersed","Reinforced","Defensive"],["Line","Column","Chevron","Ranks","Square","Circle","Flank","Skirmish","Block","Square","Wedge","Scatter"]];
+const kSparkStrategy = [["Encircle","Capture","Assault","Harass","Pillage","Outlast","Ambush","Overwhelm","Blockade","Divide","Focus","Counter"],["Darkness","Reserves","Diversion","Betrayal","Artillery","Camouflage","Bluff","Delay","Decoy","Bait","Sacrifice","Fire"]];
+const kSparkEvent = [["Allies","Morale","Weather","Terrain","Strategy","Discipline","Animal","Opportunists","Deception","Leader","Loot","Weapons"],["Collapse","Attack","Slaughter","Stalemate","Stall","Falter","Sabotage","Scatter","Charge","Confusion","Worsening","Discovery"]];
+const kSparkExLand = [["Barren","Dry","Grey","Sparse","Sharp","Teeming","Still","Soft","Overgrown","Vivid","Sodden","Lush","Rolling","Rugged","Craggy","Verdant","Desolate","Tangled","Jagged","Misty","Scorched","Ancient","Primeval","Hazy","Gloomy","Dappled","Blighted","Brittle","Choked","Eerie","Stony","Radiant","Silent","Ashen","Slick","Russet","Thriving","Parched","Vibrant","Haunted","Frostbitten","Golden","Windswept","Shadowy","Obsidian","Shattered","Tranquil","Bristling","Fetid","Bountiful","Dense","Petrified","Murky","Pristine","Skeletal","Fungal","Echoing","Blazing","Crystalline","Viridian","Loamy","Crumbled"],["Marsh","Heath","Crags","Peaks","Forest","Valley","Hills","Meadow","Bog","Lakes","Glades","Plain","Basin","Badlands","Bluffs","Butte","Canyon","Caldera","Caverns","Chasm","Cliffs","Copse","Delta","Dunes","Fens","Fjords","Geysers","Glacier","Gorge","Grove","Gulch","Highlands","Ice-fields","Jungle","Mesa","Moors","Oasis","Overlook","Pass","Plateau","Prairie","Quagmire","Ravine","Ridge","Savanna","Scree","Scrubland","Sinkhole","Steppe","Strand","Swamp","Taiga","Thicket","Tundra","Veldt","Volcano","Wetlands","Wasteland","Wilds","Woodlands","Tarn","Tablelands","Promontory","Escarpment","Arroyo","Bayou","Karst"]];
+const kSparkExSky = [["Glittering","Violet","Sapphire","Pale","Fiery","Ivory","Slate","Pink","Golden","Bloody","Bright","Inky","Emerald","Indigo","Amber","Cerulean","Ochre","Crimson","Mauve","Turquoise","Obsidian","Pearlescent","Iridescent","Cinnabar","Azure","Viridian","Shimmering","Luminous","Opalescent","Translucent","Radiant","Gloomy","Somber","Mottled","Dappled","Phosphorescent","Hazy","Wispy","Billowing","Frothy","Jagged","Rippling","Gossamer","Shredded","Towering","Feathery","Streaked","Marbled","Swirling","Veined","Ghostly","Ethereal","Astral","Sinister","Celestial","Drifting","Abyssal","Stormy","Prismatic","Saffron","Sooty","Ashen","Incandescent","Gilded","Amethyst","Topaz","Scarlet","Pitch","Eerie","Vibrant","Muted","Stark","Cobalt","Periwinkle","Rose","Sepia","Sulfurous","Lavender","Steel","Ash","Faint","Murky","Opaque","Vivid","Electric","Neon","Flickering"],["Aurora","Haze","Marble","Glow","Billows","Swirl","Streaks","Dapple","Rays","Pillars","Shimmer","Swells","Wisps","Veil","Curtains","Eddies","Ripples","Corona","Halo","Plumes","Mottle","Gleam","Sheen","Mist","Fringe","Cascades","Ribbons","Speckles","Flecks","Lattice","Bloom","Wash","Drift","Scud","Sprawl","Spire","Arch","Fractures","Shards","Prisms","Embers","Veins","Lacing","Filigree","Cliffs","Waves","Tides","Torrents","Whirls","Blanket","Canopy","Gloom","Radiance","Flicker","Pulse","Vortex","Chasm","Dust","Vapor","Frost","Sparks","Glitter"]];
+const kSparkExWater = [["Crystal","Teal","Pearlescent","Mucky","Cobalt","Verdant","Frosted","Dark","Verdigris","Silver","Emerald","Jade","Azure","Cerulean","Indigo","Aquamarine","Turquoise","Slate","Inky","Obsidion","Alabaster","Milky","Opaque","Translucent","Glistening","Shimmering","Phosphorescent","Bioluminescent","Churning","Turbulent","Placid","Glassy","Viscous","Oily","Briny","Saline","Silt-heavy","Murky","Stagnant","Putrid","Sulfurous","Iron-stained","Amber","Copper","Bronze","Golden","Glacial","Icy","Slushy","Foamy","Spumy","Effervescent","Bubbling","Seething","Roiling","Kelp-choked","Algae-filmed","Brackish","Pristine","Luminous","Iridescent","Opalescent","Sooty","Muddy","Crystalline","Ultramarine","Sapphire","Topaz","Vitreous","Frothy","Swirling","Deep"],["Silk","Ripples","Abyss","Churn","Froth","Mirror","Surge","Glass","Surf","Rapids","Spray","Bubbles","Eddy","Current","Swell","Tide","Cascade","Mist","Vapor","Maelstrom","Vortex","Shoal","Brine","Depths","Shallows","Trickle","Gush","Spout","Silt","Crystal","Sheen","Shimmer","Gloom","Veil","Ribbon","Maw","Jet","Wake","Drift","Trough","Crest","Plunge","Basin","Torrent","Deluge","Ooze","Spring","Well","Mire","Shadow","Murk","Flow","Pulse","Undertow","Refraction","Prism","Seep","Flood","Rill","Brilliance","Haze","Echo"]];
+const kSparkExWeather = [["Gentle","Fleeting","Persistent","Bright","Thin","Cool","Hot","Solid","Dull","Faint","Abundant","Harsh","Violent","Whispering","Torrential","Blinding","Murky","Prickling","Gritty","Searing","Frigid","Ethereal","Noxious","Static","Radiant","Heavy","Light","Damp","Dry","Corrosive","Sudden","Sporadic","Endless","Chilling","Balmy","Opaque","Shimmering","Hazy","Rhythmic","Thundering","Viscous","Bitter","Clammy","Sweltering","Piercing","Muffled","Glaring","Gloomy","Fragrant","Acrid","Pulsing","Drifting","Howling","Stagnant","Turbulent","Silken","Jagged","Ghostly","Prismatic","Oppressive","Refreshing","Bracing","Misty","Sooty","Electric","Stinging","Weightless","Velvet","Choking","Soaking","Bone-dry","Swirling"],["Rain","Gusts","Cloud","Sunlight","Mist","Humidity","Thunder","Dust","Warmth","Drizzle","Breeze","Fog","Snow","Sleet","Hail","Gale","Frost","Haze","Chill","Heat","Gloom","Dew","Torrent","Shower","Flurry","Squall","Cyclone","Tempest","Zephyr","Shadow","Radiance","Static","Ash","Ember","Miasma","Vapor","Murk","Deluge","Draft","Stillness","Lightning","Aurora","Smog","Glare","Blizzard","Mirage","Rime","Overcast","Surge","Crackle","Downpour","Blast","Shimmer","Slush","Whirlwind","Pressure","Tornado","Front","Drift","Visibility"]];
+const kSparkExFlora = [["Aromatic","Ashen","Blooming","Twisted","Towering","Fruitful","Stinging","Vibrant","Brittle","Thorny","Sturdy","Resinous","Luminous","Gnarled","Petrified","Sinuous","Mossy","Succulent","Fragile","Ancient","Blighted","Overgrown","Fluorescent","Fibrous","Verdant","Mottled","Variegated","Translucent","Iron-hard","Poisonous","Fungal","Crystalline","Ethereal","Whispering","Shimmering","Glistening","Decaying","Bulbous","Creeping","Climbing","Hanging","Floating","Brambled","Weeping","Shadowed","Glowing","Iridescent","Waxy","Grasping","Spectral","Lush","Supple","Serrated","Bristly","Oozing","Rubbery","Knotted","Fringed","Downy","Gilded","Silvered","Calcified","Velvety","Prickly","Dripping","Sprawling"],["Grasses","Heather","Shrubs","Brambles","Canopy","Ferns","Trunks","Vines","Conifers","Saplings","Reeds","Roots","Mosses","Lichens","Mycelium","Mushrooms","Toadstools","Algae","Kelp","Thistles","Nettles","Cacti","Succulents","Blooms","Petals","Thickets","Copses","Boughs","Twigs","Foliage","Fronds","Undergrowth","Brush","Sedges","Rushes","Lilies","Orchids","Tubers","Bulbs","Seeds","Pods","Cones","Berries","Bark","Resin","Sap","Briers","Mangroves","Palms","Willows","Sprouts","Wildflowers","Snags","Stumps","Creepers","Epiphytes","Evergreens","Hardwoods","Cattails","Bamboo"]];
+const kSparkExFauna = [["Watchful","Helpful","Graceful","Loud","Mischievous","Deceitful","Enlightening","Placid","Beautiful","Mighty","Hostile","Aloof","Skittish","Gluttonous","Iridescent","Cunning","Timid","Territorial","Curious","Lethargic","Voracious","Ethereal","Industrious","Gregarious","Solitary","Mimicking","Bioluminescent","Fragile","Sinister","Stoic","Capricious","Vigilant","Erratic","Melodic","Scavenging","Predatory","Ancient","Resilient","Reclusive","Playful","Ominous","Translucent","Invasive","Symbiotic","Frenzied","Docile","Radiant","Cryptic","Majestic","Vengeful","Nervous","Protective","Agile","Sluggish","Resonant","Persistent","Observant","Fleeting","Pestilent","Heraldic","Nocturnal","Diurnal","Aggressive","Wispy","Metallic","Social","Migratory","Fierce","Patient","Lurking","Vibrant","Dull","Camouflaged","Hissing","Twittering","Nesting","Swarming","Poisonous","Parasitic","Gallant","Spectral","Shimmering"],["Ungulates","Songbirds","Canines","Rodents","Amphibians","Insects","Felines","Reptiles","Hawks","Mustelids","Fowl","Bears","Primates","Marsupials","Cetaceans","Crustaceans","Arachnids","Cephalopods","Gastropods","Corvids","Owls","Bats","Sharks","Jellyfish","Annelids","Tortoises","Hyenas","Vultures","Eels","Pachyderms","Procyonids","Lagomorphs","Equines","Bovines","Camelids","Pinnipeds","Antelopes","Cervids","Suids","Serpents","Echinoderms","Salamanders","Scorpions","Centipedes","Dragonflies","Beetles","Lepidoptera","Ichthyic","Cnidarians","Monotremes","Hominids","Viverrids"]];
+const kSparkExFeature = [["Buried","Colourful","Adorned","Spiked","Split","Entombed","Reflective","Veiled","Hot","Drowned","Desecrated","Isolated","Overgrown","Shattered","Luminous","Floating","Twisted","Sunken","Petrified","Haunted","Echoing","Crystalline","Shifting","Forgotten","Looming","Ruined","Gleaming","Enchanted","Jagged","Pulsing","Withered","Sacred","Submerged","Frozen","Scorched","Ancient","Pristine","Shadowed","Ethereal","Venerated","Whispering","Obsidian","Bloodstained","Gilded","Barren","Cursed","Verdant","Desolate","Silent","Radiant","Tainted","Ironclad","Fractured","Misty","Molten","Hollowed","Ominous","Singing","Forsaken","Weathered","Bound","Forbidden"],["Brook","Seat","Pit","Cave","Monolith","Mound","Cairn","Pond","Waterfall","Spring","Arch","Henge","Gorge","Bluff","Ravine","Geyser","Glade","Grotto","Plateau","Peak","Ridge","Hollow","Sinkhole","Dune","Delta","Isle","Pillar","Obelisk","Statue","Shrine","Ruin","Crypt","Spire","Watchtower","Bridge","Wall","Gate","Tomb","Forge","Well","Altar","Grove","Thicket","Stump","Root","Fungus","Bramble","Crack","Rift","Crevasse","Nexus","Outpost","Beacon","Megalith","Menhir","Folly","Stele","Ziggurat","Catacomb","Canyon","Basin","Crag","Summit","Knoll","Tor","Precipice","Chasm","Caldera","Promontory","Esplanade","Plinth","Sarcophagus","Reliquary","Sanctum"]];
+const kSparkExWonder = [["Pleasure","Secrets","Prophecy","Healing","Desire","Memory","Death","Strength","Temptation","Pain","Regret","Time","Silence","Sorrow","Echoes","Dreams","Fate","Oblivion","Rebirth","Madness","Justice","Betrayal","Ambition","Shadows","Radiance","Whispers","Chaos","Order","Truth","Lies","Sovereignty","Mercy","Sacrifice","Glory","Vengeance","Solitude","Discord","Harmony","Terror","Wisdom","Folly","Entropy","Creation","Vanity","Yearning","Neglect","Mirrors","Starlight","Blight","Abundance","Devotion","Insight","Duality","Slumber","Ruin","Nightmares","Transience","Eternity","Malice","Grace","Fealty","Gloom","Resonance","Isolation","Unity","Horror","Hope","Avarice","Pride","Envy","Stasis","Fury"],["Light","Flames","Stones","Beasts","Sparks","Trails","Mist","Colours","Plants","Wind","Water","Shadows","Crystals","Echoes","Runes","Mirrors","Whispers","Petals","Dreams","Glimmers","Spires","Tides","Memories","Roots","Veils","Orbs","Glyphs","Sands","Thorns","Embers","Clouds","Pillars","Shards","Visions","Currents","Frost","Bells","Keys","Fountains","Chasms","Pearls","Moons","Crowns","Masks","Gates","Statues","Altars","Souls","Vines","Beams","Fossils","Towers","Portals","Rhythms","Icons","Sigils","Storms","Tears","Songs","Monoliths","Void","Prisms"]];
+const kSparkExOtherworld = [["Acidic","Black","Smoke","Frozen","Dead","Broken","Colossal","Living","Burning","Sludge","White","Sweet","Whispering","Pulsing","Crystalline","Cursed","Radiant","Shifting","Hollow","Screaming","Eldritch","Floating","Ancient","Jagged","Silent","Necrotic","Glistening","Mournful","Abyssal","Iron","Glassy","Echoing","Obsidian","Fetid","Hallowed","Fungal","Petrified","Sunken","Phase-locked","Veined","Celestial","Malignant","Sanguine","Prismatic","Corroded","Ashen","Ethereal","Kinetic","Blighted","Wailing","Gilded","Molten","Shattered","Verdant","Silvered","Void-touched","Thrumming","Oozing","Gnarled","Twisted","Geometric","Phasing","Singing","Merciless","Forgotten","Radiating","Gelatinous","Metallic","Clockwork","Shadowed","Blinding","Dreadful","Sullen","Infinite","Warped","Brittle","Resonant","Vibrant","Thorny","Slithering","Fractured","Luminous","Ghostly","Moaning","Stagnant","Porcelain","Weightless","Thirsting","Emerald","Sulfurous","Iridescent","Murmuring"],["Flats","Labyrinth","Ruins","Stairs","Desert","Craters","Cavern","Jungle","Dunes","Tunnels","Island","Mountain","Monolith","Spires","Rift","Nexus","Abyss","Void","Chasm","Obelisk","Cathedral","Sanctum","Citadel","Ossuary","Mire","Fen","Grotto","Prism","Shard","Geode","Clockwork","Vortex","Wasteland","Garden","Orchard","Pillars","Archway","Plateau","Mesa","Glacier","Basin","Foundry","Forge","Vault","Necropolis","Hollow","Ridge","Peak","Crag","Gorge","Springs","Well","Fountain","Canyon","Thicket","Canopy","Hedge","Reef","Atoll","Sprawl","Bastion","Outpost","Tomb","Ziggurat","Shrine","Colonnade","Promenade","Plaza","Arena","Menhir","Henge","Steppe","Badlands","Tundra","Quarry","Mines","Catacombs","Ledge","Promontory","Escarpment","Fissure","Gully","Vein","Core","Spine","Heart","Gateway","Portal","Threshold","Rim","Edge","Fringe"]];
+
+function spark(table) {
+  return `${pick(table[0])} ${pick(table[1])}`;
+}
+
+function clickSpark(table) {
+  const log = [];
+  for (let i = 0; i < 3; ++i) log.push(spark(table));
+  document.getElementById('spark_log').innerText = log.join(' | ');
+}
+
+</script>
+<style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+body {
+  background-color: #212121;
+  margin: 0;
+  flex-grow: 1;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+h3 {
+  color: #ccc;
+  font-family: monospace;
+  margin: 0px;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+pre {
+  margin: 0;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+}
+.flex_col, .flex_row {
+  display: flex;
+  gap: 8px;
+}
+.flex_col {
+  flex-direction: column;
+}
+#explore_inputs {
+  gap: 8px;
+}
+.button {
+  background-color: #424242;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.button:hover {
+  box-shadow: inset 0 0 0 1000px rgba(255, 255, 255, 0.2);
+}
+.on {
+  background-color: #ff9800;
+}
+#phase {
+  background-color: #15bf4e;
+}
+#phase[data-phase="1"] {
+  background-color: #ff5722;
+}
+#phase[data-phase="2"] {
+  background-color: #282e8a;
+}
+.log {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+#roll_log {
+  min-width: 64px;
+}
+#roll_sum_log {
+  min-width: 256px;
+}
+#explore_log {
+  min-height: 100px;
+}
+.button_row {
+  align-items: center;
+}
+#spark_tables_outer {
+  gap: 16px;
+}
+.spark_tables_inner {
+  background-color: rgb(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Mythic Bastionland Tools</h1>
+</div>
+<div id="wrap" class="flex_col">
+  <div class="flex_row button_row">
+    <div class="button" onclick="clickRoll([4])">d4</div>
+    <div class="button" onclick="clickRoll([6])">d6</div>
+    <div class="button" onclick="clickRoll([8])">d8</div>
+    <div class="button" onclick="clickRoll([10])">d10</div>
+    <div class="button" onclick="clickRoll([12])">d12</div>
+    <div class="button" onclick="clickRoll([20])">d20</div>
+    <div class="button" onclick="clickRoll([6, 6])">2d6</div>
+    <div class="button" onclick="clickRoll([12, 12])">2d12</div>
+    <div class="button" onclick="clickRoll([6, 12])">d6 + d12</div>
+  </div>
+  <div class="flex_row button_row">
+    Last:
+    <pre class="log" id="roll_log"> </pre>
+    Sum:
+    <pre class="log" id="roll_sum_log"> </pre>
+    <div class="button" onclick="clickRoll(null)">Clear</div>
+  </div>
+  <h2>Explore</h2>
+  <div id="explore_inputs" class="flex_row">
+    <div class="button" id="phase" onclick="clickExplorePhase()">Phase</div>
+    <div class="button on" onclick="clickExploreWeather(this)">Weather</div>
+    <div class="button" onclick="clickExploreGo()">GO!</div>
+  </div>
+  <pre class="log" id="explore_log"> </pre>
+  <h2>Spark Tables</h2>
+  <div id="spark_tables_outer" class="flex_row">
+    <div class="flex_col spark_tables_inner">
+      <h3>Nature</h3>
+      <div class="button" onclick="clickSpark(kSparkLand)">Land</div>
+      <div class="button" onclick="clickSpark(kSparkSky)">Sky</div>
+      <div class="button" onclick="clickSpark(kSparkWater)">Water</div>
+      <div class="button" onclick="clickSpark(kSparkWeather)">Weather</div>
+      <div class="button" onclick="clickSpark(kSparkFlora)">Flora</div>
+      <div class="button" onclick="clickSpark(kSparkFauna)">Fauna</div>
+      <div class="button" onclick="clickSpark(kSparkFeature)">Feature</div>
+      <div class="button" onclick="clickSpark(kSparkWonder)">Wonder</div>
+      <div class="button" onclick="clickSpark(kSparkOtherworld)">Otherworld</div>
+    </div>
+
+    <div class="flex_col spark_tables_inner">
+      <h3>Civilisation</h3>
+      <div class="button" onclick="clickSpark(kSparkHolding)">Holding</div>
+      <div class="button" onclick="clickSpark(kSparkBailey)">Bailey</div>
+      <div class="button" onclick="clickSpark(kSparkKeep)">Keep</div>
+      <div class="button" onclick="clickSpark(kSparkFood)">Food</div>
+      <div class="button" onclick="clickSpark(kSparkGoods)">Goods</div>
+      <div class="button" onclick="clickSpark(kSparkLuxuries)">Luxuries</div>
+      <div class="button" onclick="clickSpark(kSparkDrama)">Drama</div>
+      <div class="button" onclick="clickSpark(kSparkWoe)">Woe</div>
+      <div class="button" onclick="clickSpark(kSparkNews)">News</div>
+    </div>
+
+    <div class="flex_col spark_tables_inner">
+      <h3>People</h3>
+      <div class="button" onclick="clickSpark(kSparkAppearance)">Appearance</div>
+      <div class="button" onclick="clickSpark(kSparkVoice)">Voice</div>
+      <div class="button" onclick="clickSpark(kSparkPersonality)">Personality</div>
+      <div class="button" onclick="clickSpark(kSparkRelationship)">Relationship</div>
+      <div class="button" onclick="clickSpark(kSparkDesire)">Desire</div>
+      <div class="button" onclick="clickSpark(kSparkTask)">Task</div>
+      <div class="button" onclick="clickSpark(kSparkBackground)">Background</div>
+      <div class="button" onclick="clickSpark(kSparkAilment)">Ailment</div>
+      <div class="button" onclick="clickSpark(kSparkHeraldry)">Heraldry</div>
+    </div>
+
+    <div class="flex_col spark_tables_inner">
+      <h3>Combat</h3>
+      <div class="button" onclick="clickSpark(kSparkSoldier)">Soldier</div>
+      <div class="button" onclick="clickSpark(kSparkWeapon)">Weapon</div>
+      <div class="button" onclick="clickSpark(kSparkManoeuvres)">Manoeuvres</div>
+      <div class="button" onclick="clickSpark(kSparkConflict)">Conflict</div>
+      <div class="button" onclick="clickSpark(kSparkDuel)">Duel</div>
+      <div class="button" onclick="clickSpark(kSparkBattlefield)">Battlefield</div>
+      <div class="button" onclick="clickSpark(kSparkDeployment)">Deployment</div>
+      <div class="button" onclick="clickSpark(kSparkStrategy)">Strategy</div>
+      <div class="button" onclick="clickSpark(kSparkEvent)">Event</div>
+    </div>
+
+    <div class="flex_col spark_tables_inner">
+      <h3>Nature Ex</h3>
+      <div class="button" onclick="clickSpark(kSparkExLand)">Land</div>
+      <div class="button" onclick="clickSpark(kSparkExSky)">Sky</div>
+      <div class="button" onclick="clickSpark(kSparkExWater)">Water</div>
+      <div class="button" onclick="clickSpark(kSparkExWeather)">Weather</div>
+      <div class="button" onclick="clickSpark(kSparkExFlora)">Flora</div>
+      <div class="button" onclick="clickSpark(kSparkExFauna)">Fauna</div>
+      <div class="button" onclick="clickSpark(kSparkExFeature)">Feature</div>
+      <div class="button" onclick="clickSpark(kSparkExWonder)">Wonder</div>
+      <div class="button" onclick="clickSpark(kSparkExOtherworld)">Otherworld</div>
+    </div>
+  </div>
+  <pre class="log" id="spark_log"> </pre>
+</div>
+</body>
+</html>
