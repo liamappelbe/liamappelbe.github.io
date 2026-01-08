@@ -4,6 +4,37 @@
 <title>Mythic Bastionland Tools</title>
 <link rel="icon" href="res/favicon.ico">
 <script type="text/javascript">
+function clearChildren(node) {
+  while (node.hasChildNodes()) node.removeChild(node.lastChild);
+}
+
+function newNode(type, parent, text = null, classes = []) {
+  const n = document.createElement(type);
+  if (text != null) n.innerText = text;
+  for (const cls of classes) n.classList.add(cls);
+  if (parent != null) parent.appendChild(n);
+  return n;
+}
+
+function newDiv(parent, text = null, classes = []) {
+  return newNode("div", parent, text, classes);
+}
+
+function newSpan(parent, text = null, classes = []) {
+  return newNode("span", parent, text, classes);
+}
+
+function newTable(a, parent) {
+  const t = newNode('table', parent);
+  for (const b of a) {
+    const r = newNode('tr', t);
+    for (const c of b) {
+      newNode('td', r, c);
+    }
+  }
+  return t;
+}
+
 function roll0(n) { return Math.floor(Math.random() * n); }
 function roll1(n) { return roll0(n) + 1; }
 function pick(opts) { return opts[roll0(opts.length)]; }
@@ -29,7 +60,7 @@ function clickRoll(nn) {
       .filter((m) => m != null).join(" + ");
   document.getElementById("roll_log").innerText = logText;
   document.getElementById("roll_sum_log").innerText =
-      counts == "" ? " " : `${counts} = ${rollSum}`;
+      counts == "" ? "" : `${counts} = ${rollSum}`;
 }
 
 function safeInt(value) {
@@ -50,27 +81,37 @@ function clickExploreWeather(btn) {
   if (!exploreWeatherEnabled) currentWeather = 0;
 }
 
+function threatTable() {
+  return spark(kSparkExThreat);
+}
+
 const kTravellingBlind = [
   ["Turned around, no progress", false],
-  ["Drift a hex to the left", true],
-  ["Drift a hex to the right", true],
-  ["Travel OK", true],
-  ["Travel OK", true],
-  ["Travel OK", true],
+  ["Drift a hex to the left", false],
+  ["Drift a hex to the right", false],
+  ["Travel OK", false],
+  ["Travel OK", false],
+  ["Mundane threat", true],
 ];
+function travellingBlind() {
+  let [msg, threat] = pick(kTravellingBlind);
+  if (threat) msg += `: ${threatTable()}`;
+  return msg;
+}
 
 const kWildernessRoll = [
-  ["Random next omen", true],
-  ["Nearest next omen", false],
-  ["Nearest next omen", false],
-  [null, false],
-  [null, false],
-  [null, false],
+  ["Random next omen", true, false],
+  ["Nearest next omen", false, false],
+  ["Nearest next omen", false, false],
+  ["Mundane threat", false, true],
+  [null, false, false],
+  [null, false, false],
 ];
 function wildernessRoll(noMythMsg) {
-  let [msg, roll] = pick(kWildernessRoll);
+  let [msg, roll, threat] = pick(kWildernessRoll);
   msg ??= noMythMsg;
   if (roll) msg += ` (${roll1(6)})`;
+  if (threat) msg += `: ${threatTable()}`;
   return msg;
 }
 
@@ -78,79 +119,80 @@ const kDireWeatherRoll = [ 4, 2, 2, 0, 0, 0 ];
 const kPhaseName = ["morning", "afternoon", "night"];
 
 function clickExploreGo() {
-  let log = "";
+  const exploreLog = document.getElementById("explore_log");
+  clearChildren(exploreLog);
 
-  let mayHaveTravelled = true;
+  const logRow = newDiv(exploreLog, null, ['explore_log_row']);
+  const mainLog = newDiv(logRow);
+  const sideLog = newDiv(logRow);
 
-  log += "=== TRAVEL ===\n";
-  log += `It's ${kPhaseName[explorePhase]}\n`;
+  function log(parent, text, type) {
+    return newSpan(parent, text, type == null ? [] : [`log_type_${type}`]);
+  }
+  function logMain(text, type=null) { return log(mainLog, text, type); }
+  function logSide(text, type=null) { return log(sideLog, text, type); }
+
+  logMain(`It's ${kPhaseName[explorePhase]}\n`);
   const night = explorePhase == 2;
   if (night) {
-    log += "Travelling at night?\n";
-    log += " - Lose D6 SPI\n";
-    log += " - If no guide or light?\n";
-    const [msg, moved] = pick(kTravellingBlind);
-    mayHaveTravelled &&= moved;
-    log += `   - Travelling blind: ${msg}\n`;
-  } else {
-    log += "Travel OK\n";
+    logSide("Travelling at night?");
+    logSide(" Lose D6 SPI\n", "damage");
+    logSide(" - If no guide or light?\n");
+    logSide("   - Travelling blind:");
+    logSide(` ${travellingBlind()}\n`, "travel");
+    logSide("Camping in a wilderness hex?\n");
+    logSide(" - Sleep prevented?");
+    logSide(" Lose D6 CLA\n", "damage");
+    logSide(" - Food/water gathering prevented?");
+    logSide(" Lose D6 VIG\n", "damage");
   }
 
-  log += "\n=== PHASE ENDING ===\n";
   if (exploreWeatherEnabled) {
     currentWeather = (currentWeather + 1) * pick(kDireWeatherRoll);
     if (currentWeather >= 4) {
-      log += "Dire weather!\n";
-      log += " - Can't leave the hex\n";
+      logMain("Dire weather!");
+      logMain(` ${spark(kSparkExWeather)}\n`, "weather");
       if (night) {
-        log += " - Can't sleep (lose D6 CLA)\n";
+        logMain(" - Can't sleep:");
+        logMain(" Lose D6 CLA\n", "damage");
       }
-      mayHaveTravelled = false;
+      logMain(" - Travel impared:");
+      logMain(` ${travellingBlind()}\n`, "travel");
       currentWeather = 0;
     } else if (currentWeather >= 2) {
-      log += "Weather is worsening\n";
+      logMain("Weather is worsening:");
+      logMain(` ${spark(kSparkExWeather)}\n`, "weather");
     } else {
-      log += "Weather is fine\n";
+      logMain("Weather is fine\n");
     }
   }
-  log += "Ending in a Myth hex?\n";
-  log += " - Find the next omen, and get the drop on it\n";
+
+  logSide("Ending in a Myth hex?\n");
+  logSide(" - Find the next omen, and get the drop on it\n");
   if (night) {
-    log += "Else, camping in a wilderness hex?\n";
-    log += ` - Wilderness roll: ${wildernessRoll("Nothing")}\n`;
-    log += " - Sleep prevented? Lose D6 CLA\n";
-    log += " - Food/water gathering prevented? Lose D6 VIG\n";
+    logMain("Camping in a wilderness hex?\n");
+    logMain(" - Wilderness roll:");
+    logMain(` ${wildernessRoll("Nothing")}\n`, "wilderness");
   } else {
-    log += "Else, ending in a wilderness hex?\n";
-    log += ` - Wilderness roll: ${wildernessRoll("Found landmark")}\n`;
+    logMain("Ending in a wilderness hex?\n");
+    logMain(" - Wilderness roll:");
+    logMain(` ${wildernessRoll("Found landmark")}\n`, "wilderness");
   }
 
-  log += "\n=== SPARKS ===\n";
   const sparks = [];
   for (const t of [["Land", kSparkExLand], ["Water", kSparkExWater],
                    ["Weather", kSparkExWeather], ["Flora", kSparkExFlora],
-                   ["Fauna", kSparkExFauna], ["Feature", kSparkExFeature]]) {
+                   ["Fauna", kSparkExFauna], ["Feature", kSparkExFeature],
+                   ["Threat", kSparkExThreat]]) {
     const row = [t[0]];
     for (let i = 0; i < 3; ++i) {
       row.push(spark(t[1]));
     }
     sparks.push(row);
   }
-  log += prettyTable(sparks);
+  newTable(sparks, exploreLog);
 
-  document.getElementById("explore_log").innerText = log;
   clickExplorePhase();
-}
-
-function prettyTable(a) {
-  const m = [];
-  for (const row of a) {
-    for (let i = 0; i < row.length; ++i) {
-      m[i] = Math.max(m[i] ?? 0, row[i].length);
-    }
-  }
-  return a.map((row) => row.map((c, i) =>
-      pad(c, m[i], ' ')).join(' | ')).join('\n');
 }
 
 function pad(s, n, c) {
@@ -203,6 +245,7 @@ const kSparkExFauna = [["Watchful","Helpful","Graceful","Loud","Mischievous","De
 const kSparkExFeature = [["Buried","Colourful","Adorned","Spiked","Split","Entombed","Reflective","Veiled","Hot","Drowned","Desecrated","Isolated","Overgrown","Shattered","Luminous","Floating","Twisted","Sunken","Petrified","Haunted","Echoing","Crystalline","Shifting","Forgotten","Looming","Ruined","Gleaming","Enchanted","Jagged","Pulsing","Withered","Sacred","Submerged","Frozen","Scorched","Ancient","Pristine","Shadowed","Ethereal","Venerated","Whispering","Obsidian","Bloodstained","Gilded","Barren","Cursed","Verdant","Desolate","Silent","Radiant","Tainted","Ironclad","Fractured","Misty","Molten","Hollowed","Ominous","Singing","Forsaken","Weathered","Bound","Forbidden"],["Brook","Seat","Pit","Cave","Monolith","Mound","Cairn","Pond","Waterfall","Spring","Arch","Henge","Gorge","Bluff","Ravine","Geyser","Glade","Grotto","Plateau","Peak","Ridge","Hollow","Sinkhole","Dune","Delta","Isle","Pillar","Obelisk","Statue","Shrine","Ruin","Crypt","Spire","Watchtower","Bridge","Wall","Gate","Tomb","Forge","Well","Altar","Grove","Thicket","Stump","Root","Fungus","Bramble","Crack","Rift","Crevasse","Nexus","Outpost","Beacon","Megalith","Menhir","Folly","Stele","Ziggurat","Catacomb","Canyon","Basin","Crag","Summit","Knoll","Tor","Precipice","Chasm","Caldera","Promontory","Esplanade","Plinth","Sarcophagus","Reliquary","Sanctum"]];
 const kSparkExWonder = [["Pleasure","Secrets","Prophecy","Healing","Desire","Memory","Death","Strength","Temptation","Pain","Regret","Time","Silence","Sorrow","Echoes","Dreams","Fate","Oblivion","Rebirth","Madness","Justice","Betrayal","Ambition","Shadows","Radiance","Whispers","Chaos","Order","Truth","Lies","Sovereignty","Mercy","Sacrifice","Glory","Vengeance","Solitude","Discord","Harmony","Terror","Wisdom","Folly","Entropy","Creation","Vanity","Yearning","Neglect","Mirrors","Starlight","Blight","Abundance","Devotion","Insight","Duality","Slumber","Ruin","Nightmares","Transience","Eternity","Malice","Grace","Fealty","Gloom","Resonance","Isolation","Unity","Horror","Hope","Avarice","Pride","Envy","Stasis","Fury"],["Light","Flames","Stones","Beasts","Sparks","Trails","Mist","Colours","Plants","Wind","Water","Shadows","Crystals","Echoes","Runes","Mirrors","Whispers","Petals","Dreams","Glimmers","Spires","Tides","Memories","Roots","Veils","Orbs","Glyphs","Sands","Thorns","Embers","Clouds","Pillars","Shards","Visions","Currents","Frost","Bells","Keys","Fountains","Chasms","Pearls","Moons","Crowns","Masks","Gates","Statues","Altars","Souls","Vines","Beams","Fossils","Towers","Portals","Rhythms","Icons","Sigils","Storms","Tears","Songs","Monoliths","Void","Prisms"]];
 const kSparkExOtherworld = [["Acidic","Black","Smoke","Frozen","Dead","Broken","Colossal","Living","Burning","Sludge","White","Sweet","Whispering","Pulsing","Crystalline","Cursed","Radiant","Shifting","Hollow","Screaming","Eldritch","Floating","Ancient","Jagged","Silent","Necrotic","Glistening","Mournful","Abyssal","Iron","Glassy","Echoing","Obsidian","Fetid","Hallowed","Fungal","Petrified","Sunken","Phase-locked","Veined","Celestial","Malignant","Sanguine","Prismatic","Corroded","Ashen","Ethereal","Kinetic","Blighted","Wailing","Gilded","Molten","Shattered","Verdant","Silvered","Void-touched","Thrumming","Oozing","Gnarled","Twisted","Geometric","Phasing","Singing","Merciless","Forgotten","Radiating","Gelatinous","Metallic","Clockwork","Shadowed","Blinding","Dreadful","Sullen","Infinite","Warped","Brittle","Resonant","Vibrant","Thorny","Slithering","Fractured","Luminous","Ghostly","Moaning","Stagnant","Porcelain","Weightless","Thirsting","Emerald","Sulfurous","Iridescent","Murmuring"],["Flats","Labyrinth","Ruins","Stairs","Desert","Craters","Cavern","Jungle","Dunes","Tunnels","Island","Mountain","Monolith","Spires","Rift","Nexus","Abyss","Void","Chasm","Obelisk","Cathedral","Sanctum","Citadel","Ossuary","Mire","Fen","Grotto","Prism","Shard","Geode","Clockwork","Vortex","Wasteland","Garden","Orchard","Pillars","Archway","Plateau","Mesa","Glacier","Basin","Foundry","Forge","Vault","Necropolis","Hollow","Ridge","Peak","Crag","Gorge","Springs","Well","Fountain","Canyon","Thicket","Canopy","Hedge","Reef","Atoll","Sprawl","Bastion","Outpost","Tomb","Ziggurat","Shrine","Colonnade","Promenade","Plaza","Arena","Menhir","Henge","Steppe","Badlands","Tundra","Quarry","Mines","Catacombs","Ledge","Promontory","Escarpment","Fissure","Gully","Vein","Core","Spine","Heart","Gateway","Portal","Threshold","Rim","Edge","Fringe"]];
+const kSparkExThreat = [["Agitated","Ambushing","Barren","Biting","Blinding","Bloated","Boiling","Breaking","Churning","Choking","Concealed","Crumbling","Crushing","Decaying","Dehydrated","Dense","Desperate","Devouring","Drifting","Drowning","Encroaching","Erratic","Exhausted","Falling","Starving","Feral","Feverish","Fierce","Flooding","Foaming","Forgotten","Freezing","Frantic","Gleaming","Grasping","Hidden","Hollow","Hostile","Howling","Hungry","Impassable","Jagged","Lethal","Lonely","Loose","Lurking","Meandering","Merciless","Murderous","Nomadic","Oppressive","Parched","Perilous","Poisonous","Prowling","Raging","Ravenous","Relentless","Restless","Rotting","Rugged","Rushing","Savage","Scorched","Shallow","Shifting","Shivering","Silent","Slippery","Sodden","Stinging","Stony","Sudden","Sunken","Tangled","Treacherous","Thieving","Thorny","Torrential","Toxic","Unmapped","Unstable","Unruly","Uprooted","Vast","Venomous","Vicious","Wandering","Watchful","Waterlogged","Weary","Whistling","Whiteout","Withered","Woodsmoke"],["Boars","Brigands","Wasteland","Frost","Blizzard","Carcasses","Geysers","Ice","Rapids","Dust","Pitfall","Cliffside","Rockfall","Bridge","Travelers","Thicket","Poachers","Sinkhole","Snow","Mire","Fog","Currents","Stragglers","Timber","Hamlet","Hounds","Outcasts","Gale","River","Rapids","Snares","Rain","Stampede","Blades","Brambles","Ravine","Ground","Scouts","Winds","Predators","Scree","Rocks","Spores","Highwaymen","Shale","Vipers","Bog","Sun","Rebels","Raiders","Heat","Earth","Slope","Berries","Cougars","Wildfire","Wolves","Downpour","Peasants","Wharf","Terrain","Torrent","Boars","Plains","Ford","Sands","Exiles","Stalkers","Moss","Marshes","Insects","Pass","Tremor","Trail","Undergrowth","Ice","Urchins","Hedge","Flood","Fumes","Swamp","Ledge","Mob","Trees","Canyon","Snakes","Wasps","Beggars","Sentinels","Valley","Deserters","Narrows","Conditions","Crops","Haze"]];
 const kPromptPerson = ["Wandering old coot","Tired scout","Young alchemist","Bread monk","Adoring apprentice","Lost lad","Legendary sage","Drunken worshipper","Stocky hunter","Scout sisters","Lost Knight","Argumentative sage","Boisterous poet","Elderly tanner","Steady cook","Cheery stablehand","Oblivious cartographer","Aggressive carver","Cruel singer","Novice shepherd","Sickly ironsmith","Relaxed courier","Repugnant pedlar","Scarred bounty hunter","Intolerant herder","Wise farmer","Bitter archer","Hot-tempered baker","Pristine raider","Influential collector","Adored potter","Sneaky cobbler","Puny guard","Skilled bandit","Lazy weaver","Clumsy messenger","Legendary exile","Wary crier","Careless clothier","Ambitious parent","Furious outcast","Aristocratic farrier","Inquisitive lumberjack","Hardened scavenger","Cowardly diplomat","Pathetic veteran","Greedy disciple","Confused fool","Patronising hermit","Adventurous fugitive","Violent playwright","Kind brewer","Smug prophet","Proud pilgrim","Anxious bellringer","Zealous student","Wild thatcher","Cruel charlatan","Confident assassin","Muddy astrologer","Scabby merchant","Animal worshipper","Athletic warden","Smart inquisitor","Deceitful healer","Hostile scholar","Thrifty herald","Friendly mercenary","Armoured miner","Frail herbalist","Loyal sculptor","Antisocial haberdasher"];
 const kPromptName = ["Senara","Caldan","Goyon","Jago","Medryn","Harbeger","Burgoyne","Lumpe","Knotte","Ruan","Demelza","Chider","Ludmer","Prentise","Valamonte","Litwitte","Croyle","Wodwale","Wattle","Ragge","Cradokke","Sparenot","Endry","Arture","Abbotte","Crabbe","Beryan","Bray","Ogan","Tresera","Dewyn","Kerensa","Howell","Borwenna","Ursell","Turnbucke","Myghal","Plodder","Tompot","Reynere","Gil","Davith","Ruskyn","Ellery","Gowere","Roose","Tyack","Kernick","Peryn","Ezter","Reyka","Dorza","Viralag","Dorka","Maldita","Foxter","Nieolas","Brayne","Kelwun","Clemens","Floria","Hygo","Andona","Kirus","Kapo","Verner","Pryer","Aluna","Branc","Samzun","Tahnet","Abran"];
 const kPromptCharacteristic = ["Thunderous voice","Golden hair","Cold eyes","Disobedient dog","Formal speech","House proud","Battle scars","Watching eyes","Lice infested","Shaved head","Delicate clothes","Mangled ear","Always talking","Knows everybody","Sneering smile","Fiery hair","Pet rat","Meticulously clean","Fidgeting hands","Haunted look","Bright clothes","Formal clothes","No nonsense","Always eating","Sharp features","Fine embroidery","Intense speech","Extremely old","Smooth charmer","Wild hair","Few teeth","Always drinking","Sulky and unwashed","Silver hair","Extremely burly","Greasy hair","Wrapped up warm","Wiry & lean","Mud covered","Overly familiar","Muscular slab","Amputated arm","Theatrical gestures","Head in the clouds","Short and stocky","Enthusiastic feeder","Naïve questions","Tall and slender","Morbid embroidery","Shameful eyepatch","Monster tattoos","Dour killjoy","Flower lover","Painfully slow","Abrasive voice","Always alert","Restless limbs","Always yelling","Brawn over brains","Red tattoos","Destructive klutz","Attempts mystique","Huge backpack","Beautifully statuesque","Loves gossip","Star obsessed","Animal lover","Piglike face","Hypochondriac","Fast talker","Graceful hands","Prosthetic legs"];
@@ -287,9 +330,6 @@ a {
   cursor: pointer;
   text-decoration: underline;
 }
-pre {
-  margin: 0;
-}
 #wrap {
   padding: 0 16px;
   color: #f5f5f5;
@@ -332,16 +372,35 @@ pre {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   padding: 4px 8px;
-  font-size: 12px;
+  min-height: 19px;
+  white-space: pre-wrap;
 }
+.log table {
+  border-spacing: 0;
+}
+.log tr:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.log td {
+  padding: 4px 8px;
+}
+#explore_log {
+  min-height: 358px;
+}
+.explore_log_row {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+.log_type_damage { color: #f44336; }
+.log_type_travel { color: #4caf50; }
+.log_type_weather { color: #00bcd4; }
+.log_type_wilderness { color: #c147d7; }
 #roll_log {
   min-width: 48px;
 }
 #roll_sum_log {
   min-width: 256px;
-}
-#explore_log {
-  min-height: 358px;
 }
 .button_row {
   align-items: center;
@@ -375,9 +434,9 @@ pre {
   </div>
   <div class="flex_row button_row">
     Last:
-    <pre class="log" id="roll_log"> </pre>
+    <div class="log" id="roll_log"></div>
     Sum:
-    <pre class="log" id="roll_sum_log"> </pre>
+    <div class="log" id="roll_sum_log"></div>
     <div class="button" onclick="clickRoll(null)">Clear</div>
   </div>
 
@@ -387,7 +446,7 @@ pre {
     <div class="button on" onclick="clickExploreWeather(this)">Weather</div>
     <div class="button" onclick="clickExploreGo()">GO!</div>
   </div>
-  <pre class="log" id="explore_log"> </pre>
+  <div class="log" id="explore_log"></div>
 
   <h2>Spark Tables</h2>
   <div class="flex_row tables_outer">
@@ -444,7 +503,7 @@ pre {
     </div>
 
     <div class="flex_col tables_inner">
-      <h3>Nature Ex</h3>
+      <h3>Extended</h3>
       <div class="button" onclick="clickSpark(kSparkExLand)">Land</div>
       <div class="button" onclick="clickSpark(kSparkExSky)">Sky</div>
       <div class="button" onclick="clickSpark(kSparkExWater)">Water</div>
@@ -454,9 +513,10 @@ pre {
       <div class="button" onclick="clickSpark(kSparkExFeature)">Feature</div>
       <div class="button" onclick="clickSpark(kSparkExWonder)">Wonder</div>
       <div class="button" onclick="clickSpark(kSparkExOtherworld)">Otherworld</div>
+      <div class="button" onclick="clickSpark(kSparkExThreat)">Threat</div>
     </div>
   </div>
-  <pre class="log" id="spark_log"> </pre>
+  <div class="log" id="spark_log"></div>
 
   <h2>Prompt Tables</h2>
   <div class="flex_row tables_outer">
@@ -496,7 +556,7 @@ pre {
       <div class="button" onclick="clickPrompt(kPromptExMyth)">Myth</div>
     </div>
   </div>
-  <pre class="log" id="prompt_log"> </pre>
+  <div class="log" id="prompt_log"></div>
   <br>
 </div>
 </body>
