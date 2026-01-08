@@ -74,13 +74,6 @@ function clickExplorePhase() {
   btn.dataset.phase = (explorePhase = (safeInt(btn.dataset.phase) + 1) % 3);
 }
 
-let exploreWeatherEnabled = true;
-let currentWeather = 0;
-function clickExploreWeather(btn) {
-  exploreWeatherEnabled = btn.classList.toggle("on");
-  if (!exploreWeatherEnabled) currentWeather = 0;
-}
-
 function threatTable() {
   return spark(kSparkExThreat);
 }
@@ -118,6 +111,7 @@ function wildernessRoll(noMythMsg) {
 const kDireWeatherRoll = [ 4, 2, 2, 0, 0, 0 ];
 const kPhaseName = ["morning", "afternoon", "night"];
 
+let currentWeather = 0;
 function clickExploreGo() {
   const exploreLog = document.getElementById("explore_log");
   clearChildren(exploreLog);
@@ -147,24 +141,22 @@ function clickExploreGo() {
     logSide(" Lose D6 VIG\n", "damage");
   }
 
-  if (exploreWeatherEnabled) {
-    currentWeather = (currentWeather + 1) * pick(kDireWeatherRoll);
-    if (currentWeather >= 4) {
-      logMain("Dire weather!");
-      logMain(` ${spark(kSparkExWeather)}\n`, "weather");
-      if (night) {
-        logMain(" - Can't sleep:");
-        logMain(" Lose D6 CLA\n", "damage");
-      }
-      logMain(" - Travel impared:");
-      logMain(` ${travellingBlind()}\n`, "travel");
-      currentWeather = 0;
-    } else if (currentWeather >= 2) {
-      logMain("Weather is worsening:");
-      logMain(` ${spark(kSparkExWeather)}\n`, "weather");
-    } else {
-      logMain("Weather is fine\n");
+  currentWeather = (currentWeather + 1) * pick(kDireWeatherRoll);
+  if (currentWeather >= 4) {
+    logMain("Dire weather!");
+    logMain(` ${spark(kSparkExWeather)}\n`, "weather");
+    if (night) {
+      logMain(" - Can't sleep:");
+      logMain(" Lose D6 CLA\n", "damage");
     }
+    logMain(" - Travel impared:");
+    logMain(` ${travellingBlind()}\n`, "travel");
+    currentWeather = 0;
+  } else if (currentWeather >= 2) {
+    logMain("Weather is worsening:");
+    logMain(` ${spark(kSparkExWeather)}\n`, "weather");
+  } else {
+    logMain("Weather is fine\n");
   }
 
   logSide("Ending in a Myth hex?\n");
@@ -385,11 +377,11 @@ a {
   padding: 4px 8px;
 }
 #explore_log {
-  min-height: 358px;
+  min-height: 364px;
 }
 .explore_log_row {
   display: flex;
-  gap: 16px;
+  gap: 32px;
   padding-bottom: 16px;
 }
 .log_type_damage { color: #f44336; }
@@ -443,7 +435,6 @@ a {
   <h2>Explore</h2>
   <div id="explore_inputs" class="flex_row">
     <div class="button" id="phase" onclick="clickExplorePhase()">Phase</div>
-    <div class="button on" onclick="clickExploreWeather(this)">Weather</div>
     <div class="button" onclick="clickExploreGo()">GO!</div>
   </div>
   <div class="log" id="explore_log"></div>
