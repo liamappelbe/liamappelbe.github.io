@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiragana Writing Practice</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="../res/favicon.ico">
+</head>
+
+<body>
+  <div id="head">
+    <a id="index" href="../index.html">&lt;</a>
+    <h1>Hiragana Writing</h1>
+  </div>
+
+  <div id="writing-container">
+    <div id="romanji-label">Write the hiragana for:</div>
+    <div id="romanji-value"></div>
+
+    <canvas id="drawing-canvas"></canvas>
+
+    <div id="buttons-section">
+      <button id="clear-btn">Clear</button>
+      <button id="reveal-btn">Reveal</button>
+      <button id="next-btn">Next</button>
+    </div>
+
+    <div id="answer-value"></div>
+
+    <div id="notes">
+      <hr>
+      <h2>Notes</h2>
+      Handwriting recognition is hard, so this tool doesn't check if you got it
+      right at all.
+      <br><br>
+      There are some hiragana with ambiguous romanji. The hiragana for shi and
+      chi, with a " (dakuten), are pronounced the same: ji. Same for
+      the hiragana for su + " and tsu + ", both pronounced zu. See
+      <a href="https://en.wikipedia.org/wiki/Yotsugana">Yotsugana</a> for more
+      info. To work around this, I'm using du to represent tsu + ", and di to
+      represent chi + ".
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
+  <script src="hiragana_writing.js"></script>
+</body>
+
+</html>
