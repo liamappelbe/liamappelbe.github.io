@@ -242,6 +242,15 @@ function flip2DArray(array) {
   return a;
 }
 
+function shuffle(array) {
+  for (let i = 0; i < array.length; ++i) {
+    const j = Math.floor(Math.random() * (array.length - i)) + i;
+    const t = array[i];
+    array[i] = array[j];
+    array[j] = t;
+  }
+}
+
 function parseCsv(str) {
   str = str.trim();
   const csv = [];

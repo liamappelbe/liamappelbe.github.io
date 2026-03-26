@@ -18,6 +18,7 @@ class KanaWriting {
 
     // Get all hiragana characters from kRomanji
     this.kanaList = Array.from(kRomanji.entries()).filter(validKana);
+    this.kanaIndex = this.kanaList.length;
 
     this.setupCanvas();
     this.attachEventListeners();
@@ -35,7 +36,7 @@ class KanaWriting {
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
     this.ctx.lineWidth = 3;
-    this.ctx.strokeStyle = '#fff';
+    this.ctx.strokeStyle = '#f5f5f5';
     this.ctx.fillStyle = '#212121';
 
     // Fill background
@@ -127,8 +128,12 @@ class KanaWriting {
     hide('answer-section');
 
     // Update display
-    const idx = Math.floor(Math.random() * this.kanaList.length);
-    const kana = this.kanaList[idx];
+    ++this.kanaIndex;
+    if (this.kanaIndex >= this.kanaList.length) {
+      this.kanaIndex = 0;
+      shuffle(this.kanaList);
+    }
+    const kana = this.kanaList[this.kanaIndex];
     node('romanji-value').textContent = kana[0];
     node('answer-value-h').textContent = kana[1][0];
     node('answer-value-k').textContent = kana[1][1];
