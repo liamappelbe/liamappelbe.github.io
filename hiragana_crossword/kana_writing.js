@@ -2,6 +2,12 @@ function node(id) { return document.getElementById(id); }
 function hide(id) { node(id).classList.add('hidden'); }
 function show(id) { node(id).classList.remove('hidden'); }
 
+function validKana([romanji, [hiragana, katakana]]) {
+  if (romanji == 'N') return false;
+  if (hiragana.length > 1) return false;
+  return true;
+}
+
 class KanaWriting {
   constructor() {
     this.canvas = node('drawing-canvas');
@@ -11,8 +17,7 @@ class KanaWriting {
     this.lastY = 0;
 
     // Get all hiragana characters from kRomanji
-    this.kanaList =
-        Array.from(kRomanji.entries()).filter((kana) => kana[0] != 'N');
+    this.kanaList = Array.from(kRomanji.entries()).filter(validKana);
 
     this.setupCanvas();
     this.attachEventListeners();
@@ -124,7 +129,6 @@ class KanaWriting {
     // Update display
     const idx = Math.floor(Math.random() * this.kanaList.length);
     const kana = this.kanaList[idx];
-    console.log(kana);
     node('romanji-value').textContent = kana[0];
     node('answer-value-h').textContent = kana[1][0];
     node('answer-value-k').textContent = kana[1][1];
