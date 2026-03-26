@@ -1,15 +1,18 @@
-class HiraganaWritingPractice {
+function node(id) { return document.getElementById(id); }
+function hide(id) { node(id).classList.add('hidden'); }
+function show(id) { node(id).classList.remove('hidden'); }
+
+class KanaWriting {
   constructor() {
-    this.canvas = document.getElementById('drawing-canvas');
+    this.canvas = node('drawing-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.isDrawing = false;
     this.lastX = 0;
     this.lastY = 0;
 
     // Get all hiragana characters from kRomanji
-    this.hiraganaList =
-        Array.from(kRomanji.entries()).filter(([romanji,
-                                                hiragana]) => romanji != 'N');
+    this.kanaList =
+        Array.from(kRomanji.entries()).filter((kana) => kana[0] != 'N');
 
     this.setupCanvas();
     this.attachEventListeners();
@@ -48,12 +51,12 @@ class HiraganaWritingPractice {
     this.canvas.addEventListener('touchcancel', () => this.stopDrawing());
 
     // Button events
-    document.getElementById('clear-btn')
-        .addEventListener('click', () => this.clearCanvas());
-    document.getElementById('reveal-btn')
-        .addEventListener('click', () => this.revealAnswer());
-    document.getElementById('next-btn')
-        .addEventListener('click', () => this.nextCharacter());
+    node('clear-btn').addEventListener('click', () => this.clearCanvas());
+    node('reveal-btn').addEventListener('click', () => this.revealAnswer());
+    node('next-btn').addEventListener('click', () => this.nextCharacter());
+
+    // Kana selector
+    node('kana-selector').addEventListener('change', () => this.kanaSelect());
   }
 
   getCanvasCoordinates(e) {
@@ -96,30 +99,39 @@ class HiraganaWritingPractice {
 
   stopDrawing() { this.isDrawing = false; }
 
+  kanaSelect() {
+    if (node('kana-selector').value == 'k') {
+      hide('answer-value-h');
+      show('answer-value-k');
+    } else {
+      show('answer-value-h');
+      hide('answer-value-k');
+    }
+  }
+
   clearCanvas() {
     this.ctx.fillStyle = '#212121';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  revealAnswer() {
-    const answerSection = document.getElementById('answer-value');
-    answerSection.classList.remove('hidden');
-  }
+  revealAnswer() { show('answer-section'); }
 
   nextCharacter() {
     // Clear canvas and hide answer
     this.clearCanvas();
-    document.getElementById('answer-value').classList.add('hidden');
+    hide('answer-section');
 
     // Update display
-    const idx = Math.floor(Math.random() * this.hiraganaList.length);
-    const current = this.hiraganaList[idx];
-    document.getElementById('romanji-value').textContent = current[0];
-    document.getElementById('answer-value').textContent = current[1];
+    const idx = Math.floor(Math.random() * this.kanaList.length);
+    const kana = this.kanaList[idx];
+    console.log(kana);
+    node('romanji-value').textContent = kana[0];
+    node('answer-value-h').textContent = kana[1][0];
+    node('answer-value-k').textContent = kana[1][1];
   }
 }
 
 // Initialize the practice when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-  new HiraganaWritingPractice();
+  new KanaWriting();
 });

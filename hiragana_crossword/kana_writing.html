@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kana Writing</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="../res/favicon.ico">
+</head>
+
+<body>
+  <div id="head">
+    <a id="index" href="../index.html">&lt;</a>
+    <h1>Kana Writing</h1>
+  </div>
+
+  <div id="writing-container">
+    <div id="romanji-label">
+      Write the
+      <select id="kana-selector">
+        <option value="h">hiragana</option>
+        <option value="k">katakana</option>
+      </select>
+      for:
+    </div>
+    <div id="romanji-value"></div>
+
+    <canvas id="drawing-canvas"></canvas>
+
+    <div id="buttons-section">
+      <button id="clear-btn">Clear</button>
+      <button id="reveal-btn">Answer</button>
+      <button id="next-btn">Next</button>
+    </div>
+
+    <div id="answer-section" class="hidden">
+      <div id="answer-value-h"></div>
+      <div id="answer-value-k" class="hidden"></div>
+    </div>
+
+    <div id="notes">
+      <hr>
+      <h2>Notes</h2>
+      Handwriting recognition is hard, so this tool doesn't check if you got it
+      right at all. Reveal the correct kana and decide for yourself if
+      you're close enough.
+      <br><br>
+      There are some kana with ambiguous romanji. The kana for shi and
+      chi, with a " (dakuten), are pronounced the same: ji. And the kana
+      for su" and tsu" are both pronounced zu. See
+      <a href="https://en.wikipedia.org/wiki/Yotsugana">Yotsugana</a> for more
+      info. To work around this, I'm using di to represent chi" and du to
+      represent tsu". The digraphs involving di are written as dya, dyu, and
+      dyo.
+      <br><br>
+      I haven't included any
+      <a href="https://en.wikipedia.org/wiki/Katakana#Extended_katakana">Extended katakana</a>
+      because it's hard to know where to draw the line. So I'm only including
+      the katakana that pair up with hiragana. The extended katakana are just
+      more of the same symbols though, so if you know ordinary katakana you know
+      extended katakana too.
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
+  <script src="kana_writing.js"></script>
+</body>
+
+</html>
