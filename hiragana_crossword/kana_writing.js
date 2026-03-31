@@ -23,6 +23,7 @@ class KanaWriting {
     this.setupCanvas();
     this.attachEventListeners();
     this.nextCharacter();
+    this.kanaSelect();
   }
 
   setupCanvas() {
