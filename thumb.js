@@ -1,5 +1,4 @@
 // TODO:
-//  - Playlist thumbnails (2x2, so need 4 copy buttons).
 //  - Configurable clamping limits.
 //  - Tweakable colors.
 
