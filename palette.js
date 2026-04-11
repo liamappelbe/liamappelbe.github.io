@@ -427,6 +427,38 @@ function generatePaletteInitialGuess(pixels, w, h, n) {
   return buckets;
 }
 
+function generatePaletteStep(pixels, w, h, pal, weight) {
+  const bukn = [];
+  const buckets = [];
+  for (let k = 0; k < pal.length; ++k) {
+    buckets[k] = new Color(0, 0, 0);
+    bukn[k] = 0;
+  }
+
+  for (let j = 0; j < h; ++j) {
+    for (let i = 0; i < w; ++i) {
+      const c = pixels[j * w + i];
+      const k = nearest(c, pal);
+      const u = weight(c);
+      bukn[k] += u;
+      buckets[k] = buckets[k].add(c.mul(u));
+    }
+  }
+
+  delta = 0;
+  for (let k = 0; k < pal.length; ++k) {
+    let newp = null;
+    if (bukn[k] == 0) {
+      newp = new Color(Math.random(), Math.random(), Math.random());
+    } else {
+      newp = buckets[k].mul(1 / bukn[k]);
+    }
+    delta += pal[k].dist2(newp);
+    pal[k] = newp;
+  }
+  return delta / pal.length;
+}
+
 function generatePalette(pixels, w, h, n) {
   const pal = generatePaletteInitialGuess(pixels, w, h, n);
 
@@ -439,34 +471,14 @@ function generatePalette(pixels, w, h, n) {
   let loop = 0;
   while (delta > 1e-6 && loop < 100) {
     ++loop;
-    for (let k = 0; k < n; ++k) {
-      buckets[k] = new Color(0, 0, 0);
-      bukn[k] = 0;
-    }
-
-    for (let j = 0; j < h; ++j) {
-      for (let i = 0; i < w; ++i) {
-        const c = pixels[j * w + i];
-        const k = nearest(c, pal);
-        const u = Math.pow(c.chroma, 5) * Math.pow(c.l, 2);
-        bukn[k] += u;
-        buckets[k] = buckets[k].add(c.mul(u));
-      }
-    }
-
-    delta = 0;
-    for (let k = 0; k < n; ++k) {
-      let newp = null;
-      if (bukn[k] == 0) {
-        newp = new Color(Math.random(), Math.random(), Math.random());
-      } else {
-        newp = buckets[k].mul(1 / bukn[k]);
-      }
-      delta += pal[k].dist2(newp);
-      pal[k] = newp;
-    }
-    delta /= n;
+    delta = generatePaletteStep(pixels, w, h, pal, c => 1);
   }
+
+  // pal now contains the "middle" of the palette buckets. These define the
+  // buckets, but are not good representatives of it. Bias towards picking
+  // brighter and more saturated colors from each bucket.
+  generatePaletteStep(
+      pixels, w, h, pal, c => Math.pow(c.chroma, 3) * Math.pow(c.l, 2));
 
   return pal;
 }
