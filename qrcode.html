@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>QR Code Generator</title>
+<link rel="icon" href="res/favicon.ico">
+<script src="qrcode.js"></script>
+<script type="text/javascript">
+let currentData = null;
+let currentOptions = null;
+
+function generate() {
+  const inputElement = document.getElementById('input');
+  let input = inputElement.value;
+  if (!input) {
+    input = "www.tiusic.com";
+    inputElement.value = input;
+  }
+  const mode = document.getElementById('mode').value;
+  const ecc = document.getElementById('ecc').value;
+  const output = document.getElementById('output');
+
+  currentData = input;
+  if (mode !== "auto") {
+    currentData = [{ data: input, mode: mode }];
+  }
+
+  currentOptions = {
+    errorCorrectionLevel: ecc,
+    margin: 4,
+  };
+
+  QRCode.toString(currentData, currentOptions, (err, svg) => {
+    if (err) {
+      alert("Error: " + err.message);
+      return;
+    }
+    output.innerHTML = svg;
+    output.style.display = 'inline-block';
+    document.getElementById('controls-row').style.display = 'flex';
+    updateSize();
+  });
+}
+
+function updateSize() {
+  const size = document.getElementById('size-slider').value;
+  document.getElementById('size-label').innerText = size + 'px';
+  const svg = document.querySelector('#output svg');
+  if (svg) {
+    svg.style.width = size + 'px';
+    svg.style.height = size + 'px';
+  }
+}
+
+function downloadFile(content, fileName, contentType) {
+  const a = document.createElement("a");
+  const file = new Blob([content], {type: contentType});
+  a.href = URL.createObjectURL(file);
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function saveSVG() {
+  const size = document.getElementById('size-slider').value;
+  const options = { ...currentOptions, width: parseInt(size) };
+  QRCode.toString(currentData, options, (err, svg) => {
+    if (err) return;
+    downloadFile(svg, 'qrcode.svg', 'image/svg+xml');
+  });
+}
+
+function savePNG() {
+  const size = document.getElementById('size-slider').value;
+  const options = { ...currentOptions, width: parseInt(size) };
+  QRCode.toDataURL(currentData, options, (err, url) => {
+    if (err) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = 'qrcode.png';
+    a.click();
+  });
+}
+
+function onLoad() {
+  document.getElementById('generate').addEventListener('click', generate);
+  document.getElementById('size-slider').addEventListener('input', updateSize);
+  document.getElementById('save-svg').addEventListener('click', saveSVG);
+  document.getElementById('save-png').addEventListener('click', savePNG);
+}
+window.addEventListener('load', onLoad);
+</script>
+<style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+body {
+  background-color: #212121;
+  margin: 0;
+  flex-grow: 1;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.flex_col, .flex_row {
+  display: flex;
+}
+.flex_col {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.flex_row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-end;
+}
+#controls-row {
+  display: none;
+  margin-top: 0;
+}
+
+textarea {
+  width: 100%;
+  max-width: 600px;
+  height: 120px;
+  background-color: #424242;
+  color: #f5f5f5;
+  border: none;
+  font-family: monospace;
+  font-size: 16px;
+  padding: 8px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  align-items: center;
+}
+label {
+  margin-bottom: 4px;
+  color: #ffc107;
+}
+select {
+  background-color: #424242;
+  color: #f5f5f5;
+  border: none;
+  font-family: monospace;
+  font-size: 16px;
+  padding: 8px;
+  cursor: pointer;
+}
+button {
+  background-color: #2e7d32;
+  color: #f5f5f5;
+  border: none;
+  font-family: monospace;
+  font-size: 16px;
+  padding: 8px 24px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #388e3c;
+  color: #ffffff;
+}
+input[type=range] {
+  cursor: pointer;
+  accent-color: #ffc107;
+  width: 240px;
+}
+#output_container {
+  margin-top: 32px;
+  text-align: center;
+}
+#output {
+  background-color: #ffffff;
+  padding: 16px;
+  display: none;
+}
+#output svg {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>QR Code Generator</h1>
+</div>
+<div id="wrap">
+  <div class="flex_col">
+    <textarea id="input" placeholder="Data (URL, text, etc)..."></textarea>
+
+    <div class="flex_row">
+      <div class="setting-item">
+        <label for="mode">Mode:</label>
+        <select id="mode">
+          <option value="auto">Auto</option>
+          <option value="numeric">Numeric</option>
+          <option value="alphanumeric">Alphanumeric</option>
+          <option value="byte">Byte</option>
+          <option value="kanji">Kanji</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="ecc">Error Correction:</label>
+        <select id="ecc">
+          <option value="L">Low (7%)</option>
+          <option value="M" selected>Medium (15%)</option>
+          <option value="Q">Quartile (25%)</option>
+          <option value="H">High (30%)</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label style="visibility: hidden;">Spacer</label>
+        <button id="generate">Generate</button>
+      </div>
+    </div>
+
+    <div id="controls-row" class="flex_row">
+      <div class="setting-item">
+        <label for="size-slider">Size: <span id="size-label">600px</span></label>
+        <input type="range" id="size-slider" min="100" max="2160" value="600">
+      </div>
+      <div class="setting-item">
+        <label style="visibility: hidden;">Spacer</label>
+        <button id="save-svg">Save SVG</button>
+      </div>
+      <div class="setting-item">
+        <label style="visibility: hidden;">Spacer</label>
+        <button id="save-png">Save PNG</button>
+      </div>
+    </div>
+
+    <div id="output_container">
+      <div id="output"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
