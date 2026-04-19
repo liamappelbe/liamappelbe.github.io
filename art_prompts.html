@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ava's Art Prompts</title>
+<link rel="icon" href="res/favicon.ico">
+<script type="text/javascript">
+
+const PROMPTS = [
+  "Strawberries",
+  "Possums",
+  "Quokkas",
+  "Kookaburras",
+  "Frogs",
+  "Snails",
+  "Otters",
+  "Leopold",
+  "Flowers I buy",
+  "Clouds",
+  "Lighthouses",
+  "Doors",
+  "Pokemon",
+  "Firelight",
+  "Candles",
+  "Cats",
+  "Kittens",
+  "Goldfish",
+  "Sunfish",
+  "Mushrooms",
+  "Gnomes",
+  "Ladybugs",
+  "Goose",
+  "Pine trees",
+  "Stars",
+  "Christmas",
+  "Paws",
+  "Ice cream",
+  "Pancakes",
+  "Cakes",
+  "Scones",
+  "Oranges",
+  "Friends",
+  "Cozy",
+  "Love",
+  "Bubble tea",
+  "Cup of tea",
+  "Glow light",
+  "Fireflies",
+  "Lanterns",
+  "Lamps",
+  "Ribbons",
+  "Hiking",
+  "Nature scene",
+  "Forests",
+  "Watecolour",
+  "Crayons",
+  "Colourful",
+  "Books",
+  "Puzzle",
+  "Hugs",
+  "Blankets",
+  "Cuddling",
+  "Roadtrip",
+  "Studio Ghibli",
+  "Corals",
+  "Rosy cheeks",
+  "Matcha",
+  "Cafes",
+  "Crumpets",
+  "Dragons",
+  "Dinosaurs",
+  "Apples",
+  "Pies",
+  "Bees",
+  "Jelly beans",
+  "Jelly cats",
+  "Honey",
+  "Pretty streets",
+  "Acorn",
+  "Fish",
+];
+
+const EXTENDED_PROMPTS = [
+  "Blueberries",
+  "Cherries",
+  "Peaches",
+  "Pears",
+  "Lemons",
+  "Limes",
+  "Hedgehogs",
+  "Capybaras",
+  "Red Pandas",
+  "Bunnies",
+  "Ducklings",
+  "Axolotls",
+  "Mouse in a teacup",
+  "Bear with honey",
+  "Teapots",
+  "Teacups",
+  "Hot cocoa",
+  "Macarons",
+  "Croissants",
+  "Honey toast",
+  "Cinnamon rolls",
+  "Donuts",
+  "Cookies",
+  "Fruit tarts",
+  "Jam jars",
+  "Picnic baskets",
+  "Bento boxes",
+  "Onigiri",
+  "Ramen bowls",
+  "Steamed buns",
+  "Dumplings",
+  "Sushi rolls",
+  "Matcha lattes",
+  "Latte art",
+  "Popsicles",
+  "Cotton candy",
+  "Lollipops",
+  "Gummy bears",
+  "Caramel apples",
+  "Pie slices",
+  "Pumpkins",
+  "Pinecones",
+  "Toadstools",
+  "Mossy rocks",
+  "Ferns",
+  "Lavender",
+  "Daisies",
+  "Sunflowers",
+  "Tulips",
+  "Lily pads",
+  "Lotus flowers",
+  "Wreaths",
+  "Flower crowns",
+  "Bouquets",
+  "Watering cans",
+  "Gardening gloves",
+  "Wellies",
+  "Raincoats",
+  "Umbrellas",
+  "Raindrops",
+  "Rainbows",
+  "Cloud with a face",
+  "Sunbeams",
+  "Starry jars",
+  "Treehouses",
+  "Windmills",
+  "Tents",
+  "Hammocks",
+  "Tree swings",
+  "Bridges",
+  "Waterfalls",
+  "Streams",
+  "Ponds",
+  "Meadows",
+  "Forest clearings",
+  "Beach huts",
+  "Sandcastles",
+  "Seashells",
+  "Coral reefs",
+  "Mermaids",
+  "Unicorns",
+  "Pegasus",
+  "Fairies",
+  "Friendly ghosts",
+  "Cottage witches",
+  "Potion bottles",
+  "Crystal balls",
+  "Magic wands",
+  "Spellbooks",
+  "Brooms",
+  "Owls",
+  "Deer",
+  "Fawns",
+  "Foxes",
+  "Raccoons",
+  "Badgers",
+  "Squirrels",
+  "Chipmunks",
+  "Bluebirds",
+  "Hummingbirds",
+  "Butterflies",
+  "Dragonflies",
+  "Jellyfish",
+  "Seahorses",
+  "Starfish",
+  "Sweaters",
+  "Wool socks",
+  "Mittens",
+  "Scarves",
+  "Quilts",
+  "Pillows",
+  "Windowsills",
+  "Rainy windows",
+  "Fireplaces",
+  "Reading nooks",
+  "Attic rooms",
+  "Greenhouses",
+  "Terrariums",
+  "Succulents",
+  "Vintage keys",
+  "Lockets",
+  "Teddy bears",
+  "Paper cranes",
+  "Washi tape",
+  "Sketchbooks",
+  "Ink wells",
+  "Quill pens",
+  "Letters",
+  "Envelopes",
+  "Wax seals",
+  "Postcards",
+  "Stationery",
+  "Typewriters",
+  "Gramophones",
+  "Vinyl records",
+  "Suitcases",
+  "Hot air balloons",
+  "Kites",
+  "Paper boats",
+  "Bicycle with a basket",
+  "Telescopes",
+  "Compass",
+  "Pocket watch",
+  "Magnifying glass",
+  "Crystals",
+  "Dried herbs",
+  "Wishing well",
+  "Secret garden",
+  "Porch swing",
+  "Breakfast in bed",
+  "Tea party",
+  "Stargazing",
+  "Cloud watching",
+  "Berry picking",
+  "Snowy day",
+  "Foggy morning",
+  "Sunset glow",
+  "Twilight sky",
+  "Full moon",
+  "Shooting star",
+  "Floating island",
+  "Castle in the sky",
+  "Cozy cottage",
+  "Tiny house",
+  "Market stall",
+  "Train ride",
+  "Embroidery hoop",
+  "Yarn balls",
+  "Knitting needles",
+  "Pottery wheel",
+  "Clay pots",
+  "Canvas shoes",
+  "Sundresses",
+  "Sun hats",
+  "Parasols",
+  "Shell necklaces",
+  "Sea glass",
+  "Driftwood",
+  "Tide pools",
+  "Lighthouse beams",
+  "Night market",
+  "Bakeries",
+  "Flower shops",
+  "Bookstores",
+  "Toy stores",
+  "Candy shops",
+  "Carousel",
+  "Ferris wheel",
+  "Hot springs",
+  "Tea garden",
+  "Zen garden",
+  "Bonsai trees",
+  "Cherry blossoms",
+  "Autumn leaves",
+  "Snowflakes",
+  "Icicles",
+  "Mistletoe",
+  "Holly berries",
+  "Gingerbread houses",
+  "Stockings",
+  "Nutcrackers",
+  "Snow globes",
+  "Music boxes",
+  "Clocks",
+  "Candlesticks",
+  "Oil lamps",
+  "String lights",
+  "Sparklers",
+  "Balloons",
+  "Cupcakes",
+  "Pudding",
+  "Custard",
+  "Honeybees",
+  "Lavender sprigs",
+  "Willow trees",
+  "Wishing stars",
+  "Sun catchers",
+  "Wind chimes",
+  "Rain boots",
+  "Picnic blankets",
+  "Picnic lunches",
+  "Tea kettles",
+  "Coffee beans",
+  "Sugar cubes",
+  "Honey dippers",
+  "Bread loaves",
+  "Cheese platters",
+  "Fruit baskets",
+  "Flower petals",
+  "Leaf piles",
+  "Snowmen",
+  "Sand dollars",
+  "Sea turtles",
+  "Narwhals",
+  "Polar bears",
+  "Penguins",
+  "Arctic foxes",
+  "Snowy owls",
+  "Reindeer",
+  "Sleighs",
+  "Bells",
+  "Bows",
+  "Wrapping paper",
+  "Gift tags",
+  "Ornaments",
+  "Garlands",
+  "Confetti",
+  "Party hats",
+  "Cupcake liners",
+  "Sprinkles",
+  "Chocolate bars",
+  "Candy canes",
+  "Gumball machines",
+  "Teddy bear picnic",
+  "Dolls",
+  "Toy soldiers",
+  "Paper dolls",
+  "Origami",
+  "Paper airplanes",
+  "Ink bottles",
+  "Sealing wax",
+  "Stamps",
+  "Stickers",
+  "Journal pages",
+  "Doodles",
+  "Paint palette",
+  "Brushes",
+  "Easels",
+  "Canvases",
+  "Frames",
+  "Bistros",
+  "Patio chairs",
+  "Garden benches",
+  "Fountains",
+  "Statues",
+  "Gazebos",
+  "Pergolas",
+  "Arbors",
+  "Trellises",
+  "Fences",
+  "Gates",
+  "Pathways",
+  "Stepping stones",
+  "Cobblestones",
+  "Brick walls",
+  "Stone walls",
+  "Ivy walls",
+  "Hedges",
+  "Topiaries",
+  "Fruit trees",
+  "Vegetable gardens",
+  "Herb gardens",
+  "Wildflower meadows",
+  "Cottages",
+  "Farmhouses",
+  "Castles",
+  "Streets",
+  "Alleys",
+  "Squares",
+  "Parks",
+  "Canals",
+  "Harbors",
+  "Marinas",
+  "Beaches",
+  "Coves",
+  "Cliffs",
+  "Islands",
+  "Reefs",
+  "Oceans",
+  "Lakes",
+  "Rivers",
+  "Marshes",
+  "Jungles",
+  "Mountains",
+  "Valleys",
+  "Caves",
+  "Moon",
+  "Planets",
+  "Galaxies",
+  "Nebulae",
+  "Comet",
+];
+
+let shuffledPrompts = [];
+let currentIndex = 0;
+let usingExtended = false;
+
+function shuffle(array) {
+  for (let i = 0; i < array.length; ++i) {
+    const j = Math.floor(Math.random() * (array.length - i)) + i;
+    const t = array[i];
+    array[i] = array[j];
+    array[j] = t;
+  }
+}
+
+function nextPrompt() {
+  const isExtended = document.getElementById('extended_check').checked;
+
+  if (currentIndex >= shuffledPrompts.length || isExtended !== usingExtended) {
+    usingExtended = isExtended;
+    shuffledPrompts = [...PROMPTS];
+    if (usingExtended) {
+      shuffledPrompts = shuffledPrompts.concat(EXTENDED_PROMPTS);
+    }
+    shuffle(shuffledPrompts);
+    currentIndex = 0;
+  }
+  
+  const promptDisplay = document.getElementById('prompt-display');
+  promptDisplay.innerText = shuffledPrompts[currentIndex++];
+}
+
+function onLoad() {
+  document.getElementById('next_button').addEventListener('click', nextPrompt);
+}
+
+window.addEventListener('load', onLoad);
+</script>
+<style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+body {
+  background-color: #212121;
+  margin: 0;
+  flex-grow: 1;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+#wrap {
+  padding: 0 16px;
+  color: #f5f5f5;
+  font-family: monospace;
+  font-size: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  text-align: center;
+}
+#prompt-display {
+  min-height: 1.2em;
+}
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 48px;
+}
+#next_button {
+  background-color: #ff5722;
+  border-radius: 8px;
+  padding: 16px 32px;
+  color: #212121;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  font-family: monospace;
+  font-size: 24px;
+  margin-right: 48px;
+}
+#next_button:hover {
+  background-color: #ffc107;
+}
+#extended_label {
+  font-size: 24px;
+  cursor: pointer;
+  user-select: none;
+}
+#extended_check {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+</style>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Ava's Art Prompts</h1>
+</div>
+<div id="wrap">
+  <div class="row">
+    <div id="next_button">Prompt</div>
+    <label id="extended_label">
+      <input type="checkbox" id="extended_check"> Extended list
+    </label>
+  </div>
+  <div id="prompt-display"></div>
+</div>
+</body>
+</html>
