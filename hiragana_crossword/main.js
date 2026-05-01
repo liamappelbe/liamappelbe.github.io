@@ -395,118 +395,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function buildHiraganaKeyboard() {
-    const kDakuten = '‶';
-    const kHandakuten = '°';
-    const kHira = [
-      ['あ', 'い', 'う', 'え', 'お'],
-      ['か', 'き', 'く', 'け', 'こ'],
-      ['さ', 'し', 'す', 'せ', 'そ'],
-      ['た', 'ち', 'つ', 'て', 'と'],
-      ['な', 'に', 'ぬ', 'ね', 'の'],
-      ['は', 'ひ', 'ふ', 'へ', 'ほ'],
-      ['ま', 'み', 'む', 'め', 'も'],
-      ['や', '', 'ゆ', '', 'よ'],
-      ['ら', 'り', 'る', 'れ', 'ろ'],
-      ['わ', '', '', '', 'を'],
-      ['ゃ', 'ゅ', 'ょ', 'っ', 'ん'],
-      ['', kDakuten, '', kHandakuten, ''],
-    ];
-
-    const kDakMod = [
-      null,
-      ['が', 'ぎ', 'ぐ', 'げ', 'ご'],
-      ['ざ', 'じ', 'ず', 'ぜ', 'ぞ'],
-      ['だ', 'ぢ', 'づ', 'で', 'ど'],
-      null,
-      ['ば', 'び', 'ぶ', 'べ', 'ぼ'],
-    ];
-    const kHanMod = [
-      null,
-      null,
-      null,
-      null,
-      null,
-      ['ぱ', 'ぴ', 'ぷ', 'ぺ', 'ぽ'],
-    ];
-
-    const dakuBtn = [];
-
+  function setupHiraganaKeyboard() {
     const keyboard = document.getElementById('hiragana-keyboard');
-    keyboard.addEventListener('mousedown', e => e.preventDefault());
-
-    const table = document.createElement('table');
-
-    function applyDakuMod(mod) {
-      for (let r = 0; r < kHira.length - 1; ++r) {
-        const silenced = mod[r] == null;
-        const hr = mod[r] ?? kHira[r];
-        for (let c = 0; c < hr.length; c++) {
-          const td = table.childNodes[r].childNodes[c];
-          td.textContent = hr[c];
-          td.classList.toggle('silenced', silenced);
-        }
-      }
-    }
-
-    function onDakuten(e) {
-      e.preventDefault();
-      const td = e.target;
-      const h = td.textContent;
-      console.assert(h == kDakuten || h == kHandakuten);
-      const on = td.classList.toggle('enabled');
-      let mod = kHira;
-      if (on) {
-        for (const b of dakuBtn) {
-          if (b != td) b.classList.remove('enabled');
-        }
-        mod = h == kDakuten ? kDakMod : kHanMod;
-      }
-      applyDakuMod(mod);
-    }
-
-    function sendKeyEvent(type, key) {
+    buildHiraganaKeyboard(keyboard, (h) => {
       const target = document.activeElement;
       if (target != null && target.classList.contains('crossword-input')) {
-        target.dispatchEvent(new KeyboardEvent(
-            type, {key: key, bubbles: true, cancelable: true}));
-        return target;
+        target.dispatchEvent(new KeyboardEvent('keydown', {key: h, bubbles: true, cancelable: true}));
+        target.value = h;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      return null;
-    }
-    function onKeyDown(e) {
-      e.preventDefault();
-      const h = e.target.textContent;
-      const inp = sendKeyEvent('keydown', h);
-      if (inp != null) inp.value = h;
-
-      for (const b of dakuBtn) b.classList.remove('enabled');
-      applyDakuMod(kHira);
-    }
-    function onKeyUp(e) { sendKeyEvent('keyup', e.target.textContent); }
-
-    for (let r = 0; r < kHira.length; ++r) {
-      const hr = kHira[r];
-      const tr = document.createElement('tr');
-      for (let c = 0; c < hr.length; c++) {
-        const h = hr[c];
-        const td = document.createElement('td');
-        td.textContent = h;
-        if (h == kDakuten || h == kHandakuten) {
-          dakuBtn.push(td);
-          td.classList.add('dakuten');
-          td.addEventListener('mousedown', onDakuten);
-        } else if (h.length > 0) {
-          td.addEventListener('mousedown', onKeyDown);
-          td.addEventListener('mouseup', onKeyUp);
-        } else {
-          td.classList.add('empty');
-        }
-        tr.appendChild(td);
-      }
-      table.appendChild(tr);
-    }
-    keyboard.appendChild(table);
+    });
   }
 
   const db = new Storage('HiraganaCrossword');
@@ -534,7 +432,7 @@ window.addEventListener('DOMContentLoaded', () => {
     return [parseInt(ms), Crossword.decode(cs), p];
   }
 
-  buildHiraganaKeyboard();
+  setupHiraganaKeyboard();
   if (!tryLoadCrossword()) newHiraganaCrossword();
   document.getElementById('new-eng-btn').onclick = newEnglishCrossword;
   document.getElementById('new-hir-btn').onclick = newHiraganaCrossword;

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Vocab Practice - Hiragana Crossword</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="../res/favicon.ico">
+  <style>
+    #vocab-container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 60px;
+      margin-top: 40px;
+      width: min(1200px, 95%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #main-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      flex: 1;
+      max-width: 600px;
+    }
+
+    #task-description {
+      font-size: 1.2em;
+      color: #9e9e9e;
+      text-align: center;
+    }
+
+    #prompt-word {
+      font-size: 3em;
+      color: #ffc107;
+      font-weight: bold;
+      text-align: center;
+      background: #424242;
+      padding: 20px 40px;
+      border-radius: 8px;
+      border: 2px solid #555;
+      min-width: 200px;
+    }
+
+    #answer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    #vocab-input {
+      width: 100%;
+      background: #fff;
+      color: #212121;
+      border: none;
+      border-radius: 6px;
+      padding: 15px;
+      font-size: 1.5em;
+      font-family: monospace;
+      text-align: center;
+      outline: none;
+    }
+
+    #vocab-input.correct {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    #vocab-input.incorrect {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    #feedback {
+      font-size: 1.2em;
+      height: 1.5em;
+    }
+
+    #feedback.correct {
+      color: #2a8f2a;
+    }
+
+    #feedback.incorrect {
+      color: #f44336;
+    }
+
+    #correct-answer {
+      font-size: 1.1em;
+      color: #03a9f4;
+      margin-top: 5px;
+    }
+
+    #controls {
+      display: flex;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .form-label {
+        font-size: 0.8em;
+        color: #9e9e9e;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="head">
+    <a id="index" href="../index.html">&lt;</a>
+    <h1>Vocab Practice</h1>
+  </div>
+
+  <div id="vocab-container">
+    <div id="main-area">
+      <div id="task-description"></div>
+      
+      <div style="display: flex; flex-direction: column; align-items: center;">
+          <div id="prompt-form-label" class="form-label"></div>
+          <div id="prompt-word">...</div>
+      </div>
+
+      <div id="answer-container">
+        <div id="target-form-label" class="form-label"></div>
+        <input type="text" id="vocab-input" placeholder="Type answer here..." autocomplete="off" autofocus>
+        <div id="feedback"></div>
+        <div id="correct-answer"></div>
+      </div>
+
+      <div id="controls">
+        <button id="check-btn">Check</button>
+        <button id="next-btn">Next Word</button>
+      </div>
+    </div>
+
+    <div id="hiragana-keyboard" class="hidden"></div>
+  </div>
+
+  <div id="instructions">
+    <hr>
+  </div>
+
+  <script src="utils.js"></script>
+  <script src="storage.js"></script>
+  <script src="dictionary.js"></script>
+  <script src="vocab.js"></script>
+</body>
+
+</html>

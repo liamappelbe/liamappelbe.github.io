@@ -1,21 +1,37 @@
 function wait() { return new Promise(resolve => setTimeout(resolve, 0)); }
+function randInt(n) { return Math.floor(Math.random() * n); }
+function pick(array) { return array[randInt(array.length)]; }
+
+function sameElements(itr1, itr2) {
+  const s1 = new Set(itr1);
+  if (!itr2.every((x) => s1.has(x))) return false;
+  const s2 = new Set(itr2);
+  return itr1.every((x) => s2.has(x))
+}
+
+function getOrInsert(map, key, fn) {
+  if (!map.has(key)) {
+    const val = fn();
+    map.set(key, val);
+    return val;
+  }
+  return map.get(key);
+}
 
 class MultiMapBuilder {
   constructor() { this._map = new Map(); }
-
-  _poke(key) {
-    if (!this._map.has(key)) this._map.set(key, new Set());
-    return this._map.get(key);
-  }
+  _poke(key) { return getOrInsert(this._map, key, () => new Set()); }
 
   add(key, value) {
-    if (key != null) this._poke(key).add(value);
+    if (key != null && value != null) this._poke(key).add(value);
   }
 
   addAll(key, values) {
     if (key == null) return;
     const entry = this._poke(key);
-    for (const value of values) entry.add(value);
+    for (const value of values) {
+      if (value != null) entry.add(value);
+    }
   }
 
   build() {
@@ -36,14 +52,11 @@ class MultiMap {
   get(key) { return this._map.get(key); }
   has(key) { return this._map.has(key); }
   keys() { return this._keys; }
-
-  randomKey() {
-    return this._keys[Math.floor(Math.random() * this._keys.length)];
-  }
+  randomKey() { return pick(this._keys); }
 
   randomValue(k) {
     const values = this._map.get(k);
-    return values ? values[Math.floor(Math.random() * values.length)] : null;
+    return values ? pick(values) : null;
   }
 }
 
@@ -63,6 +76,8 @@ class Dictionary {
     }
     this._jap = new DictionaryView(jap.build());
     this._eng = new DictionaryView(eng.build());
+
+    this._form = new DictionaryFormView(raw);
   }
 
   // Returns a set of English translations for a given Japanese word.
@@ -73,6 +88,7 @@ class Dictionary {
 
   japView() { return this._jap; }
   engView() { return this._eng; }
+  formView() { return this._form; }
 }
 
 class DictionaryView {
@@ -105,26 +121,75 @@ class DictionaryView {
   get(word) { return this._dict.get(word); }
   getUni(uni) { return this._uni.get(uni); }
   getBi(bi, dist) { return this._bi.get(bi + dist); }
-
-  randomWord() {
-    return this._words[Math.floor(Math.random() * this._words.length)];
-  }
-
+  randomWord() { return pick(this._words); }
   randomTranslation(word) { return this._dict.randomValue(word); }
   randomUni(uni) { return this._uni.randomValue(uni); }
   randomBi(bi, dist) { return this._bi.randomValue(bi + dist); }
 }
 
+class DictionaryFormView {
+  // Same input as Dictionary constructor, but unstated up there is that some
+  // English words can have a form in parens. We're not interested in entries
+  // with no form.
+  constructor(raw) {
+    const d = new Map();
+    for (const entry of raw) {
+      const [eraw, jraw] = entry;
+      const eng = toArray(eraw);
+      const jap = toArray(jraw)
+                      .map(toHiragana)
+                      .map((w) => cleanHiraganaAnswer(w, 1))
+                      .filter((w) => w != null);
+
+      // Discard any entries with no form, or where the English entries' forms
+      // don't match.
+      let form = null;
+      for (const word of eng) {
+        if (word == null) continue;
+        const m = word.match(/.*\(([^)]*)\)/);
+        const f = m ? m[1] : null;
+        if (f == null) {
+          form = null;
+          break;
+        } else if (form == null) {
+          form = f;
+        } else if (form != f) {
+          form = null;
+          break;
+        }
+      }
+      if (form == null) continue;
+
+      const cleanEng = eng.map((w) => cleanEnglishAnswer(w, 1).toLowerCase())
+                           .filter((w) => w != null)
+                           .sort();
+      const key = cleanEng.join('|');
+      const gridEntry =
+          getOrInsert(d, key, () => new Map([['english', new Set(cleanEng)]]));
+      const formEntry = getOrInsert(gridEntry, form, () => new Set());
+      for (const j of jap) formEntry.add(j);
+    }
+    // Array<Map<Str form, Set<Str cleanWord, ...>>>
+    this._entries = Array.from(d.values());
+  }
+
+  // Map<Str form, Set<Str cleanWord, ...>>
+  randomEntry() { return pick(this._entries); }
+}
+
 class MetaDictionary {
-  // metaraw is an array of [name, raw] pairs, where each raw has the format
-  // that the Dictionary constructor expects.
+  // metaraw is an array of [name, raw] pairs, where each raw is an array with
+  // the format that the Dictionary constructor expects.
   constructor(metaraw) {
-    // TODO: Implement dictionary selection and merging mechanism.
-    this._dicts = new Map(metaraw.map(d => [d[0], new Dictionary(d[1])]));
-    this._all = new Dictionary(metaraw.flatMap(d => d[1]));
+    this._raw = metaraw;
+    this._all = this.select(name => true);
   }
 
   all() { return this._all; }
+  select(byName) {
+    return new Dictionary(
+        this._raw.filter(d => byName(d[0])).flatMap(d => d[1]));
+  }
 }
 
 class Gram {
@@ -244,7 +309,7 @@ function flip2DArray(array) {
 
 function shuffle(array) {
   for (let i = 0; i < array.length; ++i) {
-    const j = Math.floor(Math.random() * (array.length - i)) + i;
+    const j = randInt(array.length - i) + i;
     const t = array[i];
     array[i] = array[j];
     array[j] = t;
@@ -289,6 +354,8 @@ function parseCsv(str) {
   return csv;
 }
 
+// [[[Str englishWord, ...], [Str romanjiWord, ...]]]
+// Array<Tuple<Array<Str englishWord>, Array<Str romanjiWord>>>
 function parseWordCsv(str) {
   return parseCsv(str).map(row => {
     const e = [];
@@ -305,6 +372,8 @@ function parseWordCsv(str) {
   });
 }
 
+// [[[Str englishWordWithForm, ...], Str romanjiWord], ...]
+// Array<Tuple<Array<Str englishWordWithForm>, Str romanjiWord>>
 function parseComboCsv(str) {
   const csv = parseCsv(str);
   const names = csv[0];
@@ -313,8 +382,8 @@ function parseComboCsv(str) {
   const sub = sufs[sj];
   const out = [];
   for (let i = 2; i < csv.length; i++) {
-    const row = csv[i];
-    const e = [];
+    const row = csv[i];  // [Str cell, ...]
+    const e = [];  // [Str englishWord, ...]
     console.assert(row[sj].endsWith(sub));
     const root = row[sj].slice(0, -sub.length);
     for (let j = 0; j < row.length; j++) {
@@ -374,7 +443,7 @@ function toKana(romanji, kind) {
   return hiragana;
 }
 
-function cleanEnglishAnswer(word) {
+function cleanEnglishAnswer(word, minLength = 2) {
   // Remove anything in parentheses. TODO: Should we also remove special chars
   // like ' ' and "'"?
   let cleaned = '';
@@ -393,12 +462,113 @@ function cleanEnglishAnswer(word) {
     }
   }
   const out = cleaned.trim().toUpperCase();
-  return out.length < 2 ? null : out;
+  return out.length < minLength ? null : out;
 }
 
-function cleanHiraganaAnswer(word) {
+function cleanHiraganaAnswer(word, minLength = 2) {
   const out = word.trim();
-  return out.length < 2 ? null : out;
+  return out.length < minLength ? null : out;
+}
+
+function buildHiraganaKeyboard(keyboard, onKey) {
+  const kDakuten = '‶';
+  const kHandakuten = '°';
+  const kHira = [
+    ['あ', 'い', 'う', 'え', 'お'],
+    ['か', 'き', 'く', 'け', 'こ'],
+    ['さ', 'し', 'す', 'せ', 'そ'],
+    ['た', 'ち', 'つ', 'て', 'と'],
+    ['な', 'に', 'ぬ', 'ね', 'の'],
+    ['は', 'ひ', 'ふ', 'へ', 'ほ'],
+    ['ま', 'み', 'む', 'め', 'も'],
+    ['や', '', 'ゆ', '', 'よ'],
+    ['ら', 'り', 'る', 'れ', 'ろ'],
+    ['わ', '', '', '', 'を'],
+    ['ゃ', 'ゅ', 'ょ', 'っ', 'ん'],
+    ['', kDakuten, '', kHandakuten, ''],
+  ];
+
+  const kDakMod = [
+    null,
+    ['が', 'ぎ', 'ぐ', 'げ', 'ご'],
+    ['ざ', 'じ', 'ず', 'ぜ', 'ぞ'],
+    ['だ', 'ぢ', 'づ', 'で', 'ど'],
+    null,
+    ['ば', 'び', 'ぶ', 'べ', 'ぼ'],
+  ];
+  const kHanMod = [
+    null,
+    null,
+    null,
+    null,
+    null,
+    ['ぱ', 'ぴ', 'ぷ', 'ぺ', 'ぽ'],
+  ];
+
+  const dakuBtn = [];
+
+  keyboard.addEventListener('mousedown', e => e.preventDefault());
+
+  const table = document.createElement('table');
+
+  function applyDakuMod(mod) {
+    for (let r = 0; r < kHira.length - 1; ++r) {
+      const silenced = mod[r] == null;
+      const hr = mod[r] ?? kHira[r];
+      for (let c = 0; c < hr.length; c++) {
+        const td = table.childNodes[r].childNodes[c];
+        td.textContent = hr[c];
+        td.classList.toggle('silenced', silenced);
+      }
+    }
+  }
+
+  function onDakuten(e) {
+    e.preventDefault();
+    const td = e.target;
+    const h = td.textContent;
+    console.assert(h == kDakuten || h == kHandakuten);
+    const on = td.classList.toggle('enabled');
+    let mod = kHira;
+    if (on) {
+      for (const b of dakuBtn) {
+        if (b != td) b.classList.remove('enabled');
+      }
+      mod = h == kDakuten ? kDakMod : kHanMod;
+    }
+    applyDakuMod(mod);
+  }
+
+  function onKeyDown(e) {
+    e.preventDefault();
+    const h = e.target.textContent;
+    onKey(h);
+
+    for (const b of dakuBtn) b.classList.remove('enabled');
+    applyDakuMod(kHira);
+  }
+
+  for (let r = 0; r < kHira.length; ++r) {
+    const hr = kHira[r];
+    const tr = document.createElement('tr');
+    for (let c = 0; c < hr.length; c++) {
+      const h = hr[c];
+      const td = document.createElement('td');
+      td.textContent = h;
+      if (h == kDakuten || h == kHandakuten) {
+        dakuBtn.push(td);
+        td.classList.add('dakuten');
+        td.addEventListener('mousedown', onDakuten);
+      } else if (h.length > 0) {
+        td.addEventListener('mousedown', onKeyDown);
+      } else {
+        td.classList.add('empty');
+      }
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  keyboard.appendChild(table);
 }
 
 const kRomanji = new Map([
