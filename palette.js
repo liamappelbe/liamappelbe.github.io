@@ -190,8 +190,7 @@ function generateWalk(n) {
  */
 function onImage(pixels, width, height, colorCount) {
   const pp = pixels.map(Color.fromRgbArray);
-  const pal = generatePalette(pp, width, height, colorCount);
-  addColorPalette(pal);
+  return generatePalette(pp, width, height, colorCount);
 }
 
 class Color {

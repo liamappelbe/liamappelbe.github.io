@@ -6,37 +6,62 @@
 <script src="palette.js"></script>
 <script>
 let domFile = null;
-let domCount = null;
-let domCountLabel = null;
-let domPalettes = null;
-let lastAction = null;
+let domImageCount = null;
+let domImageCountLabel = null;
+let domRandomCount = null;
+let domRandomCountLabel = null;
+let domImagePalettes = null;
+let domRandomPalettes = null;
+let lastImageAction = null;
+let lastRandomAction = null;
+let imageHistory = [];
 
 function onLoad() {
   domFile = document.getElementById("file");
-  domCount = document.getElementById("count");
-  domCountLabel = document.getElementById("count_label");
-  domPalettes = document.getElementById("palettes");
+  domImageCount = document.getElementById("image_count");
+  domImageCountLabel = document.getElementById("image_count_label");
+  domRandomCount = document.getElementById("random_count");
+  domRandomCountLabel = document.getElementById("random_count_label");
+  domImagePalettes = document.getElementById("image_palettes");
+  domRandomPalettes = document.getElementById("random_palettes");
 
-  onCountChange();
+  loadHistory();
+  refreshImageHistory();
   generate();
 }
 window.addEventListener("load", onLoad);
 
-function onCountChange() {
-  domCountLabel.innerText = domCount.value;
-  if (lastAction) lastAction();
+function loadHistory() {
+  const stored = localStorage.getItem("image_history");
+  if (stored) {
+    imageHistory = JSON.parse(stored);
+  }
 }
 
-function clearPalettes() {
-  domPalettes.innerHTML = '';
+function saveHistory() {
+  localStorage.setItem("image_history", JSON.stringify(imageHistory));
+}
+
+function onImageCountChange() {
+  domImageCountLabel.innerText = domImageCount.value;
+  if (lastImageAction) lastImageAction(true);
+}
+
+function onRandomCountChange() {
+  domRandomCountLabel.innerText = domRandomCount.value;
+  if (lastRandomAction) lastRandomAction();
+}
+
+function clearPalettes(dom) {
+  dom.innerHTML = '';
 }
 
 function generate() {
-  lastAction = () => {
-    clearPalettes();
-    onGenerate(parseInt(domCount.value));
+  lastRandomAction = () => {
+    clearPalettes(domRandomPalettes);
+    onGenerate(parseInt(domRandomCount.value));
   };
-  lastAction();
+  lastRandomAction();
 }
 
 function toHex(c) {
@@ -50,15 +75,16 @@ function rgbToHex(rgb) {
 
 /**
  * Adds a palette row to the UI.
- * @param {Array<Array<number>>} colors Array of [r, g, b] triples (0-1).
+ * @param {Array<any>} colors Array of [r, g, b] triples (0-1) or hex strings.
+ * @param {HTMLElement} dom The container to add to.
  */
-function addPalette(colors) {
+function addPalette(colors, dom = domRandomPalettes) {
   const row = document.createElement('div');
   row.className = 'palette_row';
   for (const color of colors) {
     const block = document.createElement('div');
     block.className = 'color_block';
-    const hex = rgbToHex(color).toUpperCase();
+    const hex = (typeof color === 'string') ? color : rgbToHex(color).toUpperCase();
     block.style.backgroundColor = hex;
 
     const label = document.createElement('span');
@@ -79,7 +105,14 @@ function addPalette(colors) {
 
     row.appendChild(block);
   }
-  domPalettes.appendChild(row);
+  dom.appendChild(row);
+}
+
+function refreshImageHistory() {
+  clearPalettes(domImagePalettes);
+  for (const palette of imageHistory) {
+    addPalette(palette, domImagePalettes);
+  }
 }
 
 function setInputFile(files) {
@@ -125,11 +158,21 @@ function processImage(img) {
     pixels.push([data[i] / 255, data[i+1] / 255, data[i+2] / 255]);
   }
 
-  lastAction = () => {
-    clearPalettes();
-    onImage(pixels, width, height, parseInt(domCount.value));
+  lastImageAction = (isUpdate) => {
+    const pal = onImage(pixels, width, height, parseInt(domImageCount.value));
+    const hexPalette = pal.map(c => rgbToHex(c.rgb).toUpperCase());
+    if (isUpdate) {
+      imageHistory[0] = hexPalette;
+    } else {
+      imageHistory.unshift(hexPalette);
+      if (imageHistory.length > 3) {
+        imageHistory.pop();
+      }
+    }
+    saveHistory();
+    refreshImageHistory();
   };
-  lastAction();
+  lastImageAction(false);
 }
 
 function onFileChange() { setInputFile(domFile.files); }
@@ -172,7 +215,7 @@ body {
   justify-content: space-around;
   margin-bottom: 16px;
 }
-h1, #index {
+h1, h2, #index {
   color: #ffc107;
   text-align: center;
   font-family: monospace;
@@ -180,6 +223,10 @@ h1, #index {
   flex-grow: 1;
   padding: 16px;
   margin: 0;
+}
+h2 {
+  font-size: 32px;
+  padding: 8px;
 }
 #index {
   color: #ff5722;
@@ -252,19 +299,32 @@ input[type="range"] {
     <h1>Color Palettes</h1>
   </div>
   <div id="wrap">
-    <div class="controls">
-      <a onclick="generate()">Randomize</a>
-      &nbsp;&nbsp;
-      <label>
-        <input type="file" id="file" accept="image/*" onchange="onFileChange()">
-        <a>From Image</a>
-      </label>
-      &nbsp;&nbsp;
-      Colors:
-      <input type="range" id="count" min="2" max="10" value="5" oninput="onCountChange()">
-      <span id="count_label">5</span>
+    <div id="image_section">
+      <h2>Image Palettes</h2>
+      <div class="controls">
+        <label>
+          <input type="file" id="file" accept="image/*" onchange="onFileChange()">
+          <a>Load Image</a>
+        </label>
+        &nbsp;&nbsp;
+        Colors:
+        <input type="range" id="image_count" min="2" max="10" value="5" oninput="onImageCountChange()">
+        <span id="image_count_label">5</span>
+      </div>
+      <div id="image_palettes"></div>
     </div>
-    <div id="palettes"></div>
+
+    <div id="random_section">
+      <h2>Random Palettes</h2>
+      <div class="controls">
+        <a onclick="generate()">Randomize</a>
+        &nbsp;&nbsp;
+        Colors:
+        <input type="range" id="random_count" min="2" max="10" value="5" oninput="onRandomCountChange()">
+        <span id="random_count_label">5</span>
+      </div>
+      <div id="random_palettes"></div>
+    </div>
   </div>
 </body>
 </html>
