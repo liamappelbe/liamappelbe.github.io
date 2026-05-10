@@ -60,7 +60,23 @@ function addPalette(colors) {
     block.className = 'color_block';
     const hex = rgbToHex(color).toUpperCase();
     block.style.backgroundColor = hex;
-    block.title = hex;
+
+    const label = document.createElement('span');
+    label.className = 'hex_label';
+    label.innerText = hex;
+    block.appendChild(label);
+
+    block.onclick = () => {
+      const wasSelected = block.classList.contains('selected');
+      document.querySelectorAll('.color_block.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      if (!wasSelected) {
+        block.classList.add('selected');
+        navigator.clipboard.writeText(hex);
+      }
+    };
+
     row.appendChild(block);
   }
   domPalettes.appendChild(row);
@@ -201,11 +217,32 @@ input[type="range"] {
 }
 .color_block {
   flex-grow: 1;
+  flex-basis: 0;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
 }
-.color_block:hover {
+.color_block:hover, .color_block.selected {
   outline: 2px solid #f5f5f5;
   z-index: 1;
+}
+.hex_label {
+  display: none;
+  position: absolute;
+  font-family: monospace;
+  font-size: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #f5f5f5;
+  padding: 4px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.color_block.selected .hex_label {
+  display: block;
 }
 </style>
 </head>
