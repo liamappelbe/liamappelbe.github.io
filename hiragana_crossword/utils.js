@@ -18,6 +18,38 @@ function getOrInsert(map, key, fn) {
   return map.get(key);
 }
 
+class ArrayMap {
+  constructor() {
+    this._map = new Map();
+    this._array = [];
+  }
+  has(key) { return this._map.has(key); }
+  get(key) {
+    const idx = this._map.get(key);
+    if (idx == null) return null;
+    return this._array[idx];
+  }
+  getOrInsert(key, fn) { return this.get(key) ?? this._add(key, fn()); }
+  _add(key, value) {
+    const newIdx = this._array.length;
+    this._map.set(key, newIdx);
+    this._array.push(value);
+    return value;
+  }
+  set(key, value) {
+    const idx = this._map.get(key);
+    if (idx != null) {
+      const old = this._array[idx];
+      this._array[idx] = value;
+      return old;
+    } else {
+      this._add(key, value);
+      return null;
+    }
+  }
+  randomValue() { return pick(this._array); }
+}
+
 class MultiMapBuilder {
   constructor() { this._map = new Map(); }
   _poke(key) { return getOrInsert(this._map, key, () => new Set()); }
@@ -76,8 +108,6 @@ class Dictionary {
     }
     this._jap = new DictionaryView(jap.build());
     this._eng = new DictionaryView(eng.build());
-
-    this._form = new DictionaryFormView(raw);
   }
 
   // Returns a set of English translations for a given Japanese word.
@@ -88,7 +118,6 @@ class Dictionary {
 
   japView() { return this._jap; }
   engView() { return this._eng; }
-  formView() { return this._form; }
 }
 
 class DictionaryView {
@@ -127,56 +156,6 @@ class DictionaryView {
   randomBi(bi, dist) { return this._bi.randomValue(bi + dist); }
 }
 
-class DictionaryFormView {
-  // Same input as Dictionary constructor, but unstated up there is that some
-  // English words can have a form in parens. We're not interested in entries
-  // with no form.
-  constructor(raw) {
-    const d = new Map();
-    for (const entry of raw) {
-      const [eraw, jraw] = entry;
-      const eng = toArray(eraw);
-      const jap = toArray(jraw)
-                      .map(toHiragana)
-                      .map((w) => cleanHiraganaAnswer(w, 1))
-                      .filter((w) => w != null);
-
-      // Discard any entries with no form, or where the English entries' forms
-      // don't match.
-      let form = null;
-      for (const word of eng) {
-        if (word == null) continue;
-        const m = word.match(/.*\(([^)]*)\)/);
-        const f = m ? m[1] : null;
-        if (f == null) {
-          form = null;
-          break;
-        } else if (form == null) {
-          form = f;
-        } else if (form != f) {
-          form = null;
-          break;
-        }
-      }
-      if (form == null) continue;
-
-      const cleanEng = eng.map((w) => cleanEnglishAnswer(w, 1).toLowerCase())
-                           .filter((w) => w != null)
-                           .sort();
-      const key = cleanEng.join('|');
-      const gridEntry =
-          getOrInsert(d, key, () => new Map([['english', new Set(cleanEng)]]));
-      const formEntry = getOrInsert(gridEntry, form, () => new Set());
-      for (const j of jap) formEntry.add(j);
-    }
-    // Array<Map<Str form, Set<Str cleanWord, ...>>>
-    this._entries = Array.from(d.values());
-  }
-
-  // Map<Str form, Set<Str cleanWord, ...>>
-  randomEntry() { return pick(this._entries); }
-}
-
 class MetaDictionary {
   // metaraw is an array of [name, raw] pairs, where each raw is an array with
   // the format that the Dictionary constructor expects.
@@ -186,6 +165,7 @@ class MetaDictionary {
   }
 
   all() { return this._all; }
+  raw(name) { return this._raw.find(d => d[0] == name); }
   select(byName) {
     return new Dictionary(
         this._raw.filter(d => byName(d[0])).flatMap(d => d[1]));
@@ -392,7 +372,7 @@ function parseComboCsv(str) {
         if (w.length > 0) e.push(w);
       } else {
         if (w.length == 0) w = root + sufs[j];
-        out.push([e.map(u => `${u} (${names[j]})`), w]);
+        out.push([e.map(u => `${u} [${names[j]}]`), w]);
       }
     }
   }
@@ -447,15 +427,17 @@ function cleanEnglishAnswer(word, minLength = 2) {
   // Remove anything in parentheses. TODO: Should we also remove special chars
   // like ' ' and "'"?
   let cleaned = '';
-  let inParens = false;
+  const kParens = new Map([['(', ')'], ['[', ']']]);
+  let parens = null;
   for (const c of word) {
-    if (inParens) {
-      if (c === ')') {
-        inParens = false;
+    if (parens != null) {
+      if (c === parens) {
+        parens = null;
       }
     } else {
-      if (c === '(') {
-        inParens = true;
+      const p = kParens.get(c);
+      if (p != null) {
+        parens = p;
       } else {
         cleaned += c;
       }
@@ -701,29 +683,29 @@ in front,,,mae,`)) === JSON.stringify([
 big,,,ookii,,,,
 expensive,tall,,takai,,,,
 good,nice,,ii,,yokunaidesu,yokattadesu,yokunakattadesu`)) === JSON.stringify([
-    [['big (modifying noun)'], 'ookii'],
-    [['big (present positive)'], 'ookiidesu'],
-    [['big (present negative)'], 'ookikunaidesu'],
-    [['big (past positive)'], 'ookikattadesu'],
-    [['big (past negative)'], 'ookikunakattadesu'],
-    [['expensive (modifying noun)', 'tall (modifying noun)'], 'takai'],
-    [['expensive (present positive)', 'tall (present positive)'], 'takaidesu'],
+    [['big [modifying noun]'], 'ookii'],
+    [['big [present positive]'], 'ookiidesu'],
+    [['big [present negative]'], 'ookikunaidesu'],
+    [['big [past positive]'], 'ookikattadesu'],
+    [['big [past negative]'], 'ookikunakattadesu'],
+    [['expensive [modifying noun]', 'tall [modifying noun]'], 'takai'],
+    [['expensive [present positive]', 'tall [present positive]'], 'takaidesu'],
     [
-      ['expensive (present negative)', 'tall (present negative)'],
+      ['expensive [present negative]', 'tall [present negative]'],
       'takakunaidesu'
     ],
-    [['expensive (past positive)', 'tall (past positive)'], 'takakattadesu'],
+    [['expensive [past positive]', 'tall [past positive]'], 'takakattadesu'],
     [
-      ['expensive (past negative)', 'tall (past negative)'], 'takakunakattadesu'
+      ['expensive [past negative]', 'tall [past negative]'], 'takakunakattadesu'
     ],
-    [['good (modifying noun)', 'nice (modifying noun)'], 'ii'],
-    [['good (present positive)', 'nice (present positive)'], 'iidesu'],
-    [['good (present negative)', 'nice (present negative)'], 'yokunaidesu'],
-    [['good (past positive)', 'nice (past positive)'], 'yokattadesu'],
-    [['good (past negative)', 'nice (past negative)'], 'yokunakattadesu']
+    [['good [modifying noun]', 'nice [modifying noun]'], 'ii'],
+    [['good [present positive]', 'nice [present positive]'], 'iidesu'],
+    [['good [present negative]', 'nice [present negative]'], 'yokunaidesu'],
+    [['good [past positive]', 'nice [past positive]'], 'yokattadesu'],
+    [['good [past negative]', 'nice [past negative]'], 'yokunakattadesu']
   ]));
 
-  console.assert(cleanEnglishAnswer('  sdlkfg (dlsfg, sdfg) (???)') === 'SDLKFG');
+  console.assert(cleanEnglishAnswer('  sdlkfg (dlsfg, sdfg) [???]') === 'SDLKFG');
   console.assert(cleanHiraganaAnswer('  alskdfg  ') === 'alskdfg');
 }
 

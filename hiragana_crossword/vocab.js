@@ -8,19 +8,94 @@ const correctAnswer = document.getElementById('correct-answer');
 const checkBtn = document.getElementById('check-btn');
 const nextBtn = document.getElementById('next-btn');
 
-const forms = [
-  'english', 'present positive', 'present negative', 'past positive',
-  'past negative', 'dictionary form', 'te form'
-];
-
 let currentWord = null;
-let currentPromptForm = null;
-let currentTargetForm = null;
-let currentAnswer = null;
-let kVerbDict = null;
+let currentTask = null;
+let kDictionary = null;
+
+class Task {
+  constructor(form) {
+    this.form = form;
+    this.answers = new Set();
+  }
+}
+
+class DictEntry {
+  constructor(word, form, kind) {
+    this.word = word;
+    this.form = form;
+    this.kind = kind;
+    this.tasks = new ArrayMap();
+  }
+
+  randomTask() { return this.tasks.randomValue(); }
+  getTask(form) { return this.tasks.getOrInsert(form, () => new Task(form)); }
+  addAnswer(word, form) { this.getTask(form).answers.add(word); }
+}
+
+function createDictionary(dicts) {
+  const d = new ArrayMap();
+  function key(word, form, kind) { return word + '\t' + form + '\t' + kind; }
+  function addOne(kind, wordQ, formQ, wordA, formA) {
+    d.getOrInsert(
+         key(wordQ, formQ, kind), () => new DictEntry(wordQ, formQ, kind))
+        .addAnswer(wordA, formA);
+  }
+  function add(kind, word1, form1, word2, form2) {
+    addOne(kind, word1, form1, word2, form2);
+    addOne(kind, word2, form2, word1, form1);
+  }
+  function formSplit(word) {
+    if (word == null) return null;
+    const m = word.match(/(.*?)\s*\[([^\]]*)\]$/);
+    return m ? [m[1], m[2]] : [null, null];
+  }
+  for (const [[_, raw], kind] of dicts) {
+    // raw: Array<Tuple<Array<Str englishWordWithForm>, Str romanjiWord>>
+    // g: Map<Str englishWordsJoinedByTabs, Map<Str form, Set<Str word>>>
+    const g = new Map();
+    for (const [eraw, jraw] of raw) {
+      const eng = toArray(eraw).map((e) => e.toLowerCase());
+      const jap = toArray(jraw)
+                      .map(toHiragana)
+                      .map((w) => cleanHiraganaAnswer(w, 1))
+                      .filter((w) => w != null);
+      const [_, form] = formSplit(eng[0]);
+      const cleanEng = eng.map((e) => {
+                            const [w, f] = formSplit(e);
+                            console.assert(f == form, e, w, f, form);
+                            return w;
+                          })
+                           .sort();
+      const gridEntry = getOrInsert(g, cleanEng.join('\t'), () => new Map());
+      const entrySet = getOrInsert(gridEntry, form, () => new Set());
+      for (const j of jap) entrySet.add(j);
+    }
+
+    for (const [ee, forms] of g) {
+      const flat = [];
+      for (const e of ee.split('\t')) {
+        flat.push(['english', e]);
+      }
+      for (const [form, words] of forms) {
+        for (const word of words) flat.push([form, word]);
+      }
+      // console.log(flat);
+      for (let i = 1; i < flat.length; ++i) {
+        for (let j = 0; j < i; ++j) {
+          const [fi, wi] = flat[i];
+          const [fj, wj] = flat[j];
+          add(kind, wi, fi, wj, fj);
+        }
+      }
+    }
+  }
+  return d;
+}
 
 function init() {
-  kVerbDict = kMetaDict.select(n => n.includes('verbs')).formView();
+  kDictionary = createDictionary([
+    [kMetaDict.raw('verbs'), 'verb'],
+  ]);
 
   const keyboard = document.getElementById('hiragana-keyboard');
   buildHiraganaKeyboard(keyboard, (h) => {
@@ -49,28 +124,18 @@ function init() {
   nextBtn.addEventListener('click', nextWord);
 }
 
-function randomPair(array) {
-  const x = randInt(array.length);
-  const y = randInt(array.length - 1);
-  return [array[x], array[y < x ? y : y + 1]];
-}
-
 function nextWord() {
-  currentWord = kVerbDict.randomEntry();
-  [currentPromptForm, currentTargetForm] =
-      randomPair(Array.from(currentWord.keys()));
+  currentWord = kDictionary.randomValue();
+  currentTask = currentWord.randomTask();
 
   // Show/hide keyboard
   document.getElementById('hiragana-keyboard')
-      .classList.toggle('hidden', currentTargetForm === 'english');
-
-  const promptValue = pick(Array.from(currentWord.get(currentPromptForm)));
-  currentAnswer = Array.from(currentWord.get(currentTargetForm)).sort();
+      .classList.toggle('hidden', currentTask.form === 'english');
 
   // Update UI
   taskDescription.textContent = `Convert the word:`;
-  promptWord.textContent = promptValue;
-  targetFormLabel.textContent = `to ${currentTargetForm}:`;
+  promptWord.textContent = currentWord.word;
+  targetFormLabel.textContent = `to ${currentTask.form}:`;
 
   vocabInput.value = '';
   vocabInput.className = '';
@@ -81,9 +146,7 @@ function nextWord() {
 }
 
 function checkAnswer() {
-  const isCorrect = compareAnswers(vocabInput.value, currentAnswer);
-
-  if (isCorrect) {
+  if (currentTask.answers.has(vocabInput.value.trim().toLowerCase())) {
     vocabInput.className = 'correct';
     feedback.textContent = 'Correct!';
     feedback.className = 'correct';
@@ -91,12 +154,9 @@ function checkAnswer() {
     vocabInput.className = 'incorrect';
     feedback.textContent = 'Incorrect';
     feedback.className = 'incorrect';
-    correctAnswer.textContent = `Correct answer: ${currentAnswer.join('or')}`;
+    correctAnswer.textContent =
+        `Correct answer: ${Array.from(currentTask.answers).join('or')}`;
   }
-}
-
-function compareAnswers(user, target) {
-  return target.some(t => t.trim().toLowerCase() === user.trim().toLowerCase());
 }
 
 init();

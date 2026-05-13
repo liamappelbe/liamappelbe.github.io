@@ -5,7 +5,7 @@ const kApis = {
   efetchPmcid: 'efetch.fcgi?db=pmc&retmode=xml',
 };
 const kIdConvUrl = 'https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/';
-const kRetries = 10;
+const kRetries = 3;
 const kLink = 'https://pubmed.ncbi.nlm.nih.gov/';
 const kBatchDelay = 300;
 const kBatchLimit = 30;
@@ -239,25 +239,34 @@ async function asyncRequest(url) {
   let errorCode = null;
   let errorResponse = null;
   let bail = false;
+  let error400Count = 0;
   for (let i = 0; i < kRetries; ++i) {
     try {
       return await new Promise((resolve, reject) => {
         const r = new XMLHttpRequest();
         r.type = 'text';
         r.onload = () => {
+          console.log(r.status);
           if (r.status == 200) {
             resolve(r.responseText);
           } else {
             errorResponse = r.responseText;
             errorCode = r.status;
-            // Pubmed is currently returning 400 errors on timeouts, so disable
-            // this special case because we want to retry those errors.
-            // TODO: Re-enable this special case when they fix their bug.
-            /*if (errorCode == 400) {
-              // Special case 400 errors, because it means that the request was
-              // malformed, so don't bother retrying.
-              bail = true;
-            }*/
+            // Usually we should stop retrying if we get a 400 error, because it
+            // means the request was malformed. But there was a bug for a while
+            // where pubmed was returning 400 errors for server timeouts. Not
+            // sure if that's still true, since there's no way to verify that
+            // without waiting for another DDoS. So instead I've changed it to
+            // bail if there are 2 400 errors in a row.
+            console.log(erroCode, error400Count);
+            if (errorCode == 400) {
+              ++error400Count;
+              if (error400Count >= 2) {
+                bail = true;
+              }
+            } else {
+              error400Count = 0;
+            }
             reject();
           }
         };
@@ -266,6 +275,7 @@ async function asyncRequest(url) {
         r.send();
       });
     } catch (e) {
+      console.log(e);
       if (bail) break;
       // Exponential backoff, with a limit, and some randomization.
       const t = Math.min(0.5 * (1 << i), 10) * (0.75 + 0.5 * Math.random());
