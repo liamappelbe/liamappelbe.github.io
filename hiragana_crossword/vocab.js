@@ -1,16 +1,17 @@
-const taskDescription = document.getElementById('task-description');
-const promptFormLabel = document.getElementById('prompt-form-label');
 const promptWord = document.getElementById('prompt-word');
 const targetFormLabel = document.getElementById('target-form-label');
 const vocabInput = document.getElementById('vocab-input');
 const feedback = document.getElementById('feedback');
+const romanjiConversion = document.getElementById('romanji-conversion');
 const correctAnswer = document.getElementById('correct-answer');
 const checkBtn = document.getElementById('check-btn');
-const nextBtn = document.getElementById('next-btn');
 
 let currentWord = null;
 let currentTask = null;
 let kDictionary = null;
+let nextWordTimeout = null;
+
+const kEnglish = 'english root';
 
 class Task {
   constructor(form) {
@@ -74,7 +75,7 @@ function createDictionary(dicts) {
     for (const [ee, forms] of g) {
       const flat = [];
       for (const e of ee.split('\t')) {
-        flat.push(['english', e]);
+        flat.push([kEnglish, e]);
       }
       for (const [form, words] of forms) {
         for (const word of words) flat.push([form, word]);
@@ -94,7 +95,9 @@ function createDictionary(dicts) {
 
 function init() {
   kDictionary = createDictionary([
-    [kMetaDict.raw('verbs'), 'verb'],
+    [kMetaDict.raw('g1-verbs'), 'godan verb'],
+    [kMetaDict.raw('g2-verbs'), 'ichidan verb'],
+    [kMetaDict.raw('irr-verbs'), 'irregular verb'],
   ]);
 
   const keyboard = document.getElementById('hiragana-keyboard');
@@ -110,9 +113,23 @@ function init() {
 
   nextWord();
 
+  vocabInput.addEventListener('input', (e) => {
+    if (currentTask && currentTask.form !== kEnglish) {
+      const val = vocabInput.value.trim().toLowerCase();
+      const converted = toHiragana(val, false);
+      if (converted && converted !== val && val.length > 0) {
+        romanjiConversion.textContent = converted;
+      } else {
+        romanjiConversion.textContent = '';
+      }
+    } else {
+      romanjiConversion.textContent = '';
+    }
+  });
+
   vocabInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      if (feedback.textContent === '') {
+      if (checkBtn.textContent === 'Check') {
         checkAnswer();
       } else {
         nextWord();
@@ -120,43 +137,71 @@ function init() {
     }
   });
 
-  checkBtn.addEventListener('click', checkAnswer);
-  nextBtn.addEventListener('click', nextWord);
+  checkBtn.addEventListener('click', () => {
+    if (checkBtn.textContent === 'Check') {
+      checkAnswer();
+    } else {
+      nextWord();
+    }
+  });
 }
 
 function nextWord() {
+  clearTimeout(nextWordTimeout);
   currentWord = kDictionary.randomValue();
   currentTask = currentWord.randomTask();
 
   // Show/hide keyboard
   document.getElementById('hiragana-keyboard')
-      .classList.toggle('hidden', currentTask.form === 'english');
+      .classList.toggle('hidden', currentTask.form === kEnglish);
 
   // Update UI
-  taskDescription.textContent = `Convert the word:`;
   promptWord.textContent = currentWord.word;
-  targetFormLabel.textContent = `to ${currentTask.form}:`;
+  targetFormLabel.textContent = `to ${currentTask.form} form:`;
 
   vocabInput.value = '';
   vocabInput.className = '';
+  romanjiConversion.textContent = '';
   feedback.textContent = '';
   feedback.className = '';
   correctAnswer.textContent = '';
+  checkBtn.textContent = 'Check';
   vocabInput.focus();
 }
 
 function checkAnswer() {
-  if (currentTask.answers.has(vocabInput.value.trim().toLowerCase())) {
+  let val = vocabInput.value.trim().toLowerCase();
+  if (currentTask.form !== kEnglish) {
+    const converted = toHiragana(val, false);
+    if (converted) val = converted;
+  }
+  const isCorrect = currentTask.answers.has(val);
+
+  const extras = [];
+  if (currentWord.kind) extras.push(currentWord.kind);
+
+  if (currentWord.form !== kEnglish && currentTask.form !== kEnglish) {
+    const englishTask = currentWord.tasks.get(kEnglish);
+    if (englishTask && englishTask.answers.size > 0) {
+      extras.push(`English: ${Array.from(englishTask.answers).join(', ')}`);
+    }
+  }
+
+  const extraStr = extras.join(', ');
+
+  if (isCorrect) {
     vocabInput.className = 'correct';
     feedback.textContent = 'Correct!';
     feedback.className = 'correct';
+    correctAnswer.textContent = `Info: ${extraStr}`;
   } else {
     vocabInput.className = 'incorrect';
     feedback.textContent = 'Incorrect';
     feedback.className = 'incorrect';
-    correctAnswer.textContent =
-        `Correct answer: ${Array.from(currentTask.answers).join('or')}`;
+    correctAnswer.textContent = `Correct answer: ${
+        Array.from(currentTask.answers).join(' or ')} (${extraStr})`;
   }
+  checkBtn.textContent = 'Next Word';
 }
 
 init();

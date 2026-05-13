@@ -1,29 +1,5 @@
 const kMetaDict = new MetaDictionary([
   [
-    'i-adjectives', parseComboCsv(`
-,,,modifying noun,present positive,present negative,past positive,past negative
-,,,i,idesu,kunaidesu,kattadesu,kunakattadesu
-big,,,ookii,,,,
-small,,,chiisai,,,,
-expensive,tall,,takai,,,,
-cheap,inexpensive,,yasui,,,,
-new,fresh,,atarashii,,,,
-old (fashioned),outdated,,furui,,,,
-good,nice,,ii,,yokunaidesu,yokattadesu,yokunakattadesu
-bad,,,warui,,,,
-hot,,,atsui,,,,
-cold (weather),,,samui,,,,
-warm,,,atatakai,,,,
-cool (weather),,,suzushii,,,,
-interesting,funny,,omoshiroi,,,,
-delicious,,,oishii,,,,
-old (aged),,,toshii,,,,
-fun,pleasant,,tanoshii,,,,
-boring,,,tsumaranai,,,,
-difficult,,,muzukashii,,,,
-busy,,,isogashii,,,,`)
-  ],
-  [
     'lesson 1', parseWordCsv(`
 good morning,,,ohayou,
 hello,good afternoon,,konnichiha,
@@ -620,6 +596,146 @@ well (competence),,yoku,
 this evening,,konban,`)
   ],
   [
+    'lesson 15', parseWordCsv(`
+cousin,,itoko
+robot,,robotto
+awesome,,sugoi
+song,,uta
+fruit,,kudamono
+food,,ryouri
+pizza,,piza
+jazz,,jazu
+art museum,,bijutsukan
+baseball,,yakyuu
+diving,,daibingu
+golf,,gorufu
+whiskey,,uisukii`)
+  ],
+  [
+    'lesson 16', parseWordCsv(`
+next,,tsugi
+event,,ibento
+therefore,,kara
+together,,isshoni
+sounds good,,zehi
+fireworks festival,,hanabitaikai
+snow festival,,yukimatsuri
+game,,shiai
+platform,,hoomu
+exit,,deguchi
+west,,nishi
+east,,higashi
+north,,kita
+south,,minami
+hungry,,onakagasukimashita
+thirsty,,nodogakawakimashita
+tired (not sleepy),,tsukaremashita
+vocabulary,,tango
+unfortunately,,zannen
+is that so,,soudesuka
+bye,,jamata
+next time,,kondo
+something,,nanika`)
+  ],
+  [
+    'lesson 17', parseWordCsv(`
+before,,,mae
+after,,,ato
+lobby,,,robii
+hobby,,,shumi
+dance (noun),,,dansu
+letter,,,tegami
+in future,,,shourai
+town,,,machi
+furniture,,,kagu
+club,,,kurabu
+antiques,,,antiiku
+hair dresser,,,biyouin
+hand,,,te
+tree,,,ki
+eye,,,me
+mouth,,,kuchi
+nose,,,hana
+ear,,,mimi
+face,,,kao
+material,document,,shiryou`)
+  ],
+  [
+    'lesson 18', parseWordCsv(`
+report,,,repooto
+factory,,,koujou
+package,,,pakkeeji
+after,,,ato
+take care,be careful,,kiwotsukete`)
+  ],
+  [
+    'lesson 19', parseWordCsv(`
+future,,,,mirai
+intersection,,,,kousaten
+traffic light,,,,shingou
+road,,,,michi
+corner,,,,kado
+beyond,tip,previous,,saki
+front,,,,mae
+just before,,,,temae
+right,,,,migi
+left,,,,hidari
+straight,,,,massugu
+delivery service,,,,takuhaibin
+mail,,,,yuubin
+motorbike courier,,,,baikubin
+documents,,,,shorui
+package,,,,nimotsu
+catalog,,,,katarogu
+street,,,,toori
+bridge,,,,hashi
+by (time),,,,madeni
+to,,,,made
+building,,,,biru`)
+  ],
+  [
+    'lesson 20', parseWordCsv(`
+museum,,,hakubutsukan
+airport,,,kuukou
+platform number,,,bansen
+one week,,,isshuukan
+two weeks,,,nishuukan
+three weeks,,,sanshuukan
+four weeks,,,yonshuukan
+five weeks,,,goshuukan
+six weeks,,,rokushuukan
+one month,,,ikkagetsu
+two months,,,nikagetsu
+three months,,,sankagetsu
+four months,,,yonkagetsu
+five months,,,gokagetsu
+six months,,,rokkagetsu`)
+  ],
+  [
+    'i-adjectives', parseComboCsv(`
+,,,modifying noun,present positive,present negative,past positive,past negative
+,,,i,idesu,kunaidesu,kattadesu,kunakattadesu
+big,,,ookii,,,,
+small,,,chiisai,,,,
+expensive,tall,,takai,,,,
+cheap,inexpensive,,yasui,,,,
+new,fresh,,atarashii,,,,
+old (fashioned),outdated,,furui,,,,
+good,nice,,ii,,yokunaidesu,yokattadesu,yokunakattadesu
+bad,,,warui,,,,
+hot,,,atsui,,,,
+cold (weather),,,samui,,,,
+warm,,,atatakai,,,,
+cool (weather),,,suzushii,,,,
+interesting,funny,,omoshiroi,,,,
+delicious,,,oishii,,,,
+old (aged),,,toshii,,,,
+fun,pleasant,,tanoshii,,,,
+boring,,,tsumaranai,,,,
+difficult,,,muzukashii,,,,
+busy,,,isogashii,,,,`)
+  ],
+  [
     'na-adjectives', parseComboCsv(`
 ,,,modifying noun,present positive,present negative,past positive,past negative
 ,,,na,desu,jaarimasen,deshita,jaarimasendeshita
@@ -636,40 +752,81 @@ like,favorite,,sukina,,,,
 skilled,,,jouzuna,,,,`)
   ],
   [
-    'verbs', parseComboCsv(`
-,,,present positive,present negative,past positive,past negative
-,,,masu,masen,mashita,masendeshita
-go,,,ikimasu,,,
-come,,,kimasu,,,
-return,,,kaerimasu,,,
-eat,,,tabemasu,,,
-see,,,mimasu,,,
-drink,,,nomimasu,,,
-buy,,,kaimasu,,,
-read,,,yomimasu,,,
-listen,ask,,kikimasu,,,
-watch,,,mimasu,,,
-do,,,shimasu,,,
-study,,,benkyouwoshimasu,,,
-shop,,,kaimonowoshimasu,,,
-work,,,shigotowoshimasu,,,
-phone,,,denwawoshimasu,,,
-walk,,,sanpowoshimasu,,,
-walk,,,arukimasu,,,
-send,,,okurimasu,,,
-meet,,,aimasu,,,
-tell,teach,,oshiemasu,,,
-take,,,torimasu,,,
-climb,,,noborimasu,,,
-show,,,misemasu,,,
-exist (inanimate),,,arimasu,,,
-exist (animate),,,imasu,,,
-make,,,tsukurimasu,,,
-have,,,arimasu,,,
-give,,,agemasu,,,
-receive,,,moraimasu,,,
-lend,loan,,kashimasu,,,
-borrow,,,karimasu,,,
-draw,write,,kakimasu,,,`)
+    'g1-verbs', parseComboCsv(`
+,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,,imasu,imasen,imashita,imasendeshita,u,imashou,te
+go,,,,ikimasu,,,,,,itte
+return,,,,kaerimasu,,,,,,kaette
+drink,,,,nomimasu,,,,,,nonde
+buy,,,,kaimasu,,,,,,katte
+read,,,,yomimasu,,,,,,yonde
+listen,ask,,,kikimasu,,,,,,kiite
+walk,,,,arukimasu,,,,,,aruite
+send,,,,okurimasu,,,,,,okutte
+meet,,,,aimasu,,,,,,atte
+draw,write,,,kakimasu,,,,,,kaite
+take (thing),,,,torimasu,,,,,,totte
+climb,,,,noborimasu,,,,,,nobotte
+make,,,,tsukurimasu,,,,,,tsukutte
+exist (inanimate),be (inanimate),have,,arimasu,,,,,,atte
+receive,,,,moraimasu,,,,,,moratte
+lend,loan,,,kashimasu,,,,kasu,,kashite
+dance (verb),,,,odorimasu,,,,,,odotte
+run,,,,hashirimasu,,,,,,hashitte
+swim,,,,oyogimasu,,,,,,oyoide
+sing,,,,utaimasu,,,,,,utatte
+talk,,,,hanashimasu,,,,hanasu,,hanashite
+learn,,,,naraimasu,,,,,,naratte
+wash,,,,araimasu,,,,,,aratte
+live,,,,sumimasu,,,,,,sunde
+die,,,,shinimasu,,,,,,shinde
+play (games),,,,asobimasu,,,,,,asonde
+wait,,,,machimasu,,,,matsu,,matte
+turn,,,,magarimasu,,,,,,magatte
+say,,,,iimasu,,,,,,itte
+arrive,,,,tsukimasu,,,,,,tsuite
+take (time),,,,kakarimasu,,,,,,kakatte
+get on,board,,,norimasu,,,,,,notte
+`)
+  ],
+  [
+    'g2-verbs', parseComboCsv(`
+,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,,masu,masen,mashita,masendeshita,ru,mashou,te
+exist (animate),be (animate),stay,,imasu,,,,,,
+eat,,,,tabemasu,,,,,,
+see,watch,,,mimasu,,,,,,
+tell,teach,,,oshiemasu,,,,,,
+sleep,,,,nemasu,,,,,,
+wear,,,,kimasu,,,,,,
+show,,,,misemasu,,,,,,
+borrow,,,,karimasu,,,,,,
+give,raise,,,agemasu,,,,,,
+shower (verb),,,,shawaawoabimasu,,,,,,
+start,begin,,,hajimemasu,,,,,,
+sleep,,,,nemasu,,,,,,
+stop,,,,tomemasu,,,,,,
+deliver,,,,todokemasu,,,,,,
+leave,,,,demasu,,,,,,
+get off,,,,orimasu,,,,,,`)
+  ],
+  [
+    'irr-verbs', parseComboCsv(`
+,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,h]imasu,himasen,himashita,himasendeshita,uru,himashou,hite
+come,,,kimasu,,,,,,
+do,,,shimasu,,,,,,
+study,,,benkyouwoshimasu,,,,,,
+shop,,,kaimonowoshimasu,,,,,,
+work,,,shigotowoshimasu,,,,,,
+phone,,,denwawoshimasu,,,,,,
+walk,,,sanpowoshimasu,,,,,,
+cook,,,ryouriwoshimasu,,,,,,
+eat (eg have lunch),,,shokujiwoshimasu,,,,,,
+stretch,,,sutoretchiwoshimasu,,,,,,
+download,,,daunroodoshimasu,,,,,,
+bring (thing),,,mottekimasu,,,,,,
+bring (person),,,tsuretekimasu,,,,,,
+oversleep,,,neboushimasu,,,,,,`)
   ],
 ]);

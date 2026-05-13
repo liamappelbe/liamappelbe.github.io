@@ -379,10 +379,15 @@ function parseComboCsv(str) {
   return out;
 }
 
-function toHiragana(romanji) { return toKana(romanji, 0); }
-function toKatakana(romanji) { return toKana(romanji, 1); }
+function toHiragana(romanji, strict = true) {
+  return toKana(romanji, 0, strict);
+}
 
-function toKana(romanji, kind) {
+function toKatakana(romanji, strict = true) {
+  return toKana(romanji, 1, strict);
+}
+
+function toKana(romanji, kind, strict) {
   // Convert romaji to hiragana
   let hiragana = '';
   hira_outer: for (let i = 0; i < romanji.length;) {
@@ -417,8 +422,15 @@ function toKana(romanji, kind) {
     }
 
     // If there's still no match, it's a malformed romanji.
-    console.error(`Malformed romanji at ${i}: ${romanji}`);
-    return null;
+    if (strict) {
+      console.error(`Malformed romanji at ${i}: ${romanji}`);
+      return null;
+    } else {
+      // In non-strict mode, just append the character as-is.
+      hiragana += romanji[i];
+      i += 1;
+      continue hira_outer;
+    }
   }
   return hiragana;
 }
@@ -625,6 +637,9 @@ function test() {
   console.assert(toHiragana('neko') === 'ねこ');
   console.assert(toHiragana('kitte') === 'きって');
   console.assert(toHiragana('zasshi') === 'ざっし');
+  console.assert(toHiragana('konyo') === 'こにょ');
+  console.assert(toHiragana('koNyo') === 'こんよ');
+  console.assert(toHiragana('かきました abcde', false) === 'かきましたあbcで');
 
   // Test toArray
   console.assert(JSON.stringify(toArray('a')) === JSON.stringify(['a']));
@@ -705,7 +720,8 @@ good,nice,,ii,,yokunaidesu,yokattadesu,yokunakattadesu`)) === JSON.stringify([
     [['good [past negative]', 'nice [past negative]'], 'yokunakattadesu']
   ]));
 
-  console.assert(cleanEnglishAnswer('  sdlkfg (dlsfg, sdfg) [???]') === 'SDLKFG');
+  console.assert(
+      cleanEnglishAnswer('  sdlkfg (dlsfg, sdfg) [???]') === 'SDLKFG');
   console.assert(cleanHiraganaAnswer('  alskdfg  ') === 'alskdfg');
 }
 
