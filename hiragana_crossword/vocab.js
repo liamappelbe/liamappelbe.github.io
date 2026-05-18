@@ -1,6 +1,8 @@
 const promptWord = document.getElementById('prompt-word');
 const targetFormLabel = document.getElementById('target-form-label');
 const vocabInput = document.getElementById('vocab-input');
+const englishContainer = document.getElementById('english-container');
+const englishInput = document.getElementById('english-input');
 const feedback = document.getElementById('feedback');
 const romanjiConversion = document.getElementById('romanji-conversion');
 const correctAnswer = document.getElementById('correct-answer');
@@ -37,6 +39,9 @@ function createDictionary(dicts) {
   const d = new ArrayMap();
   function key(word, form, kind) { return word + '\t' + form + '\t' + kind; }
   function addOne(kind, wordQ, formQ, wordA, formA) {
+    if (formQ == kEnglish) {
+      wordA = cleanEnglishAnswer(wordA);
+    }
     d.getOrInsert(
          key(wordQ, formQ, kind), () => new DictEntry(wordQ, formQ, kind))
         .addAnswer(wordA, formA);
@@ -80,7 +85,6 @@ function createDictionary(dicts) {
       for (const [form, words] of forms) {
         for (const word of words) flat.push([form, word]);
       }
-      // console.log(flat);
       for (let i = 1; i < flat.length; ++i) {
         for (let j = 0; j < i; ++j) {
           const [fi, wi] = flat[i];
@@ -113,6 +117,17 @@ function init() {
 
   nextWord();
 
+  englishInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (checkBtn.textContent === 'Check') {
+        vocabInput.focus();
+      } else {
+        nextWord();
+      }
+    }
+  });
+
   vocabInput.addEventListener('input', (e) => {
     if (currentTask && currentTask.form !== kEnglish) {
       const val = vocabInput.value.trim().toLowerCase();
@@ -129,6 +144,7 @@ function init() {
 
   vocabInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       if (checkBtn.textContent === 'Check') {
         checkAnswer();
       } else {
@@ -151,55 +167,95 @@ function nextWord() {
   currentWord = kDictionary.randomValue();
   currentTask = currentWord.randomTask();
 
+  const needsEnglish = currentWord.form !== kEnglish;
+  if (needsEnglish) {
+    while (currentTask.form === kEnglish && currentWord.tasks.size > 1) {
+      currentTask = currentWord.randomTask();
+    }
+  }
+
+  englishContainer.classList.toggle('hidden', !needsEnglish);
+
   // Show/hide keyboard
   document.getElementById('hiragana-keyboard')
       .classList.toggle('hidden', currentTask.form === kEnglish);
 
   // Update UI
   promptWord.textContent = currentWord.word;
-  targetFormLabel.textContent = `to ${currentTask.form} form:`;
+  targetFormLabel.textContent =
+      `${needsEnglish ? 'and ' : ''}to ${currentTask.form} form:`;
 
   vocabInput.value = '';
   vocabInput.className = '';
+  englishInput.value = '';
+  englishInput.className = '';
   romanjiConversion.textContent = '';
   feedback.textContent = '';
   feedback.className = '';
   correctAnswer.textContent = '';
   checkBtn.textContent = 'Check';
-  vocabInput.focus();
+
+  setTimeout(() => {
+    if (needsEnglish) {
+      englishInput.focus();
+    } else {
+      vocabInput.focus();
+    }
+  }, 10);
 }
 
 function checkAnswer() {
+  const needsEnglish = currentWord.form !== kEnglish;
+
   let val = vocabInput.value.trim().toLowerCase();
   if (currentTask.form !== kEnglish) {
     const converted = toHiragana(val, false);
     if (converted) val = converted;
   }
-  const isCorrect = currentTask.answers.has(val);
+  const isJapCorrect = currentTask.answers.has(val);
+
+  let isEngCorrect = true;
+  if (needsEnglish) {
+    const engVal = englishInput.value.trim().toLowerCase();
+    const englishTask = currentWord.tasks.get(kEnglish);
+    isEngCorrect = englishTask && englishTask.answers.has(engVal);
+  }
+
+  const isCorrect = isJapCorrect && isEngCorrect;
 
   const extras = [];
   if (currentWord.kind) extras.push(currentWord.kind);
-
-  if (currentWord.form !== kEnglish && currentTask.form !== kEnglish) {
-    const englishTask = currentWord.tasks.get(kEnglish);
-    if (englishTask && englishTask.answers.size > 0) {
-      extras.push(`English: ${Array.from(englishTask.answers).join(', ')}`);
-    }
-  }
 
   const extraStr = extras.join(', ');
 
   if (isCorrect) {
     vocabInput.className = 'correct';
+    if (needsEnglish) englishInput.className = 'correct';
     feedback.textContent = 'Correct!';
     feedback.className = 'correct';
-    correctAnswer.textContent = `Info: ${extraStr}`;
+    correctAnswer.textContent = extraStr ? `Info: ${extraStr}` : '';
   } else {
-    vocabInput.className = 'incorrect';
+    vocabInput.className = isJapCorrect ? 'correct' : 'incorrect';
+    if (needsEnglish)
+      englishInput.className = isEngCorrect ? 'correct' : 'incorrect';
+
     feedback.textContent = 'Incorrect';
     feedback.className = 'incorrect';
-    correctAnswer.textContent = `Correct answer: ${
-        Array.from(currentTask.answers).join(' or ')} (${extraStr})`;
+
+    const correctStrs = [];
+    if (needsEnglish && !isEngCorrect) {
+      const englishTask = currentWord.tasks.get(kEnglish);
+      if (englishTask) {
+        correctStrs.push(Array.from(englishTask.answers).join(' or '));
+      }
+    }
+    if (!isJapCorrect) {
+      correctStrs.push(Array.from(currentTask.answers).join(' or '));
+    }
+
+    let answerStr = `Correct answer: ${correctStrs.join(', ')}`;
+    if (extraStr) answerStr += ` (${extraStr})`;
+    correctAnswer.textContent = answerStr;
   }
   checkBtn.textContent = 'Next Word';
 }

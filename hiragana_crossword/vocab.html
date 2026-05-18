@@ -55,7 +55,8 @@
       width: 100%;
     }
 
-    #vocab-input {
+    #vocab-input,
+    #english-input {
       width: 100%;
       background: #424242;
       color: #ffc107;
@@ -71,16 +72,23 @@
       box-sizing: border-box;
     }
 
-    #vocab-input:focus {
+    #english-input {
+      margin-bottom: 16px;
+    }
+
+    #vocab-input:focus,
+    #english-input:focus {
       border-color: #9e9e9e;
     }
 
-    #vocab-input.correct {
+    #vocab-input.correct,
+    #english-input.correct {
       border-color: #2a8f2a;
       color: #2a8f2a;
     }
 
-    #vocab-input.incorrect {
+    #vocab-input.incorrect,
+    #english-input.incorrect {
       border-color: #f44336;
       color: #f44336;
     }
@@ -155,8 +163,14 @@
       </div>
 
       <div id="answer-container">
+        <div id="english-container" class="hidden"
+          style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+          <div class="form-label">to english root:</div>
+          <input type="text" id="english-input" placeholder="Type english here..." autocomplete="off">
+        </div>
+
         <div id="target-form-label" class="form-label"></div>
-        <input type="text" id="vocab-input" placeholder="Type answer here..." autocomplete="off" autofocus>
+        <input type="text" id="vocab-input" placeholder="Type answer here..." autocomplete="off">
         <div id="romanji-conversion"></div>
         <div id="controls">
           <button id="check-btn">Check</button>

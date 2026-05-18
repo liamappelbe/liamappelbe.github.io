@@ -715,118 +715,122 @@ six months,,,rokkagetsu`)
     'i-adjectives', parseComboCsv(`
 ,,,modifying noun,present positive,present negative,past positive,past negative
 ,,,i,idesu,kunaidesu,kattadesu,kunakattadesu
-big,,,ookii,,,,
-small,,,chiisai,,,,
-expensive,tall,,takai,,,,
-cheap,inexpensive,,yasui,,,,
-new,fresh,,atarashii,,,,
-old (fashioned),outdated,,furui,,,,
-good,nice,,ii,,yokunaidesu,yokattadesu,yokunakattadesu
-bad,,,warui,,,,
-hot,,,atsui,,,,
-cold (weather),,,samui,,,,
-warm,,,atatakai,,,,
-cool (weather),,,suzushii,,,,
-interesting,funny,,omoshiroi,,,,
-delicious,,,oishii,,,,
-old (aged),,,toshii,,,,
-fun,pleasant,,tanoshii,,,,
-boring,,,tsumaranai,,,,
-difficult,,,muzukashii,,,,
-busy,,,isogashii,,,,`)
+big,,,ookii,ookiidesu,ookikunaidesu,ookikattadesu,ookikunakattadesu
+small,,,chiisai,chiisaidesu,chiisakunaidesu,chiisakattadesu,chiisakunakattadesu
+expensive,tall,,takai,takaidesu,takakunaidesu,takakattadesu,takakunakattadesu
+cheap,inexpensive,,yasui,yasuidesu,yasukunaidesu,yasukattadesu,yasukunakattadesu
+new,fresh,,atarashii,atarashiidesu,atarashikunaidesu,atarashikattadesu,atarashikunakattadesu
+old (fashioned),outdated,,furui,furuidesu,furukunaidesu,furukattadesu,furukunakattadesu
+good,nice,,ii,iidesu,yokunaidesu,yokattadesu,yokunakattadesu
+bad,,,warui,waruidesu,warukunaidesu,warukattadesu,warukunakattadesu
+hot,,,atsui,atsuidesu,atsukunaidesu,atsukattadesu,atsukunakattadesu
+cold (weather),,,samui,samuidesu,samukunaidesu,samukattadesu,samukunakattadesu
+warm,,,atatakai,atatakaidesu,atatakakunaidesu,atatakakattadesu,atatakakunakattadesu
+cool (weather),,,suzushii,suzushiidesu,suzushikunaidesu,suzushikattadesu,suzushikunakattadesu
+interesting,funny,,omoshiroi,omoshiroidesu,omoshirokunaidesu,omoshirokattadesu,omoshirokunakattadesu
+delicious,,,oishii,oishiidesu,oishikunaidesu,oishikattadesu,oishikunakattadesu
+old (aged),,,toshii,toshiidesu,toshikunaidesu,toshikattadesu,toshikunakattadesu
+fun,pleasant,,tanoshii,tanoshiidesu,tanoshikunaidesu,tanoshikattadesu,tanoshikunakattadesu
+boring,,,tsumaranai,tsumaranaidesu,tsumaranakunaidesu,tsumaranakattadesu,tsumaranakunakattadesu
+difficult,,,muzukashii,muzukashiidesu,muzukashikunaidesu,muzukashikattadesu,muzukashikunakattadesu
+busy,,,isogashii,isogashiidesu,isogashikunaidesu,isogashikattadesu,isogashikunakattadesu
+`)
   ],
   [
     'na-adjectives', parseComboCsv(`
 ,,,modifying noun,present positive,present negative,past positive,past negative
 ,,,na,desu,jaarimasen,deshita,jaarimasendeshita
-lively,,,nigiyakana,,,,
-quiet,,,shizukana,,,,
-convenient,,,benrina,,,,
-famous,,,yuumeina,,,,
-pretty,clean,,kireina,,,,
-easy,simple,,kantanna,,,,
-hard,serious,,taihenna,,,,
-free,,,himana,,,,
-lovely,nice,,sutekina,,,,
-like,favorite,,sukina,,,,
-skilled,,,jouzuna,,,,`)
+lively,,,nigiyakana,nigiyakadesu,nigiyakajaarimasen,nigiyakadeshita,nigiyakajaarimasendeshita
+quiet,,,shizukana,shizukadesu,shizukajaarimasen,shizukadeshita,shizukajaarimasendeshita
+convenient,,,benrina,benridesu,benrijaarimasen,benrideshita,benrijaarimasendeshita
+famous,,,yuumeina,yuumeidesu,yuumeijaarimasen,yuumeideshita,yuumeijaarimasendeshita
+pretty,clean,,kireina,kireidesu,kireijaarimasen,kireideshita,kireijaarimasendeshita
+easy,simple,,kantanna,kantandesu,kantanjaarimasen,kantandeshita,kantanjaarimasendeshita
+hard,serious,,taihenna,taihendesu,taihenjaarimasen,taihendeshita,taihenjaarimasendeshita
+free,,,himana,himadesu,himajaarimasen,himadeshita,himajaarimasendeshita
+lovely,nice,,sutekina,sutekidesu,sutekijaarimasen,sutekideshita,sutekijaarimasendeshita
+like,favorite,,sukina,sukidesu,sukijaarimasen,sukideshita,sukijaarimasendeshita
+skilled,,,jouzuna,jouzudesu,jouzujaarimasen,jouzudeshita,jouzujaarimasendeshita
+`)
   ],
   [
     'g1-verbs', parseComboCsv(`
-,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te
 ,,,,imasu,imasen,imashita,imasendeshita,u,imashou,te
-go,,,,ikimasu,,,,,,itte
-return,,,,kaerimasu,,,,,,kaette
-drink,,,,nomimasu,,,,,,nonde
-buy,,,,kaimasu,,,,,,katte
-read,,,,yomimasu,,,,,,yonde
-listen,ask,,,kikimasu,,,,,,kiite
-walk,,,,arukimasu,,,,,,aruite
-send,,,,okurimasu,,,,,,okutte
-meet,,,,aimasu,,,,,,atte
-draw,write,,,kakimasu,,,,,,kaite
-take (thing),,,,torimasu,,,,,,totte
-climb,,,,noborimasu,,,,,,nobotte
-make,,,,tsukurimasu,,,,,,tsukutte
-exist (inanimate),be (inanimate),have,,arimasu,,,,,,atte
-receive,,,,moraimasu,,,,,,moratte
-lend,loan,,,kashimasu,,,,kasu,,kashite
-dance (verb),,,,odorimasu,,,,,,odotte
-run,,,,hashirimasu,,,,,,hashitte
-swim,,,,oyogimasu,,,,,,oyoide
-sing,,,,utaimasu,,,,,,utatte
-talk,,,,hanashimasu,,,,hanasu,,hanashite
-learn,,,,naraimasu,,,,,,naratte
-wash,,,,araimasu,,,,,,aratte
-live,,,,sumimasu,,,,,,sunde
-die,,,,shinimasu,,,,,,shinde
-play (games),,,,asobimasu,,,,,,asonde
-wait,,,,machimasu,,,,matsu,,matte
-turn,,,,magarimasu,,,,,,magatte
-say,,,,iimasu,,,,,,itte
-arrive,,,,tsukimasu,,,,,,tsuite
-take (time),,,,kakarimasu,,,,,,kakatte
-get on,board,,,norimasu,,,,,,notte
+go,,,,ikimasu,ikimasen,ikimashita,ikimasendeshita,iku,ikimashou,itte
+return,,,,kaerimasu,kaerimasen,kaerimashita,kaerimasendeshita,kaeru,kaerimashou,kaette
+drink,,,,nomimasu,nomimasen,nomimashita,nomimasendeshita,nomu,nomimashou,nonde
+buy,,,,kaimasu,kaimasen,kaimashita,kaimasendeshita,kau,kaimashou,katte
+read,,,,yomimasu,yomimasen,yomimashita,yomimasendeshita,yomu,yomimashou,yonde
+listen,ask,,,kikimasu,kikimasen,kikimashita,kikimasendeshita,kiku,kikimashou,kiite
+walk,,,,arukimasu,arukimasen,arukimashita,arukimasendeshita,aruku,arukimashou,aruite
+send,,,,okurimasu,okurimasen,okurimashita,okurimasendeshita,okuru,okurimashou,okutte
+meet,,,,aimasu,aimasen,aimashita,aimasendeshita,au,aimashou,atte
+draw,write,,,kakimasu,kakimasen,kakimashita,kakimasendeshita,kaku,kakimashou,kaite
+take (thing),,,,torimasu,torimasen,torimashita,torimasendeshita,toru,torimashou,totte
+climb,,,,noborimasu,noborimasen,noborimashita,noborimasendeshita,noboru,noborimashou,nobotte
+make,,,,tsukurimasu,tsukurimasen,tsukurimashita,tsukurimasendeshita,tsukuru,tsukurimashou,tsukutte
+exist (inanimate),be (inanimate),have,,arimasu,arimasen,arimashita,arimasendeshita,aru,arimashou,atte
+receive,,,,moraimasu,moraimasen,moraimashita,moraimasendeshita,morau,moraimashou,moratte
+lend,loan,,,kashimasu,kashimasen,kashimashita,kashimasendeshita,kasu,kashimashou,kashite
+dance (verb),,,,odorimasu,odorimasen,odorimashita,odorimasendeshita,odoru,odorimashou,odotte
+run,,,,hashirimasu,hashirimasen,hashirimashita,hashirimasendeshita,hashiru,hashirimashou,hashitte
+swim,,,,oyogimasu,oyogimasen,oyogimashita,oyogimasendeshita,oyogu,oyogimashou,oyoide
+sing,,,,utaimasu,utaimasen,utaimashita,utaimasendeshita,utau,utaimashou,utatte
+talk,,,,hanashimasu,hanashimasen,hanashimashita,hanashimasendeshita,hanasu,hanashimashou,hanashite
+learn,,,,naraimasu,naraimasen,naraimashita,naraimasendeshita,narau,naraimashou,naratte
+wash,,,,araimasu,araimasen,araimashita,araimasendeshita,arau,araimashou,aratte
+live,,,,sumimasu,sumimasen,sumimashita,sumimasendeshita,sumu,sumimashou,sunde
+die,,,,shinimasu,shinimasen,shinimashita,shinimasendeshita,shinu,shinimashou,shinde
+play (games),,,,asobimasu,asobimasen,asobimashita,asobimasendeshita,asobu,asobimashou,asonde
+wait,,,,machimasu,machimasen,machimashita,machimasendeshita,matsu,machimashou,matte
+turn,,,,magarimasu,magarimasen,magarimashita,magarimasendeshita,magaru,magarimashou,magatte
+say,,,,iimasu,iimasen,iimashita,iimasendeshita,iu,iimashou,itte
+arrive,,,,tsukimasu,tsukimasen,tsukimashita,tsukimasendeshita,tsuku,tsukimashou,tsuite
+take (time),,,,kakarimasu,kakarimasen,kakarimashita,kakarimasendeshita,kakaru,kakarimashou,kakatte
+get on,board,,,norimasu,norimasen,norimashita,norimasendeshita,noru,norimashou,notte
 `)
   ],
   [
     'g2-verbs', parseComboCsv(`
-,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te
 ,,,,masu,masen,mashita,masendeshita,ru,mashou,te
-exist (animate),be (animate),stay,,imasu,,,,,,
-eat,,,,tabemasu,,,,,,
-see,watch,,,mimasu,,,,,,
-tell,teach,,,oshiemasu,,,,,,
-sleep,,,,nemasu,,,,,,
-wear,,,,kimasu,,,,,,
-show,,,,misemasu,,,,,,
-borrow,,,,karimasu,,,,,,
-give,raise,,,agemasu,,,,,,
-shower (verb),,,,shawaawoabimasu,,,,,,
-start,begin,,,hajimemasu,,,,,,
-sleep,,,,nemasu,,,,,,
-stop,,,,tomemasu,,,,,,
-deliver,,,,todokemasu,,,,,,
-leave,,,,demasu,,,,,,
-get off,,,,orimasu,,,,,,`)
+exist (animate),be (animate),stay,,imasu,imasen,imashita,imasendeshita,iru,imashou,ite
+eat,,,,tabemasu,tabemasen,tabemashita,tabemasendeshita,taberu,tabemashou,tabete
+see,watch,,,mimasu,mimasen,mimashita,mimasendeshita,miru,mimashou,mite
+tell,teach,,,oshiemasu,oshiemasen,oshiemashita,oshiemasendeshita,oshieru,oshiemashou,oshiete
+sleep,,,,nemasu,nemasen,nemashita,nemasendeshita,neru,nemashou,nete
+wear,,,,kimasu,kimasen,kimashita,kimasendeshita,kiru,kimashou,kite
+show,,,,misemasu,misemasen,misemashita,misemasendeshita,miseru,misemashou,misete
+borrow,,,,karimasu,karimasen,karimashita,karimasendeshita,kariru,karimashou,karite
+give,raise,,,agemasu,agemasen,agemashita,agemasendeshita,ageru,agemashou,agete
+shower (verb),,,,shawaawoabimasu,shawaawoabimasen,shawaawoabimashita,shawaawoabimasendeshita,shawaawoabiru,shawaawoabimashou,shawaawoabite
+start,begin,,,hajimemasu,hajimemasen,hajimemashita,hajimemasendeshita,hajimeru,hajimemashou,hajimete
+sleep,,,,nemasu,nemasen,nemashita,nemasendeshita,neru,nemashou,nete
+stop,,,,tomemasu,tomemasen,tomemashita,tomemasendeshita,tomeru,tomemashou,tomete
+deliver,,,,todokemasu,todokemasen,todokemashita,todokemasendeshita,todokeru,todokemashou,todokete
+leave,,,,demasu,demasen,demashita,demasendeshita,deru,demashou,dete
+get off,,,,orimasu,orimasen,orimashita,orimasendeshita,oriru,orimashou,orite
+`)
   ],
   [
     'irr-verbs', parseComboCsv(`
-,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
-,,,h]imasu,himasen,himashita,himasendeshita,uru,himashou,hite
-come,,,kimasu,,,,,,
-do,,,shimasu,,,,,,
-study,,,benkyouwoshimasu,,,,,,
-shop,,,kaimonowoshimasu,,,,,,
-work,,,shigotowoshimasu,,,,,,
-phone,,,denwawoshimasu,,,,,,
-walk,,,sanpowoshimasu,,,,,,
-cook,,,ryouriwoshimasu,,,,,,
-eat (eg have lunch),,,shokujiwoshimasu,,,,,,
-stretch,,,sutoretchiwoshimasu,,,,,,
-download,,,daunroodoshimasu,,,,,,
-bring (thing),,,mottekimasu,,,,,,
-bring (person),,,tsuretekimasu,,,,,,
-oversleep,,,neboushimasu,,,,,,`)
+,,,present positive,present negative,past positive,past negative,dictionary,volitional,te
+,,,imasu,imasen,imashita,imasendeshita,uru,imashou,ite
+come,,,kimasu,kimasen,kimashita,kimasendeshita,kuru,kimashou,kite
+do,,,shimasu,shimasen,shimashita,shimasendeshita,suru,shimashou,shite
+study,,,benkyouwoshimasu,benkyouwoshimasen,benkyouwoshimashita,benkyouwoshimasendeshita,benkyouwosuru,benkyouwoshimashou,benkyouwoshite
+shop,,,kaimonowoshimasu,kaimonowoshimasen,kaimonowoshimashita,kaimonowoshimasendeshita,kaimonowosuru,kaimonowoshimashou,kaimonowoshite
+work,,,shigotowoshimasu,shigotowoshimasen,shigotowoshimashita,shigotowoshimasendeshita,shigotowosuru,shigotowoshimashou,shigotowoshite
+phone,,,denwawoshimasu,denwawoshimasen,denwawoshimashita,denwawoshimasendeshita,denwawosuru,denwawoshimashou,denwawoshite
+walk,,,sanpowoshimasu,sanpowoshimasen,sanpowoshimashita,sanpowoshimasendeshita,sanpowosuru,sanpowoshimashou,sanpowoshite
+cook,,,ryouriwoshimasu,ryouriwoshimasen,ryouriwoshimashita,ryouriwoshimasendeshita,ryouriwosuru,ryouriwoshimashou,ryouriwoshite
+eat (eg have lunch),,,shokujiwoshimasu,shokujiwoshimasen,shokujiwoshimashita,shokujiwoshimasendeshita,shokujiwosuru,shokujiwoshimashou,shokujiwoshite
+stretch,,,sutoretchiwoshimasu,sutoretchiwoshimasen,sutoretchiwoshimashita,sutoretchiwoshimasendeshita,sutoretchiwosuru,sutoretchiwoshimashou,sutoretchiwoshite
+download,,,daunroodoshimasu,daunroodoshimasen,daunroodoshimashita,daunroodoshimasendeshita,daunroodosuru,daunroodoshimashou,daunroodoshite
+bring (thing),,,mottekimasu,mottekimasen,mottekimashita,mottekimasendeshita,mottekuru,mottekimashou,mottekite
+bring (person),,,tsuretekimasu,tsuretekimasen,tsuretekimashita,tsuretekimasendeshita,tsuretekuru,tsuretekimashou,tsuretekite
+oversleep,,,neboushimasu,neboushimasen,neboushimashita,neboushimasendeshita,nebousuru,neboushimashou,neboushite
+`)
   ],
 ]);

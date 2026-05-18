@@ -1,34 +1,34 @@
-,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te form
+,,,,present positive,present negative,past positive,past negative,dictionary,volitional,te
 ,,,,imasu,imasen,imashita,imasendeshita,u,imashou,te
-go,,,,ikimasu,,,,,,itte
-return,,,,kaerimasu,,,,,,kaette
-drink,,,,nomimasu,,,,,,nonde
-buy,,,,kaimasu,,,,,,katte
-read,,,,yomimasu,,,,,,yonde
-listen,ask,,,kikimasu,,,,,,kiite
-walk,,,,arukimasu,,,,,,aruite
-send,,,,okurimasu,,,,,,okutte
-meet,,,,aimasu,,,,,,atte
-draw,write,,,kakimasu,,,,,,kaite
-take (thing),,,,torimasu,,,,,,totte
-climb,,,,noborimasu,,,,,,nobotte
-make,,,,tsukurimasu,,,,,,tsukutte
-exist (inanimate),be (inanimate),have,,arimasu,,,,,,atte
-receive,,,,moraimasu,,,,,,moratte
-lend,loan,,,kashimasu,,,,kasu,,kashite
-dance (verb),,,,odorimasu,,,,,,odotte
-run,,,,hashirimasu,,,,,,hashitte
-swim,,,,oyogimasu,,,,,,oyoide
-sing,,,,utaimasu,,,,,,utatte
-talk,,,,hanashimasu,,,,hanasu,,hanashite
-learn,,,,naraimasu,,,,,,naratte
-wash,,,,araimasu,,,,,,aratte
-live,,,,sumimasu,,,,,,sunde
-die,,,,shinimasu,,,,,,shinde
-play (games),,,,asobimasu,,,,,,asonde
-wait,,,,machimasu,,,,matsu,,matte
-turn,,,,magarimasu,,,,,,magatte
-say,,,,iimasu,,,,,,itte
-arrive,,,,tsukimasu,,,,,,tsuite
-take (time),,,,kakarimasu,,,,,,kakatte
-get on,board,,,norimasu,,,,,,notte
+go,,,,ikimasu,ikimasen,ikimashita,ikimasendeshita,iku,ikimashou,itte
+return,,,,kaerimasu,kaerimasen,kaerimashita,kaerimasendeshita,kaeru,kaerimashou,kaette
+drink,,,,nomimasu,nomimasen,nomimashita,nomimasendeshita,nomu,nomimashou,nonde
+buy,,,,kaimasu,kaimasen,kaimashita,kaimasendeshita,kau,kaimashou,katte
+read,,,,yomimasu,yomimasen,yomimashita,yomimasendeshita,yomu,yomimashou,yonde
+listen,ask,,,kikimasu,kikimasen,kikimashita,kikimasendeshita,kiku,kikimashou,kiite
+walk,,,,arukimasu,arukimasen,arukimashita,arukimasendeshita,aruku,arukimashou,aruite
+send,,,,okurimasu,okurimasen,okurimashita,okurimasendeshita,okuru,okurimashou,okutte
+meet,,,,aimasu,aimasen,aimashita,aimasendeshita,au,aimashou,atte
+draw,write,,,kakimasu,kakimasen,kakimashita,kakimasendeshita,kaku,kakimashou,kaite
+take (thing),,,,torimasu,torimasen,torimashita,torimasendeshita,toru,torimashou,totte
+climb,,,,noborimasu,noborimasen,noborimashita,noborimasendeshita,noboru,noborimashou,nobotte
+make,,,,tsukurimasu,tsukurimasen,tsukurimashita,tsukurimasendeshita,tsukuru,tsukurimashou,tsukutte
+exist (inanimate),be (inanimate),have,,arimasu,arimasen,arimashita,arimasendeshita,aru,arimashou,atte
+receive,,,,moraimasu,moraimasen,moraimashita,moraimasendeshita,morau,moraimashou,moratte
+lend,loan,,,kashimasu,kashimasen,kashimashita,kashimasendeshita,kasu,kashimashou,kashite
+dance (verb),,,,odorimasu,odorimasen,odorimashita,odorimasendeshita,odoru,odorimashou,odotte
+run,,,,hashirimasu,hashirimasen,hashirimashita,hashirimasendeshita,hashiru,hashirimashou,hashitte
+swim,,,,oyogimasu,oyogimasen,oyogimashita,oyogimasendeshita,oyogu,oyogimashou,oyoide
+sing,,,,utaimasu,utaimasen,utaimashita,utaimasendeshita,utau,utaimashou,utatte
+talk,,,,hanashimasu,hanashimasen,hanashimashita,hanashimasendeshita,hanasu,hanashimashou,hanashite
+learn,,,,naraimasu,naraimasen,naraimashita,naraimasendeshita,narau,naraimashou,naratte
+wash,,,,araimasu,araimasen,araimashita,araimasendeshita,arau,araimashou,aratte
+live,,,,sumimasu,sumimasen,sumimashita,sumimasendeshita,sumu,sumimashou,sunde
+die,,,,shinimasu,shinimasen,shinimashita,shinimasendeshita,shinu,shinimashou,shinde
+play (games),,,,asobimasu,asobimasen,asobimashita,asobimasendeshita,asobu,asobimashou,asonde
+wait,,,,machimasu,machimasen,machimashita,machimasendeshita,matsu,machimashou,matte
+turn,,,,magarimasu,magarimasen,magarimashita,magarimasendeshita,magaru,magarimashou,magatte
+say,,,,iimasu,iimasen,iimashita,iimasendeshita,iu,iimashou,itte
+arrive,,,,tsukimasu,tsukimasen,tsukimashita,tsukimasendeshita,tsuku,tsukimashou,tsuite
+take (time),,,,kakarimasu,kakarimasen,kakarimashita,kakarimasendeshita,kakaru,kakarimashou,kakatte
+get on,board,,,norimasu,norimasen,norimashita,norimasendeshita,noru,norimashou,notte
