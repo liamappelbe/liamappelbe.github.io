@@ -1,6 +1,9 @@
 function wait() { return new Promise(resolve => setTimeout(resolve, 0)); }
 function randInt(n) { return Math.floor(Math.random() * n); }
-function pick(array) { return array[randInt(array.length)]; }
+
+function pick(array) {
+  return array.length == 0 ? null : array[randInt(array.length)];
+}
 
 function sameElements(itr1, itr2) {
   const s1 = new Set(itr1);
@@ -48,6 +51,7 @@ class ArrayMap {
     }
   }
   randomValue() { return pick(this._array); }
+  randomValueWhere(predicate) { return pick(this._array.filter(predicate)); }
 }
 
 class MultiMapBuilder {

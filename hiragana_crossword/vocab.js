@@ -8,8 +8,7 @@ const romanjiConversion = document.getElementById('romanji-conversion');
 const correctAnswer = document.getElementById('correct-answer');
 const checkBtn = document.getElementById('check-btn');
 
-let currentWord = null;
-let currentTask = null;
+let current = null;
 let kDictionary = null;
 let nextWordTimeout = null;
 
@@ -30,9 +29,29 @@ class DictEntry {
     this.tasks = new ArrayMap();
   }
 
-  randomTask() { return this.tasks.randomValue(); }
+  randomQuestion() {
+    return new Question(
+      this,
+      this.tasks.randomValueWhere((t) => t.form == kEnglish),
+      this.tasks.randomValueWhere((t) => t.form != kEnglish),
+    );
+  }
   getTask(form) { return this.tasks.getOrInsert(form, () => new Task(form)); }
-  addAnswer(word, form) { this.getTask(form).answers.add(word); }
+  addAnswer(word, form) {
+    if (form == this.form) {
+      // Don't add answers of the same form as the base word.
+      return;
+    }
+    this.getTask(form).answers.add(word);
+  }
+}
+
+class Question {
+  constructor(word, englishTask, japaneseTask) {
+    this.word = word;
+    this.englishTask = englishTask;
+    this.japaneseTask = japaneseTask;
+  }
 }
 
 function createDictionary(dicts) {
@@ -129,14 +148,10 @@ function init() {
   });
 
   vocabInput.addEventListener('input', (e) => {
-    if (currentTask && currentTask.form !== kEnglish) {
-      const val = vocabInput.value.trim().toLowerCase();
-      const converted = toHiragana(val, false);
-      if (converted && converted !== val && val.length > 0) {
-        romanjiConversion.textContent = converted;
-      } else {
-        romanjiConversion.textContent = '';
-      }
+    const val = vocabInput.value.trim().toLowerCase();
+    const converted = toHiragana(val, false);
+    if (converted && converted !== val && val.length > 0) {
+      romanjiConversion.textContent = converted;
     } else {
       romanjiConversion.textContent = '';
     }
@@ -164,26 +179,24 @@ function init() {
 
 function nextWord() {
   clearTimeout(nextWordTimeout);
-  currentWord = kDictionary.randomValue();
-  currentTask = currentWord.randomTask();
+  current = kDictionary.randomValue().randomQuestion();
 
-  const needsEnglish = currentWord.form !== kEnglish;
-  if (needsEnglish) {
-    while (currentTask.form === kEnglish && currentWord.tasks.size > 1) {
-      currentTask = currentWord.randomTask();
-    }
-  }
+  const hasEnglishAnswer = current.englishTask != null;
+  const hasJapaneseAnswer = current.japaneseTask != null;
 
-  englishContainer.classList.toggle('hidden', !needsEnglish);
+  englishContainer.classList.toggle('hidden', !hasEnglishAnswer);
+
+  // TODO: Properly support hiding the japanese answer section, and hiragana
+  // keyboard, when we have word task lists that might only contain english.
 
   // Show/hide keyboard
   document.getElementById('hiragana-keyboard')
-      .classList.toggle('hidden', currentTask.form === kEnglish);
+      .classList.toggle('hidden', !hasJapaneseAnswer);
 
   // Update UI
-  promptWord.textContent = currentWord.word;
+  promptWord.textContent = current.word.word;
   targetFormLabel.textContent =
-      `${needsEnglish ? 'and ' : ''}to ${currentTask.form} form:`;
+      `${hasEnglishAnswer ? 'and ' : ''}to ${current.japaneseTask.form} form:`;
 
   vocabInput.value = '';
   vocabInput.className = '';
@@ -196,7 +209,7 @@ function nextWord() {
   checkBtn.textContent = 'Check';
 
   setTimeout(() => {
-    if (needsEnglish) {
+    if (hasEnglishAnswer) {
       englishInput.focus();
     } else {
       vocabInput.focus();
@@ -205,52 +218,42 @@ function nextWord() {
 }
 
 function checkAnswer() {
-  const needsEnglish = currentWord.form !== kEnglish;
-
   let val = vocabInput.value.trim().toLowerCase();
-  if (currentTask.form !== kEnglish) {
-    const converted = toHiragana(val, false);
-    if (converted) val = converted;
-  }
-  const isJapCorrect = currentTask.answers.has(val);
+  const converted = toHiragana(val, false);
+  if (converted) val = converted;
+  const isJapCorrect = current.japaneseTask.answers.has(val);
 
   let isEngCorrect = true;
-  if (needsEnglish) {
+  if (current.englishTask != null) {
     const engVal = englishInput.value.trim().toLowerCase();
-    const englishTask = currentWord.tasks.get(kEnglish);
-    isEngCorrect = englishTask && englishTask.answers.has(engVal);
+    isEngCorrect = current.englishTask.answers.has(engVal);
   }
 
   const isCorrect = isJapCorrect && isEngCorrect;
 
   const extras = [];
-  if (currentWord.kind) extras.push(currentWord.kind);
+  if (current.word.kind) extras.push(current.word.kind);
 
   const extraStr = extras.join(', ');
 
   if (isCorrect) {
     vocabInput.className = 'correct';
-    if (needsEnglish) englishInput.className = 'correct';
+    englishInput.className = 'correct';
     feedback.textContent = 'Correct!';
     feedback.className = 'correct';
     correctAnswer.textContent = extraStr ? `Info: ${extraStr}` : '';
   } else {
     vocabInput.className = isJapCorrect ? 'correct' : 'incorrect';
-    if (needsEnglish)
-      englishInput.className = isEngCorrect ? 'correct' : 'incorrect';
-
+    englishInput.className = isEngCorrect ? 'correct' : 'incorrect';
     feedback.textContent = 'Incorrect';
     feedback.className = 'incorrect';
 
     const correctStrs = [];
-    if (needsEnglish && !isEngCorrect) {
-      const englishTask = currentWord.tasks.get(kEnglish);
-      if (englishTask) {
-        correctStrs.push(Array.from(englishTask.answers).join(' or '));
-      }
+    if (current.englishTask != null && !isEngCorrect) {
+      correctStrs.push(Array.from(current.englishTask.answers).join(' or '));
     }
     if (!isJapCorrect) {
-      correctStrs.push(Array.from(currentTask.answers).join(' or '));
+      correctStrs.push(Array.from(current.japaneseTask.answers).join(' or '));
     }
 
     let answerStr = `Correct answer: ${correctStrs.join(', ')}`;
