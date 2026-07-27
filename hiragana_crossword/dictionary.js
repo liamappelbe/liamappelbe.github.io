@@ -712,6 +712,49 @@ five months,,,gokagetsu
 six months,,,rokkagetsu`)
   ],
   [
+    'lesson 21', parseWordCsv(`
+past,long ago,,mukashi
+english,,,eigo
+foot,leg,,ashi
+hurt,painful,,itai
+head,,,atama
+eye,,,me
+tooth,,,ha
+throat,,,nodo
+stomach,belly,,onaka
+shoulder,,,kata
+back,,,senaka
+lower back,,,koshi
+hand,,,te
+ear,,,mimi
+hair,,,kami
+face,,,kao
+mouth,,,kuchi
+node,,,hana
+eyebrow,,,mayuge
+arm,,,ude
+finger,,,yubi
+neck,,,kubi
+feeling,mood,,kibun
+fever,,,netsu
+degree,,,do
+window,,,mado
+curtain,,,kaaten
+light (electric),,,denki
+garden,yard,,niwa`)
+  ],
+  [
+    'lesson 22', parseWordCsv(`
+forbid,,,kinshi
+no entry,,,tachiirikinshi
+no parking,,,chuushakinshi
+no smoking,,,kinen
+door,,,doa
+vase,,,kabin
+entrance,,,iriguchi
+exit,,,deguchi`)
+  ],
+  [
     'i-adjectives', parseComboCsv(`
 ,,,modifying noun,present positive,present negative,past positive,past negative
 ,,,i,idesu,kunaidesu,kattadesu,kunakattadesu
@@ -734,6 +777,7 @@ fun,pleasant,,tanoshii,tanoshiidesu,tanoshikunaidesu,tanoshikattadesu,tanoshikun
 boring,,,tsumaranai,tsumaranaidesu,tsumaranakunaidesu,tsumaranakattadesu,tsumaranakunakattadesu
 difficult,,,muzukashii,muzukashiidesu,muzukashikunaidesu,muzukashikattadesu,muzukashikunakattadesu
 busy,,,isogashii,isogashiidesu,isogashikunaidesu,isogashikattadesu,isogashikunakattadesu
+dangerous,,,abunai,abunaidesu,abunakunaidesu,abunakattadesu,abunakunakattadesu
 `)
   ],
   [
@@ -789,6 +833,16 @@ say,,,,iimasu,iimasen,iimashita,iimasendeshita,iu,iimashou,itte
 arrive,,,,tsukimasu,tsukimasen,tsukimashita,tsukimasendeshita,tsuku,tsukimashou,tsuite
 take (time),,,,kakarimasu,kakarimasen,kakarimashita,kakarimasendeshita,kakaru,kakarimashou,kakatte
 get on,board,,,norimasu,norimasen,norimashita,norimasendeshita,noru,norimashou,notte
+use,,,,tsukaimasu,tsukaimasen,tsukaimashita,tsukaimasendeshita,tsukau,tsukaimashou,tsukatte
+sit down,,,,suwarimasu,suwarimasen,suwarimashita,suwarimasendeshita,suwaru,suwarimashou,suwatte
+enter,,,,hairimasu,hairimasen,hairimashita,hairimasendeshita,hairu,hairimashou,haitte
+turn off,,,,keshimasu,keshimasen,keshimashita,keshimasendeshita,kesu,keshimashou,keshite
+rest,,,,yasumimasu,yasumimasen,yasumimashita,yasumimasendeshita,yasumu,yasumimashou,yasunde
+learn,study,,,manabimasu,manabimasen,manabimashita,manabimasendeshita,manabu,manabimashou,manande
+stand up,,,,tachimasu,tachimasen,tachimashita,tachimasendeshita,tatsu,tachimashou,tatte
+inhale,,,,suimasu,suimasen,suimashita,suimasendeshita,suu,suimashou,sutte
+smoke,,,,tabakowosuimasu,tabakowosuimasen,tabakowosuimashita,tabakowosuimasendeshita,tabakowosuu,tabakowosuimashou,tabakowosutte
+touch,,,,sawarimasu,sawarimasen,sawarimashita,sawarimasendeshita,sawaru,sawarimashou,sawatte
 `)
   ],
   [
@@ -811,6 +865,12 @@ stop,,,,tomemasu,tomemasen,tomemashita,tomemasendeshita,tomeru,tomemashou,tomete
 deliver,,,,todokemasu,todokemasen,todokemashita,todokemasendeshita,todokeru,todokemashou,todokete
 leave,,,,demasu,demasen,demashita,demasendeshita,deru,demashou,dete
 get off,,,,orimasu,orimasen,orimashita,orimasendeshita,oriru,orimashou,orite
+put,place,,,okimasu,okimasen,okimashita,okimasendeshita,okiru,okimashou,okite
+open,,,,akemasu,akemasen,akemashita,akemasendeshita,akeru,akemashou,akete
+close,,,,shimemasu,shimemasen,shimemashita,shimemasendeshita,shimeru,shimemashou,shimete
+turn on,,,,tsukemasu,tsukemasen,tsukemashita,tsukemasendeshita,tsukeru,tsukemashou,tsukete
+park,,,,tomemasu,tomemasen,tomemashita,tomemasendeshita,tomeru,tomemashou,tomete
+put in,add,,,iremasu,iremasen,iremashita,iremasendeshita,ireru,iremashou,irete
 `)
   ],
   [
