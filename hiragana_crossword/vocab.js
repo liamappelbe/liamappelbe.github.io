@@ -7,6 +7,7 @@ const feedback = document.getElementById('feedback');
 const romanjiConversion = document.getElementById('romanji-conversion');
 const correctAnswer = document.getElementById('correct-answer');
 const checkBtn = document.getElementById('check-btn');
+const correctAnim = document.getElementById('correct-anim');
 
 let current = null;
 let kDictionary = null;
@@ -207,6 +208,9 @@ function nextWord() {
   feedback.className = '';
   correctAnswer.textContent = '';
   checkBtn.textContent = 'Check';
+  if (correctAnim) {
+    correctAnim.classList.remove('active');
+  }
 
   setTimeout(() => {
     if (hasEnglishAnswer) {
@@ -242,6 +246,11 @@ function checkAnswer() {
     feedback.textContent = 'Correct!';
     feedback.className = 'correct';
     correctAnswer.textContent = extraStr ? `Info: ${extraStr}` : '';
+    if (correctAnim) {
+      correctAnim.classList.remove('active');
+      void correctAnim.offsetWidth;
+      correctAnim.classList.add('active');
+    }
   } else {
     vocabInput.className = isJapCorrect ? 'correct' : 'incorrect';
     englishInput.className = isEngCorrect ? 'correct' : 'incorrect';

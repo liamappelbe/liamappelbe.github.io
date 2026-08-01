@@ -20,11 +20,360 @@
     }
 
     #main-area {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       flex: 1;
       max-width: 600px;
+    }
+
+    .correct-anim-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 10;
+      transition: opacity 0.1s ease-out;
+    }
+
+    .correct-anim-container.active {
+      opacity: 1;
+    }
+
+    .correct-anim-container .popper-svg {
+      width: 280px;
+      height: 280px;
+      overflow: visible;
+      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.35));
+    }
+
+    .popper-cone {
+      transform-origin: 75px 195px;
+      opacity: 0;
+    }
+
+    .correct-anim-container.active .popper-cone {
+      animation: popper-pop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .streamer {
+      stroke-dasharray: 140;
+      stroke-dashoffset: 140;
+      opacity: 0;
+      transform-origin: 135px 135px;
+    }
+
+    .correct-anim-container.active .streamer-1 {
+      animation: streamer-fly-1 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    .correct-anim-container.active .streamer-2 {
+      animation: streamer-fly-2 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    .correct-anim-container.active .streamer-3 {
+      animation: streamer-fly-3 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    .correct-anim-container.active .streamer-4 {
+      animation: streamer-fly-4 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+    .correct-anim-container.active .streamer-5 {
+      animation: streamer-fly-5 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+
+    .particle {
+      opacity: 0;
+      transform-origin: 135px 135px;
+    }
+
+    .correct-anim-container.active .particle-star-1 { animation: particle-fly-1 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-star-2 { animation: particle-fly-5 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-star-3 { animation: particle-fly-3 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-star-4 { animation: particle-fly-7 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-star-5 { animation: particle-fly-2 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+
+    .correct-anim-container.active .particle-circle-1 { animation: particle-fly-2 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-circle-2 { animation: particle-fly-4 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-circle-3 { animation: particle-fly-6 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-circle-4 { animation: particle-fly-8 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-circle-5 { animation: particle-fly-1 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-circle-6 { animation: particle-fly-5 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+
+    .correct-anim-container.active .particle-rect-1 { animation: particle-fly-1 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-2 { animation: particle-fly-3 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-3 { animation: particle-fly-5 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-4 { animation: particle-fly-7 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-5 { animation: particle-fly-2 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-6 { animation: particle-fly-4 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-7 { animation: particle-fly-6 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+    .correct-anim-container.active .particle-rect-8 { animation: particle-fly-8 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+
+    @keyframes popper-pop {
+      0% {
+        transform: scale(0.3) rotate(-20deg);
+        opacity: 0;
+      }
+      15% {
+        transform: scale(1.18) rotate(8deg);
+        opacity: 1;
+      }
+      30% {
+        transform: scale(0.92) rotate(-4deg);
+        opacity: 1;
+      }
+      45% {
+        transform: scale(1.05) rotate(2deg);
+        opacity: 1;
+      }
+      65%, 85% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0.85) rotate(0deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes streamer-fly-1 {
+      0% {
+        stroke-dashoffset: 140;
+        transform: translate(0, 0) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: translate(-70px, -90px) scale(1.25) rotate(-35deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes streamer-fly-2 {
+      0% {
+        stroke-dashoffset: 140;
+        transform: translate(0, 0) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: translate(75px, -100px) scale(1.3) rotate(45deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes streamer-fly-3 {
+      0% {
+        stroke-dashoffset: 140;
+        transform: translate(0, 0) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: translate(105px, -35px) scale(1.2) rotate(70deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes streamer-fly-4 {
+      0% {
+        stroke-dashoffset: 140;
+        transform: translate(0, 0) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: translate(-10px, -120px) scale(1.2) rotate(-15deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes streamer-fly-5 {
+      0% {
+        stroke-dashoffset: 140;
+        transform: translate(0, 0) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        transform: translate(115px, 35px) scale(1.15) rotate(90deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-1 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-95px, -85px) scale(1.2) rotate(220deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-2 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-55px, -135px) scale(1.1) rotate(-180deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-3 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-10px, -150px) scale(1.3) rotate(270deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-4 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(45px, -140px) scale(1.2) rotate(310deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-5 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(95px, -95px) scale(1.2) rotate(-240deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-6 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(130px, -40px) scale(1.1) rotate(200deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-7 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(110px, 35px) scale(1.2) rotate(160deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes particle-fly-8 {
+      0% {
+        transform: translate(0, 0) scale(0.2) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-110px, -30px) scale(1.1) rotate(-150deg);
+        opacity: 0;
+      }
     }
 
     #task-description,
@@ -157,6 +506,51 @@
 
   <div id="vocab-container">
     <div id="main-area">
+      <div id="correct-anim" class="correct-anim-container">
+        <svg class="popper-svg" viewBox="0 0 280 280">
+          <g class="popper-cone">
+            <path d="M 75,195 Q 60,215 45,220 Q 40,230 52,235" stroke="#ffd700" stroke-width="3" fill="none" stroke-linecap="round" />
+            <circle cx="52" cy="235" r="4.5" fill="#a55eea" />
+            <path d="M 75,195 L 115,115 Q 135,135 155,155 Z" fill="#ff2a74" />
+            <path d="M 87,171 L 127,123 Q 133,129 139,135 L 97,181 Z" fill="#ffd700" />
+            <path d="M 103,139 L 137,133 Q 146,142 149,149 L 109,151 Z" fill="#00d2ff" />
+            <path d="M 115,115 Q 135,135 155,155 Q 135,135 115,115" stroke="#ffd700" stroke-width="5" stroke-linecap="round" fill="none" />
+            <circle cx="100" cy="170" r="3" fill="#2ed573" />
+            <circle cx="120" cy="148" r="2.5" fill="#ffffff" />
+          </g>
+
+          <g class="popper-burst">
+            <path class="streamer streamer-1" d="M 135,135 Q 120,110 100,95 T 70,60" fill="none" stroke="#ff2a74" stroke-width="4" stroke-linecap="round" />
+            <path class="streamer streamer-2" d="M 135,135 Q 145,105 160,80 T 185,40" fill="none" stroke="#ffd700" stroke-width="4.5" stroke-linecap="round" />
+            <path class="streamer streamer-3" d="M 135,135 Q 160,125 185,115 T 230,105" fill="none" stroke="#00d2ff" stroke-width="4" stroke-linecap="round" />
+            <path class="streamer streamer-4" d="M 135,135 Q 130,100 120,70 T 110,25" fill="none" stroke="#2ed573" stroke-width="4" stroke-linecap="round" />
+            <path class="streamer streamer-5" d="M 135,135 Q 165,145 195,140 T 240,150" fill="none" stroke="#a55eea" stroke-width="4" stroke-linecap="round" />
+
+            <path class="particle particle-star-1" d="M 135,127 L 137.5,132.5 L 143,135 L 137.5,137.5 L 135,143 L 132.5,137.5 L 127,135 L 132.5,132.5 Z" fill="#ffd700" />
+            <path class="particle particle-star-2" d="M 135,129 L 136.8,133.2 L 141,135 L 136.8,136.8 L 135,141 L 133.2,136.8 L 129,135 L 133.2,133.2 Z" fill="#00d2ff" />
+            <path class="particle particle-star-3" d="M 135,126 L 138,132 L 144,135 L 138,138 L 135,144 L 132,138 L 126,135 L 132,132 Z" fill="#ff2a74" />
+            <path class="particle particle-star-4" d="M 135,129.5 L 136.5,133.5 L 140.5,135 L 136.5,136.5 L 135,140.5 L 133.5,136.5 L 129.5,135 L 133.5,133.5 Z" fill="#a55eea" />
+            <path class="particle particle-star-5" d="M 135,127.5 L 137.2,132.8 L 142.5,135 L 137.2,137.2 L 135,142.5 L 132.8,137.2 L 127.5,135 L 132.8,132.8 Z" fill="#2ed573" />
+
+            <circle class="particle particle-circle-1" cx="135" cy="135" r="5" fill="#ffd700" />
+            <circle class="particle particle-circle-2" cx="135" cy="135" r="4" fill="#ff2a74" />
+            <circle class="particle particle-circle-3" cx="135" cy="135" r="6" fill="#00d2ff" />
+            <circle class="particle particle-circle-4" cx="135" cy="135" r="3.5" fill="#2ed573" />
+            <circle class="particle particle-circle-5" cx="135" cy="135" r="4.5" fill="#a55eea" />
+            <circle class="particle particle-circle-6" cx="135" cy="135" r="5.5" fill="#ffd700" />
+
+            <rect class="particle particle-rect-1" x="131" y="132.5" width="8" height="5" rx="1" fill="#ff2a74" />
+            <rect class="particle particle-rect-2" x="131" y="133" width="9" height="4" rx="1" fill="#00d2ff" />
+            <rect class="particle particle-rect-3" x="131.5" y="132" width="7" height="6" rx="1" fill="#ffd700" />
+            <rect class="particle particle-rect-4" x="131" y="133" width="8" height="4" rx="1" fill="#2ed573" />
+            <rect class="particle particle-rect-5" x="132" y="131" width="6" height="8" rx="1" fill="#a55eea" />
+            <rect class="particle particle-rect-6" x="130.5" y="132.5" width="9" height="5" rx="1" fill="#ffd700" />
+            <rect class="particle particle-rect-7" x="131.5" y="132.5" width="7" height="5" rx="1" fill="#ff2a74" />
+            <rect class="particle particle-rect-8" x="131" y="132" width="8" height="6" rx="1" fill="#00d2ff" />
+          </g>
+        </svg>
+      </div>
+
       <div style="display: flex; flex-direction: column; align-items: center;">
         <div id="prompt-form-label" class="form-label">Convert the word:</div>
         <div id="prompt-word">...</div>
