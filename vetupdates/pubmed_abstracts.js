@@ -1114,7 +1114,7 @@ class PubMedImpl {
     // whether the abstract box is shown, so it would be brittle to try and
     // write the thin detector using it.
     const pmCol = searchUp(document.getElementsByTagName('pub-med')[0], 'col');
-    if (pmCol == null || pmCol == col) {
+    if (pmCol == null) {
       console.log('PUBMED', 'Couldn\'t find pub med tag column');
       return pma;
     }
