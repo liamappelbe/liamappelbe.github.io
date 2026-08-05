@@ -1082,6 +1082,7 @@ class PubMedImpl {
       console.log('PUBMED', 'Couldn\'t find pub-med-abstract');
       return null;
     }
+
     // To get the sticky behavior to work on squarespace, we need to walk up the
     // parents to find the enclosing .code-block and .row, and set some custom
     // styles on them.
@@ -1090,21 +1091,18 @@ class PubMedImpl {
       console.log('PUBMED', 'Couldn\'t find abstract code-block');
       return pma;
     }
-    codeBlock.classList.add('pub-med-abstract-code-block');
 
     const col = searchUp(codeBlock, 'col');
     if (col == null) {
       console.log('PUBMED', 'Couldn\'t find abstract column');
       return pma;
     }
-    col.classList.add('pub-med-abstract-column');
 
     const row = searchUp(col, 'row');
     if (row == null) {
       console.log('PUBMED', 'Couldn\'t find abstract row');
       return pma;
     }
-    row.classList.add('pub-med-abstract-row');
 
     // Add the print button at the top of this row.
     newBtn(row, ['print-button'], () => window.print(), 'Print');
@@ -1114,10 +1112,14 @@ class PubMedImpl {
     // whether the abstract box is shown, so it would be brittle to try and
     // write the thin detector using it.
     const pmCol = searchUp(document.getElementsByTagName('pub-med')[0], 'col');
-    if (pmCol == null) {
+    if (pmCol == null || pmCol == col) {
       console.log('PUBMED', 'Couldn\'t find pub med tag column');
       return pma;
     }
+
+    codeBlock.classList.add('pub-med-abstract-code-block');
+    col.classList.add('pub-med-abstract-column');
+    row.classList.add('pub-med-abstract-row');
 
     // If we found all the elements, we can detect single column layout by
     // checking whether the pub med tag column is (about) as big as the row,
