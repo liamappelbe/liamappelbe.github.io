@@ -1104,9 +1104,6 @@ class PubMedImpl {
       return pma;
     }
 
-    // Add the print button at the top of this row.
-    newBtn(row, ['print-button'], () => window.print(), 'Print');
-
     // Find the column containing the pub med tags. We use this to detect thin
     // layouts because the abstract column is laid out differently depending on
     // whether the abstract box is shown, so it would be brittle to try and
@@ -1120,6 +1117,9 @@ class PubMedImpl {
     codeBlock.classList.add('pub-med-abstract-code-block');
     col.classList.add('pub-med-abstract-column');
     row.classList.add('pub-med-abstract-row');
+
+    // Add the print button at the top of this row.
+    newBtn(row, ['print-button'], () => window.print(), 'Print');
 
     // If we found all the elements, we can detect single column layout by
     // checking whether the pub med tag column is (about) as big as the row,
