@@ -1086,37 +1086,47 @@ class PubMedImpl {
     // To get the sticky behavior to work on squarespace, we need to walk up the
     // parents to find the enclosing .code-block and .row, and set some custom
     // styles on them.
-    const codeBlock = searchUp(pma, 'code-block');
-    if (codeBlock == null) {
-      console.log('PUBMED', 'Couldn\'t find abstract code-block');
+    const pmt = document.getElementsByTagName('pub-med')[0];
+    if (pmt == null) {
+      console.log('PUBMED', 'Couldn\'t find pub-med tag');
       return pma;
     }
 
-    const col = searchUp(codeBlock, 'col');
-    if (col == null) {
+    const pmtCol = searchUp(pmt, 'col');
+    if (pmtCol == null) {
+      console.log('PUBMED', 'Couldn\'t find pub-med tag column');
+      return pma;
+    }
+
+    const row = searchUp(pmtCol, 'row');
+    if (row == null) {
+      console.log('PUBMED', 'Couldn\'t find pub-med tag row');
+      return pma;
+    }
+    row.classList.add('pub-med-abstract-row');
+
+    const pmaCb = searchUp(pma, 'code-block');
+    if (pmaCb == null) {
+      console.log('PUBMED', 'Couldn\'t find abstract code-block');
+      return pma;
+    }
+    pmaCb.classList.add('pub-med-abstract-code-block');
+
+    let pmaCol = searchUp(pmaCb, 'col');
+    if (pmaCol == null) {
       console.log('PUBMED', 'Couldn\'t find abstract column');
       return pma;
     }
 
-    const row = searchUp(col, 'row');
-    if (row == null) {
-      console.log('PUBMED', 'Couldn\'t find abstract row');
-      return pma;
+    if (pmaCol == pmtCol) {
+      console.log(
+          'PUBMED',
+          'pub-med tag and pub-med-abstract are in the ' +
+              'same column. Creating a fake column to recover');
+      pmaCol = newDiv(row, ['pub-med-abstract-column']);
+    } else {
+      pmaCol.classList.add('pub-med-abstract-column');
     }
-
-    // Find the column containing the pub med tags. We use this to detect thin
-    // layouts because the abstract column is laid out differently depending on
-    // whether the abstract box is shown, so it would be brittle to try and
-    // write the thin detector using it.
-    const pmCol = searchUp(document.getElementsByTagName('pub-med')[0], 'col');
-    if (pmCol == null || pmCol == col) {
-      console.log('PUBMED', 'Couldn\'t find pub med tag column');
-      return pma;
-    }
-
-    codeBlock.classList.add('pub-med-abstract-code-block');
-    col.classList.add('pub-med-abstract-column');
-    row.classList.add('pub-med-abstract-row');
 
     // Add the print button at the top of this row.
     newBtn(row, ['print-button'], () => window.print(), 'Print');
@@ -1126,7 +1136,7 @@ class PubMedImpl {
     // whenever the row changes size.
     const onResize = () => {
       const rowWidth = row.getBoundingClientRect().width;
-      const colWidth = pmCol.getBoundingClientRect().width;
+      const colWidth = pmtCol.getBoundingClientRect().width;
       domIsThin = colWidth >= 0.9 * rowWidth;
       if (domIsThin) {
         row.classList.add('pub-med-abstract-row-thin');
