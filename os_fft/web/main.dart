@@ -514,10 +514,12 @@ class Config {
     if (m < kMinPitch * microtones || m > kMaxPitch * microtones) return null;
     return Microtone(m, extraDetuneIndex);
   }
+
   double _microtoneToFreq(Microtone m) {
     final d = fullDetune(m.extraDetuneIndex) / 100.0;
     return pow(2, ((m.microtone / microtones) + d) / kNotesPerOctave) * kC0Freq;
   }
+
   Microtone? freqToMicrotone(double f) {
     final mt1 = _freqToMicrotone(f, 0);
     final mt2 = hasExtraDetune ? _freqToMicrotone(f, 1) : null;
@@ -842,20 +844,20 @@ class FFTJob {
               ? -1.0
               : 1.0;
       for (int edi = 0; edi < config.numDetuneGroups; ++edi) {
-      for (int microtoneIndex = 0;
-          microtoneIndex < config.microtones;
-          ++microtoneIndex) {
-        final sinSettings = pb.InstrumentSettings();
-        final cloneIndex = getCloneIndex(microtoneIndex, chan, edi);
-        final instrument = cloneIndex * kCloneOffset + kInstSin;
-        final microDetune = microtoneIndex * 100.0 / config.microtones;
-        sinSettings.detune = config.fullDetune(edi) + microDetune;
-        sinSettings.pan = pan;
-        sinSettings.volume = 1;
-        settings.instruments[instrument] = sinSettings;
+        for (int microtoneIndex = 0;
+            microtoneIndex < config.microtones;
+            ++microtoneIndex) {
+          final sinSettings = pb.InstrumentSettings();
+          final cloneIndex = getCloneIndex(microtoneIndex, chan, edi);
+          final instrument = cloneIndex * kCloneOffset + kInstSin;
+          final microDetune = microtoneIndex * 100.0 / config.microtones;
+          sinSettings.detune = config.fullDetune(edi) + microDetune;
+          sinSettings.pan = pan;
+          sinSettings.volume = 1;
+          settings.instruments[instrument] = sinSettings;
+        }
       }
     }
-  }
     seq.settings = settings;
     final notes = seq.notes;
     for (final note in outNotes) {
@@ -902,7 +904,7 @@ void setInputFiles(List<File> files) {
   hide(domOutputRow);
   domSelectedFile.innerText = '${file.name}:';
   if (!(file.type.startsWith('audio/wav') ||
-        file.type.startsWith('audio/vnd.wav'))) {
+      file.type.startsWith('audio/vnd.wav'))) {
     reportError('Not a WAV file.');
     return;
   }
