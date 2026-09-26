@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal Palette</title>
+<link rel="icon" href="res/favicon.ico">
+<style>
+html {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+body {
+  background-color: #212121;
+  margin: 0;
+  flex-grow: 1;
+  color: #f5f5f5;
+  font-family: monospace;
+}
+#head {
+  background-color: #424242;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 24px;
+}
+h1, #index {
+  color: #ffc107;
+  text-align: center;
+  font-family: monospace;
+  font-size: 42px;
+  flex-grow: 1;
+  padding: 16px;
+  margin: 0;
+}
+#index {
+  color: #ff5722;
+  text-decoration: none;
+  flex-grow: 0;
+}
+h2 {
+  color: #ff5722;
+  font-family: monospace;
+  margin-top: 0;
+}
+a {
+  color: #ffc107;
+  font-family: monospace;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+.description {
+  color: #cccccc;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.card {
+  background-color: #2b2b2b;
+  border: 1px solid #424242;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.grid-container {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.palette-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px;
+  table-layout: fixed;
+  min-width: 680px;
+}
+.col-header {
+  text-align: center;
+  padding: 8px 4px;
+  color: #9e9e9e;
+  font-size: 13px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.col-header .col-num {
+  font-size: 14px;
+  font-weight: bold;
+}
+.col-header .col-name {
+  font-size: 12px;
+}
+.col-header .col-hue {
+  font-size: 11px;
+  color: #757575;
+  margin-top: 2px;
+}
+.col-header.active-col {
+  color: #ffc107;
+  background-color: rgba(255, 193, 7, 0.12);
+}
+.col-header.active-col .col-hue {
+  color: #ffca28;
+}
+.row-header {
+  text-align: right;
+  padding: 8px 12px;
+  color: #9e9e9e;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 90px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.row-header.active-row {
+  color: #ffc107;
+  background-color: rgba(255, 193, 7, 0.12);
+}
+.swatch-cell {
+  padding: 0;
+  vertical-align: middle;
+}
+.swatch {
+  height: 56px;
+  border-radius: 6px;
+  border: 2px solid #383838;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  position: relative;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.swatch:hover {
+  transform: translateY(-2px);
+  border-color: #888888;
+}
+.swatch.selected {
+  outline: 3px solid #ffc107;
+  outline-offset: 2px;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.7);
+  border-color: #ffffff;
+  transform: translateY(-2px);
+  z-index: 2;
+}
+.swatch-hex {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+.gamut-badge {
+  display: none;
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 11px;
+  line-height: 1;
+  color: #ffffff;
+  background: rgba(216, 67, 21, 0.85);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  pointer-events: none;
+}
+.swatch.clamped {
+  border-color: #ff5722;
+}
+.swatch.clamped .gamut-badge {
+  display: block;
+}
+.selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  border: 1px solid #424242;
+  margin-bottom: 20px;
+}
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.selection-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #757575;
+  display: inline-block;
+}
+.selection-title {
+  color: #9e9e9e;
+}
+.selection-name {
+  color: #ffc107;
+  font-weight: bold;
+}
+.selection-gamut {
+  display: none;
+  color: #ff5722;
+  background-color: rgba(255, 87, 34, 0.15);
+  border: 1px solid #ff5722;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.selection-hex {
+  color: #f5f5f5;
+  background-color: #2b2b2b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #424242;
+}
+.sliders-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.slider-title {
+  font-weight: bold;
+  color: #ffc107;
+  font-size: 15px;
+}
+.slider-val {
+  color: #f5f5f5;
+  font-weight: bold;
+  background-color: #1e1e1e;
+  border: 1px solid #424242;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.slider-hint {
+  font-size: 12px;
+  color: #9e9e9e;
+}
+.slider-hint span {
+  color: #ff5722;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: #1e1e1e;
+  border: 1px solid #424242;
+  outline: none;
+  cursor: pointer;
+  margin: 6px 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffc107;
+  cursor: pointer;
+  border: 2px solid #212121;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffc107;
+  cursor: pointer;
+  border: 2px solid #212121;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+#slider_h {
+  background: linear-gradient(to right,
+    oklch(0.7 0.15 0),
+    oklch(0.7 0.15 60),
+    oklch(0.7 0.15 120),
+    oklch(0.7 0.15 180),
+    oklch(0.7 0.15 240),
+    oklch(0.7 0.15 300),
+    oklch(0.7 0.15 360)
+  );
+}
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.output-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #ffc107;
+}
+button {
+  background-color: #ff5722;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+button:hover {
+  background-color: #e64a19;
+}
+button:active {
+  transform: scale(0.97);
+}
+#palette_output {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #1a1a1a;
+  color: #f5f5f5;
+  border: 1px solid #424242;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.reset-btn {
+  background-color: transparent;
+  color: #9e9e9e;
+  border: 1px solid #424242;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+.reset-btn:hover {
+  background-color: #383838;
+  color: #f5f5f5;
+}
+</style>
+<script>
+const ANSI_NAMES = ['Black', 'Red', 'Green', 'Yellow', 'Blue', 'Magenta', 'Cyan', 'White'];
+const DEFAULT_HUES = [0, 29, 142, 107, 264, 328, 195, 60];
+const DEFAULT_CHROMAS = [0.14, 0.17];
+const DEFAULT_LIGHTNESSES = [0.62, 0.78];
+
+let hues = [...DEFAULT_HUES];
+let chromas = [...DEFAULT_CHROMAS];
+let lightnesses = [...DEFAULT_LIGHTNESSES];
+
+let selectedRow = 0;
+let selectedCol = 1;
+
+function linear2srgb(x) {
+  return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+}
+
+function clamp01(x) {
+  return Math.max(0, Math.min(1, x));
+}
+
+function toHexByte(x) {
+  const b = Math.round(clamp01(x) * 255);
+  return b.toString(16).padStart(2, '0');
+}
+
+function oklchToColorInfo(L, C, Hdeg) {
+  const Hrad = Hdeg * Math.PI / 180;
+  const a = C * Math.cos(Hrad);
+  const b = C * Math.sin(Hrad);
+
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+
+  const rLinear = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const gLinear = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const bLinear = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+
+  // Detect if linear RGB falls outside [0, 1] before clamping
+  const eps = 1e-4;
+  const isOutOfGamut = (
+    rLinear < -eps || rLinear > 1 + eps ||
+    gLinear < -eps || gLinear > 1 + eps ||
+    bLinear < -eps || bLinear > 1 + eps
+  );
+
+  const rSrgb = linear2srgb(rLinear);
+  const gSrgb = linear2srgb(gLinear);
+  const bSrgb = linear2srgb(bLinear);
+
+  const r = clamp01(rSrgb);
+  const g = clamp01(gSrgb);
+  const bVal = clamp01(bSrgb);
+
+  const hex = '#' + toHexByte(r) + toHexByte(g) + toHexByte(bVal);
+
+  return {
+    rgb: [r, g, bVal],
+    hex: hex,
+    isOutOfGamut: isOutOfGamut
+  };
+}
+
+function getCellColorInfo(r, c) {
+  return oklchToColorInfo(lightnesses[r], chromas[r], hues[c]);
+}
+
+function getContrastColor(r, g, b) {
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum > 0.55 ? '#111111' : '#ffffff';
+}
+
+function renderPaletteGrid() {
+  const table = document.getElementById('palette_table');
+  table.innerHTML = '';
+
+  const headerRow = document.createElement('tr');
+  const emptyTh = document.createElement('th');
+  emptyTh.style.width = '90px';
+  headerRow.appendChild(emptyTh);
+
+  for (let c = 0; c < 8; c++) {
+    const th = document.createElement('th');
+    th.className = 'col-header' + (c === selectedCol ? ' active-col' : '');
+    th.id = `col_header_${c}`;
+    th.innerHTML = `<div class="col-num">${c}</div><div class="col-name">${ANSI_NAMES[c]}</div><div class="col-hue" id="col_hue_label_${c}">${hues[c]}°</div>`;
+    headerRow.appendChild(th);
+  }
+  table.appendChild(headerRow);
+
+  const rowLabels = ['Normal', 'Bright'];
+  for (let r = 0; r < 2; r++) {
+    const tr = document.createElement('tr');
+
+    const rowTh = document.createElement('th');
+    rowTh.className = 'row-header' + (r === selectedRow ? ' active-row' : '');
+    rowTh.id = `row_header_${r}`;
+    rowTh.textContent = rowLabels[r];
+    tr.appendChild(rowTh);
+
+    for (let c = 0; c < 8; c++) {
+      const td = document.createElement('td');
+      td.className = 'swatch-cell';
+
+      const swatch = document.createElement('div');
+      swatch.id = `swatch_${r}_${c}`;
+      swatch.tabIndex = 0;
+
+      const info = getCellColorInfo(r, c);
+      const [cr, cg, cb] = info.rgb;
+      swatch.className = 'swatch' +
+        (r === selectedRow && c === selectedCol ? ' selected' : '') +
+        (info.isOutOfGamut ? ' clamped' : '');
+      swatch.style.backgroundColor = info.hex;
+
+      const gamutSuffix = info.isOutOfGamut ? ' [Out of gamut (clamped)]' : '';
+      swatch.title = `${rowLabels[r]} ${ANSI_NAMES[c]} (${r}, ${c}): ${info.hex}${gamutSuffix}`;
+
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'swatch-hex';
+      hexSpan.id = `swatch_hex_${r}_${c}`;
+      hexSpan.style.color = getContrastColor(cr, cg, cb);
+      hexSpan.textContent = info.hex;
+      swatch.appendChild(hexSpan);
+
+      const gamutBadge = document.createElement('span');
+      gamutBadge.className = 'gamut-badge';
+      gamutBadge.id = `gamut_badge_${r}_${c}`;
+      gamutBadge.textContent = '⚠';
+      gamutBadge.title = 'Out of gamut (clamped)';
+      swatch.appendChild(gamutBadge);
+
+      swatch.onclick = () => selectCell(r, c);
+      swatch.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectCell(r, c);
+        }
+      };
+
+      td.appendChild(swatch);
+      tr.appendChild(td);
+    }
+
+    table.appendChild(tr);
+  }
+}
+
+function updateColors() {
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 8; c++) {
+      const swatch = document.getElementById(`swatch_${r}_${c}`);
+      const hexSpan = document.getElementById(`swatch_hex_${r}_${c}`);
+      const info = getCellColorInfo(r, c);
+      const [cr, cg, cb] = info.rgb;
+
+      swatch.style.backgroundColor = info.hex;
+      if (info.isOutOfGamut) {
+        swatch.classList.add('clamped');
+      } else {
+        swatch.classList.remove('clamped');
+      }
+
+      const gamutSuffix = info.isOutOfGamut ? ' [Out of gamut (clamped)]' : '';
+      swatch.title = `${r === 0 ? 'Normal' : 'Bright'} ${ANSI_NAMES[c]} (${r}, ${c}): ${info.hex}${gamutSuffix}`;
+      hexSpan.textContent = info.hex;
+      hexSpan.style.color = getContrastColor(cr, cg, cb);
+    }
+  }
+
+  for (let c = 0; c < 8; c++) {
+    const hueLabel = document.getElementById(`col_hue_label_${c}`);
+    if (hueLabel) hueLabel.textContent = `${hues[c]}°`;
+  }
+
+  updateSelectionBar();
+  updateOutput();
+}
+
+function selectCell(r, c) {
+  selectedRow = r;
+  selectedCol = c;
+
+  for (let rowIdx = 0; rowIdx < 2; rowIdx++) {
+    const rowHeader = document.getElementById(`row_header_${rowIdx}`);
+    if (rowHeader) {
+      if (rowIdx === selectedRow) {
+        rowHeader.classList.add('active-row');
+      } else {
+        rowHeader.classList.remove('active-row');
+      }
+    }
+
+    for (let colIdx = 0; colIdx < 8; colIdx++) {
+      const swatch = document.getElementById(`swatch_${rowIdx}_${colIdx}`);
+      if (swatch) {
+        if (rowIdx === selectedRow && colIdx === selectedCol) {
+          swatch.classList.add('selected');
+        } else {
+          swatch.classList.remove('selected');
+        }
+      }
+    }
+  }
+
+  for (let colIdx = 0; colIdx < 8; colIdx++) {
+    const colHeader = document.getElementById(`col_header_${colIdx}`);
+    if (colHeader) {
+      if (colIdx === selectedCol) {
+        colHeader.classList.add('active-col');
+      } else {
+        colHeader.classList.remove('active-col');
+      }
+    }
+  }
+
+  updateSlidersValues();
+  updateSelectionBar();
+}
+
+function updateSlidersValues() {
+  const sliderH = document.getElementById('slider_h');
+  const sliderS = document.getElementById('slider_s');
+  const sliderL = document.getElementById('slider_l');
+
+  sliderH.value = hues[selectedCol];
+  sliderS.value = chromas[selectedRow];
+  sliderL.value = lightnesses[selectedRow];
+
+  updateSliderLabels();
+}
+
+function updateSliderLabels() {
+  document.getElementById('val_h').textContent = `${hues[selectedCol]}°`;
+  document.getElementById('val_s').textContent = chromas[selectedRow].toFixed(3);
+  document.getElementById('val_l').textContent = `${lightnesses[selectedRow].toFixed(3)} (${Math.round(lightnesses[selectedRow] * 100)}%)`;
+
+  const rowName = selectedRow === 0 ? 'Normal' : 'Bright';
+  const colName = ANSI_NAMES[selectedCol];
+  document.getElementById('hint_h').innerHTML = `Updates <span>Column ${selectedCol} (${colName})</span> for both Normal and Bright`;
+  document.getElementById('hint_s').innerHTML = `Updates <span>Row ${selectedRow} (${rowName})</span> across all 8 columns`;
+  document.getElementById('hint_l').innerHTML = `Updates <span>Row ${selectedRow} (${rowName})</span> across all 8 columns`;
+}
+
+function updateSelectionBar() {
+  const rowName = selectedRow === 0 ? 'Normal' : 'Bright';
+  const colName = ANSI_NAMES[selectedCol];
+  const info = getCellColorInfo(selectedRow, selectedCol);
+
+  document.getElementById('selection_desc').textContent = `${rowName} ${colName} (Row ${selectedRow}, Col ${selectedCol})`;
+  document.getElementById('selection_hex').textContent = info.hex;
+  document.getElementById('selection_preview').style.backgroundColor = info.hex;
+
+  const gamutElem = document.getElementById('selection_gamut');
+  if (info.isOutOfGamut) {
+    gamutElem.style.display = 'inline-block';
+  } else {
+    gamutElem.style.display = 'none';
+  }
+}
+
+function updateOutput() {
+  const lines = [];
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 8; c++) {
+      lines.push(getCellColorInfo(r, c).hex);
+    }
+  }
+  document.getElementById('palette_output').value = lines.join('\n');
+}
+
+function onHueInput(e) {
+  hues[selectedCol] = Math.round(parseFloat(e.target.value));
+  updateColors();
+  updateSliderLabels();
+}
+
+function onChromaInput(e) {
+  chromas[selectedRow] = parseFloat(e.target.value);
+  updateColors();
+  updateSliderLabels();
+}
+
+function onLightnessInput(e) {
+  lightnesses[selectedRow] = parseFloat(e.target.value);
+  updateColors();
+  updateSliderLabels();
+}
+
+function copyOutput() {
+  const text = document.getElementById('palette_output').value;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy_btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.backgroundColor = '#4caf50';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.backgroundColor = '';
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+  });
+}
+
+function resetDefaults() {
+  hues = [...DEFAULT_HUES];
+  chromas = [...DEFAULT_CHROMAS];
+  lightnesses = [...DEFAULT_LIGHTNESSES];
+  updateColors();
+  updateSlidersValues();
+}
+
+function onLoad() {
+  renderPaletteGrid();
+  updateSlidersValues();
+  updateSelectionBar();
+  updateOutput();
+
+  document.getElementById('slider_h').addEventListener('input', onHueInput);
+  document.getElementById('slider_s').addEventListener('input', onChromaInput);
+  document.getElementById('slider_l').addEventListener('input', onLightnessInput);
+}
+
+window.addEventListener('load', onLoad);
+</script>
+</head>
+<body>
+<div id="head">
+  <a id="index" href="index.html">&lt;</a>
+  <h1>Terminal Palette</h1>
+</div>
+<div id="wrap">
+  <div class="description">
+    Interactive 16-color terminal palette generator in Oklch space.
+    Columns share Hue (H), while Row 0 (Normal) and Row 1 (Bright) each share Chroma (S) and Lightness (L).
+  </div>
+
+  <div class="card">
+    <div class="grid-container">
+      <table class="palette-table" id="palette_table"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="selection-bar">
+      <div class="selection-info">
+        <span class="selection-title">Selected:</span>
+        <span class="selection-preview" id="selection_preview"></span>
+        <span class="selection-name" id="selection_desc"></span>
+        <span class="selection-gamut" id="selection_gamut">⚠ Out of gamut (clamped)</span>
+      </div>
+      <div class="selection-hex" id="selection_hex"></div>
+    </div>
+
+    <div class="sliders-grid">
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-title">Hue (H)</span>
+          <span class="slider-val" id="val_h">29°</span>
+        </div>
+        <input type="range" id="slider_h" min="0" max="360" step="1" value="29">
+        <div class="slider-hint" id="hint_h"></div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-title">Chroma / Saturation (S)</span>
+          <span class="slider-val" id="val_s">0.140</span>
+        </div>
+        <input type="range" id="slider_s" min="0" max="0.4" step="0.001" value="0.14">
+        <div class="slider-hint" id="hint_s"></div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-title">Lightness (L)</span>
+          <span class="slider-val" id="val_l">0.620 (62%)</span>
+        </div>
+        <input type="range" id="slider_l" min="0" max="1" step="0.005" value="0.62">
+        <div class="slider-hint" id="hint_l"></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px; text-align: right;">
+      <button type="button" class="reset-btn" onclick="resetDefaults()">Reset to Defaults</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="output-header">
+      <h2>Palette Output</h2>
+      <button type="button" id="copy_btn" onclick="copyOutput()">Copy to Clipboard</button>
+    </div>
+    <textarea id="palette_output" rows="16" readonly spellcheck="false"></textarea>
+  </div>
+</div>
+</body>
+</html>
