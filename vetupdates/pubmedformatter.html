@@ -17,7 +17,7 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 const {newElement, newDiv, newLink, emptyDiv, cleanText, fixCase,
-       ArticleId, asyncPubMedGetArticleFromPmid,
+       cleanJournalName, ArticleId, asyncPubMedGetArticleFromPmid,
        asyncPubMedGetArticleFromPmcid, kLink, maybePrefix,
        asyncPubMedConvertId, identifyIdKind,
        asyncPubMedSearchTitle} = module.exports;
@@ -45,13 +45,14 @@ class State {
 let state = null;
 
 class ArticleInfo {
-  constructor(aid, title, authors, date, doi, journal, journalAbbr, url) {
+  constructor(id, aid, title, authors, date, doi, journal, journalAbbr, url) {
+    this.id = id;
     this.aid = aid;
     this.title = title;
     this.authors = authors;
     this.date = date;
     this.doi = doi;
-    this.journal = journal;
+    this.journal = cleanJournalName(journal);
     this.journalAbbr = journalAbbr;
     this.url = url;
   }
@@ -93,8 +94,8 @@ function fillStateFromDom() {
   for (const synth of domBottom.getElementsByClassName('synth')) {
     const f = (cls) => synth.getElementsByClassName('synth-' + cls)[0].value;
     state.synths.push(new ArticleInfo(
-        null, f('title'), f('authors'), f('date'), f('doi'), f('journal'),
-        f('journal-abbr'), f('url')));
+        null, null, f('title'), f('authors'), f('date'), f('doi'),
+        f('journal'), f('journal-abbr'), f('url')));
   }
 }
 
@@ -172,7 +173,7 @@ async function generate() {
         aid = new ArticleId(id, null, null);
       }
       return new ArticleResult(id, aid, new ArticleInfo(
-          aid, art.title, art.authors, art.getDateText(), art.doi,
+          id, aid, art.title, art.authors, art.getDateText(), art.doi,
           art.journalName, art.journalAbbr, art.getLink()), null);
     } catch (err) {
       return new ArticleResult(id, null, null, err);
@@ -236,9 +237,16 @@ async function generate() {
     articlesByJournal.get(journal).push(ai);
   }
 
+  state.ids = [];
+  state.synths = [];
   for (const [journal, articles] of articlesByJournal) {
     const ul = newElement('ul', domFormatted);
     for (const ai of articles) {
+      if (ai.id != null) {
+        state.ids.push(ai.id);
+      } else {
+        state.synths.push(ai);
+      }
       const aid = ai.aid;
       const authors = ai.authors;
       if (aid != null) {
@@ -261,6 +269,11 @@ async function generate() {
       newDiv(li, ['authors'], authors);
       const cite = newDiv(li, ['cite'], cleanText(ai.date, '. '));
       newLink(cite, ['doi'], ai.url, maybePrefix(ai.doi, 'doi: '));
+    }
+  }
+  for (const ar of results) {
+    if (ar.err != null) {
+      state.ids.push(ar.id);
     }
   }
 

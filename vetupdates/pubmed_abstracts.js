@@ -1224,6 +1224,7 @@ if (typeof (module) != 'undefined') {
     cleanText,
     cleanAlphanum,
     fixCase,
+    cleanJournalName,
     maybePrefix,
     // TODO: What functions does pubmednews etc need?
   };
