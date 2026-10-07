@@ -267,8 +267,10 @@ function newPubMedTag(parent, pmid) {
   return newElement('pub-med', parent, [], null, [['pmid', pmid]]);
 }
 
-const reClean = /[^a-zA-Z0-9]+/g;
-function cleanText(t) { return t.replaceAll(reClean, ' ').trim(); }
+function cleanAlphanum(text) {
+  if (text == null) return '';
+  return text.toLowerCase().replaceAll(/[^a-z0-9]+/g, ' ').trim();
+}
 
 function fixCase(t) {
   return t.slice(0, 1).toUpperCase() + t.slice(1).toLowerCase();
@@ -301,7 +303,7 @@ function encodeIdQuery(q, v) {
 function encodeTextQuery(q, t) {
   if (t.value.length == 0) return '';
   return q + '=' +
-      encodeURIComponent(cleanText(t.value).toLowerCase().split(' ').join(','));
+      encodeURIComponent(cleanAlphanum(t.value).split(' ').join(','));
 }
 
 function encodeOptionQuery(q, o) {
@@ -313,7 +315,7 @@ function encodeOptionQuery(q, o) {
     for (let j = 1; j < sublist.children.length; ++j) {
       const c = sublist.children[j];
       if (c.children[0].checked) {
-        a.push(cleanText(c.children[1].innerText).toLowerCase());
+        a.push(cleanAlphanum(c.children[1].innerText));
       }
     }
   }

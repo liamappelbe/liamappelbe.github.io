@@ -17,8 +17,10 @@ let module = {};
 <script src="pubmed_abstracts.js"></script>
 <script type="text/javascript">
 const {newElement, newDiv, newLink, emptyDiv, cleanText, fixCase,
-       asyncPubMedGetArticleFromPmid, kLink, maybePrefix,
-       asyncPubMedConvertId} = module.exports;
+       ArticleId, asyncPubMedGetArticleFromPmid,
+       asyncPubMedGetArticleFromPmcid, kLink, maybePrefix,
+       asyncPubMedConvertId, identifyIdKind,
+       asyncPubMedSearchTitle} = module.exports;
 module = {};
 </script>
 <script src="vetupdates_search.js"></script>
@@ -84,7 +86,8 @@ function fillDomFromState() {
 }
 
 function fillStateFromDom() {
-  state.ids = domIds.value.split(/[\n\t ,]+/).filter(id => id != '');
+  state.ids =
+      domIds.value.split(/\r?\n/).map(id => id.trim()).filter(id => id != '');
   state.errorText = domErrors.value;
   state.synths = [];
   for (const synth of domBottom.getElementsByClassName('synth')) {
@@ -151,14 +154,23 @@ class ArticleResult {
 async function generate() {
   function getArticleImpl(aid) {
     if (aid.pmid != null) return asyncPubMedGetArticleFromPmid(aid.pmid);
-    if (aid.pcmid != null) return asyncPubMedGetArticleFromPcmid(aid.pcmid);
+    if (aid.pmcid != null) return asyncPubMedGetArticleFromPmcid(aid.pmcid);
     throw "Missing ID";
   }
 
-  async function getArticle(id) {
+  async function getArticle(id, index) {
     try {
-      const aid = await asyncPubMedConvertId(id);
-      const art = await getArticleImpl(aid);
+      let aid = null;
+      let art = null;
+      if (identifyIdKind(id) != null) {
+        aid = await asyncPubMedConvertId(id);
+        art = await getArticleImpl(aid);
+      } else {
+        art = await asyncPubMedSearchTitle(id);
+        id = art.id;
+        state.ids[index] = id;
+        aid = new ArticleId(id, null, null);
+      }
       return new ArticleResult(id, aid, new ArticleInfo(
           aid, art.title, art.authors, art.getDateText(), art.doi,
           art.journalName, art.journalAbbr, art.getLink()), null);
@@ -204,7 +216,10 @@ async function generate() {
 
   for (const ar of results) {
     if (ar.err != null) {
-      addError(`Invalid ID: ${ar.id}`);
+      const msg = (ar.err == 'No matches' || ar.err == 'Multiple matches') ?
+          ar.err :
+          'Invalid ID';
+      addError(`${msg}: ${ar.id}`);
       console.error(ar.id, ar.err);
     } else if (ar.seen) {
       addError(`Reused ID: ${ar.id}`);
@@ -281,14 +296,10 @@ async function onDrop(e) {
   }
   if (files.length == 0) return;
   const text = await files[0].text();
-  const isPmidList = (t) => {
-    const m = t.match(/([0-9]*\n?\r?)*/);
-    if (m == null || m.length == 0) return false;
-    return m[0] == t;
-  };
+  const isPmidList = (t) => t.match(/^[0-9\r\n\t ,]*$/) != null;
   const domPmids = document.getElementById('idin');
   if (isPmidList(text)) {
-    domPmids.value = text;
+    domPmids.value = text.split(/[\r\n\t ,]+/).filter(id => id != '').join('\n');
   } else {
     const pmids = [...text.matchAll(/PMID:\s*([0-9]+)/g)].map(x => x[1]);
     domPmids.value = pmids.join('\n');
@@ -442,9 +453,12 @@ a, .synth-delete {
   justify-content: space-evenly;
   align-items: stretch;
   gap: 16px;
+  padding-bottom: 16px;
 }
 #idin, #errors {
   resize: none;
+  white-space: pre;
+  overflow: scroll;
 }
 .middle {
   min-height: 100%;
@@ -601,16 +615,15 @@ a, .synth-delete {
     </div>
   </div>
   <div id="mid">
+    Synthetic elements:
+    <a onclick="addSynth()">[ADD]</a>
+    <a onclick="generate()">== GO =></a>
+    <div id="bottom"></div>
+    <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
     <div>Major tags (click to copy):</div>
     <div id="major_tags"></div>
     <div>Known minor tags (click to copy):</div>
     <div id="minor_tags"></div>
-    <a onclick="clearAll()" class="warning">[DELETE EVERYTHING]</a><br/><br/>
-    Synthetic elements:
-    <a onclick="addSynth()">[ADD]</a>
-    <a onclick="generate()">== GO =></a>
-  </div>
-  <div id="bottom">
   </div>
 </div>
 </body>

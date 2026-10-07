@@ -5,6 +5,7 @@ const {
   kLink,
   escapeString,
   unescapeString,
+  cleanAlphanum,
   Article,
   ArticleId,
   deserializeArticle,
@@ -172,12 +173,22 @@ const identifyIdKindTest = () => {
   test(identifyIdKind('asdlkjf'), null);
   test(identifyIdKind('9283\\2033'), null);
   test(identifyIdKind('12.34'), null);
+  test(identifyIdKind('some title with a / in it'), null);
+};
+
+const cleanAlphanumTest = () => {
+  test(cleanAlphanum('  Hello,   World! 123--456. '), 'hello world 123 456');
+  test(cleanAlphanum('A/B testing: (part 1)'), 'a b testing part 1');
+  test(cleanAlphanum('---'), '');
+  test(cleanAlphanum(''), '');
+  test(cleanAlphanum(null), '');
 };
 
 const runUnitTests = async () => await group('unit', () => {
   stringEscapingTest();
   articleSerializationTest();
   identifyIdKindTest();
+  cleanAlphanumTest();
 });
 
 const allArticleIds = [

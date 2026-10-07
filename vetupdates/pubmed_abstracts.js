@@ -3,6 +3,7 @@ const kBaseUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const kApis = {
   efetchPmid: 'efetch.fcgi?db=pubmed&retmode=xml',
   efetchPmcid: 'efetch.fcgi?db=pmc&retmode=xml',
+  esearchTitle: 'esearch.fcgi?db=pubmed&retmode=xml&field=title',
 };
 const kIdConvUrl = 'https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/';
 const kRetries = 3;
@@ -18,7 +19,7 @@ const kIdKind_PMID = 1;
 const kIdKind_PMCID = 2;
 const kIdKindNames = ['DOI', 'PMID', 'PMCID'];
 
-const kRegexDoi = /^.+\/.+$/;
+const kRegexDoi = /^\S+\/\S+$/;
 const kRegexPmid = /^[0-9]+$/;
 const kRegexPmcid = /^pmc[0-9]+$/;
 
@@ -455,6 +456,11 @@ function cleanText(text, end = null, otherEnds = null) {
   return text;
 }
 
+function cleanAlphanum(text) {
+  if (text == null) return '';
+  return text.toLowerCase().replaceAll(/[^a-z0-9]+/g, ' ').trim();
+}
+
 function fixCase(text) {
   return text.slice(0, 1).toUpperCase() + text.slice(1).toLowerCase();
 }
@@ -856,6 +862,25 @@ function asyncGetFilledArticleId(aid) {
   return aid;
 }
 
+async function asyncPubMedSearchTitle(title) {
+  const normTitle = cleanAlphanum(title);
+  if (normTitle == '') throw 'No matches';
+  const response = await asyncRequest(
+      `${kBaseUrl}/${kApis.esearchTitle}&term=${
+          encodeURIComponent(normTitle)}&${kPubMedApiSuffix}`);
+  const xml = Xml.parse(response);
+  const pmids = (xml?.one('IdList') ?? xml)?.all('Id')?.map(x => x.text) ?? [];
+  const articles = await Promise.all(pmids.map(asyncPubMedGetArticleFromPmid));
+  let matches = articles.filter(art => cleanAlphanum(art.title) == normTitle);
+  if (matches.length == 0) {
+    matches = articles.filter(
+        art => cleanAlphanum(art.title).includes(normTitle));
+  }
+  if (matches.length == 0) throw 'No matches';
+  if (matches.length > 1) throw 'Multiple matches';
+  return matches[0];
+}
+
 function emptyDiv(n) {
   while (n.hasChildNodes()) n.removeChild(n.lastChild);
 }
@@ -1184,6 +1209,7 @@ if (typeof (module) != 'undefined') {
     asyncPubMedGetArticleFromPmcid,
     asyncPubMedConvertId,
     asyncGetFilledArticleId,
+    asyncPubMedSearchTitle,
     identifyIdKind,
     invertMap,
     escapeString,
@@ -1196,6 +1222,7 @@ if (typeof (module) != 'undefined') {
     newBtn,
     newLink,
     cleanText,
+    cleanAlphanum,
     fixCase,
     maybePrefix,
     // TODO: What functions does pubmednews etc need?
